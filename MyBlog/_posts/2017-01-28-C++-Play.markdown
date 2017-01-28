@@ -19,7 +19,6 @@ class Test{
 
 	std::string test_str = "Hello World";
 }
-
 ```
 
 ## Smart pointers in the standard library
