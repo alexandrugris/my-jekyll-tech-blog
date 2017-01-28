@@ -4,11 +4,15 @@ title:  "Welcome to Jekyll!"
 date:   2017-01-26 22:45:16 +0200
 categories: jekyll update
 ---
-You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run `jekyll serve`, which launches a web server and auto-regenerates your site when a file is updated.
+I was looking for a simple blogging platform that provided for my following needs.
 
-To add new posts, simply add a file in the `_posts` directory that follows the convention `YYYY-MM-DD-name-of-post.ext` and includes the necessary front matter. Take a look at the source for this post to get an idea about how it works.
+ - Decouple content and formatting and be able to store it on cheap / free hosts with minimal hassle (e.g. github pages).
+ - Total control over my content and not to be tied in to a blog provider (like Blogspot or Wordpress).
+ - To be able to edit my content easily, just like I would take notes for myself.
+ - To move my blog to anywhere I want and be am able to change formatting the way I want.
 
-Jekyll also offers powerful support for code snippets:
+Writing content in Markdown seemed like a good, simple idea. Easy to write, total control over content, no complex editors, no vendor lock-in. As a bonus, Jekyll also offers 
+powerful support for code snippets. Being a technical blog, this was just great.
 
 {% highlight ruby %}
 def print_hi(name)

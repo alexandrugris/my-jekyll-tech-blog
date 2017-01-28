@@ -140,6 +140,9 @@
   }
 }
 
+.post-excerpt p {
+  font-size: smaller; }
+
 .post-meta {
   font-size: $small-font-size;
   color: $grey-color;
@@ -160,13 +163,13 @@
 }
 
 .post-title {
-  font-size: 36px;
+  font-size: 28px;
 
   @include media-query($on-laptop) {
-    font-size: 32px;
+    font-size: 24px;
   }
   @include media-query($on-palm) {
-    font-size: 28px;
+    font-size: 20px;
   }
 }
 
@@ -174,37 +177,43 @@
   margin-bottom: $spacing-unit;
 
   h2 {
-    font-size: 32px;
+    font-size: 24px;
+    margin-top: $spacing-unit;
+    margin-bottom: $spacing-unit;
 
     @include media-query($on-laptop) {
-      font-size: 28px;
+      font-size: 20px;
     }
     @include media-query($on-palm) {
-      font-size: 20px;
+      font-size: 16px;
     }
   }
 
   h3 {
-    font-size: 26px;
+    font-size: 20px;
+    margin-top: $spacing-unit;
+    margin-bottom: $spacing-unit;
 
     @include media-query($on-laptop) {
-      font-size: 22px;
+      font-size: 16px;
     }
 
     @include media-query($on-palm) {
-      font-size: 18px;
+      font-size: 14px;
     }
   }
 
   h4 {
-    font-size: 20px;
+    font-size: 16px;
+    margin-top: $spacing-unit;
+    margin-bottom: $spacing-unit;
 
     @include media-query($on-laptop) {
-      font-size: 18px;
+      font-size: 14px;
     }
 
     @include media-query($on-palm) {
-      font-size: 16px;
+      font-size: 12px;
     }
   }
 }

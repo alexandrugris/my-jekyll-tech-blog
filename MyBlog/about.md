@@ -4,9 +4,11 @@ title: About
 permalink: /about/
 ---
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](http://jekyllrb.com/)
+All content on this site is originally created by myself, Alexandru Gris, unless specifically said so. 
+The blog uses a modified version of the [Minima Theme](https://github.com/jekyll/minima), with a design inspired by [Ed](https://github.com/elotroalex/ed). 
+It is built using [Jekyll](https://jekyllrb.com/), CSS3, HTML, Markdown, and [Visual Studio Code](http://code.visualstudio.com/).
 
-You can find the source code for the Jekyll new theme at:
+You can find the original source code for the Jekyll Minima theme at:
 {% include icon-github.html username="jekyll" %} /
 [minima](https://github.com/jekyll/minima)
 
