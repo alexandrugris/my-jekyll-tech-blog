@@ -4,7 +4,7 @@ title: About
 permalink: /about/
 ---
 
-All content on this site is originally created by myself, Alexandru Gris, unless specifically said so. 
+All content on this site is created by myself, Alexandru Gris, unless specifically said so. 
 The blog uses a modified version of the [Minima Theme](https://github.com/jekyll/minima), with a design inspired by [Ed](https://github.com/elotroalex/ed). 
 It is built using [Jekyll](https://jekyllrb.com/), CSS3, HTML, Markdown, and [Visual Studio Code](http://code.visualstudio.com/).
 

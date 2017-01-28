@@ -13,6 +13,10 @@ echo %CD%
 git add *
 git commit -m "Publish %DATE% %TIME%"
 
+git pull
+
+git merge
+
 git push origin
 
 cd %CURRENT_DIR%
