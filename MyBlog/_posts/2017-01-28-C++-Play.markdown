@@ -5,8 +5,8 @@ date:   2017-01-28 16:15:16 +0200
 categories: Native coding
 ---
 
-C++ has evolved dramatically in the past years. It is virtually a new language, a huge improvement over the C++ I used to practice in the 2000s. 
-Much more expressive templates, richer libraries, more emphasis on compile-time safety and performance improvements. Far from the C with classes in the early 2000s and far from the convoluted template constructs which appeared later to 
+C++ has evolved dramatically in the past years. It is virtually a new language, a huge improvement over the C++ I used to practice in the 2000s.
+Much more expressive templates, richer libraries, more emphasis on compile-time safety and performance improvements. Far from the C with classes in the early 2000s and far from the convoluted template constructs which appeared later to
 improve compile-time issue detection and type safety. To refresh my memory and also get up to speed with the new trends, I have spent a couple of hours digging through the docs, doing some tutorials. Here are my notes.
 
 ## Improvements to classes - inline initializers for class members:
@@ -14,11 +14,10 @@ improve compile-time issue detection and type safety. To refresh my memory and a
 ```csharp
 class Test{
 
-	int x = 0;
+	int x = 0; // new in C++
 	int y = 0;
 
 	std::string test_str = "Hello World";
-
 }
 
 ```
@@ -33,53 +32,56 @@ In the 2000s you really had three choices for memory management in the C++ world
 Now smart pointers are included in the standard library and they are the preferred way of writing C++ code.
 
 ```csharp
-	#include <memory>
+#include <memory>
 
-	// ...
+// ...
 
-	class Test {
-	// ...
-	public:
+class Test {
+// ...
+public:
+	Test(int x, int y, const std::string& s) { /*...*/ }
 
-		Test(int x, int y, const std::string& s) { /*...*/ }
+}
 
-	}
+void test_shared_ptr() {
 
-	void test_shared_ptr() {
-
-		// the recommended way to initialize a smart pointer because the ref-counter is 
-		// allocated in the same call with the memory for Test => less memory fragmentation and better locality
-		shared_ptr<Test> pTest = make_shared<Test>(10, 10, "Hello World");
-		weak_ptr<Test> pwTest = pTest;
-	}	
-	
+	// the recommended way to initialize a smart pointer because the ref-counter is
+	// allocated in the same call with the memory for Test
+	// => less memory fragmentation and better locality
+	shared_ptr<Test> pTest = make_shared<Test>(10, 10, "Hello World");
+	weak_ptr<Test> pwTest = pTest;
+}
 ```
 
-Another smart pointer construct is the `unique_ptr< >`, which replaces the now deprecated `auto_ptr` . I think it is worth considering using it whenever possible instead of `boost::shared_ptr<>` and `boost::weak_ptr<>`. I think it sends a stronger signal about ownership intent when used in new code.
+Another smart pointer construct is the `unique_ptr< >`, which replaces the now deprecated `auto_ptr` .
+I think it is worth considering using it whenever possible instead of `boost::shared_ptr<>` and `boost::weak_ptr<>`.
+I think it sends a stronger signal about ownership intent when used in new code.
 
 ```csharp
+unique_ptr<Test> source_unique_ptr() {
+	return make_unique<Test>();
+}
 
-	unique_ptr<Test> source_unique_ptr() {
-		return make_unique<Test>();
-	}
+// t is received by value. In this case, this function
+// can only be called using std::move  on the pointer
+void test_sink(unique_ptr<Test> t) {
+	cout << t->x << endl;
+}
 
-	void test_sink(unique_ptr<Test> t) { // t is received by value. In this case, this function can only be called using std::move  on the pointer
-		cout << t->x << endl;
-	}
+void test_func_ref_unique_ptr(unique_ptr<Test>& t) {
+	t = make_unique<Test>(); // destructor will be called here
+							 // for the object sent by parameter
+	t->x = 5;
+}
 
-	void test_func_ref_unique_ptr(unique_ptr<Test>& t) {
-		t = make_unique<Test>(); // destructor will be called here for the object sent by parameter
-		t->x = 5;
-	}
-
-	void test_smart_pointers() {
-		auto pt = source_unique_ptr(); 
-		test_func_ref_unique_ptr(pt);			
-		test_sink(move(pt)); // pt is now empty!
-	}
+void test_smart_pointers() {
+	auto pt = source_unique_ptr();
+	test_func_ref_unique_ptr(pt);
+	test_sink(move(pt)); // pt is now empty!
+}
 ```
 
 
-*Note:* `unique_ptr<>` cannot be sent by value - it will result in a compilation error. If the receiving function accepts the `unique_ptr<>` by value as parameter, 
+*Note:* `unique_ptr<>` cannot be sent by value - it will result in a compilation error. If the receiving function accepts the `unique_ptr<>` by value as parameter,
 it can only be passed using the `std::move` function, which will nullify the pointer in the calling function. This is called the *sink pattern* and it is exemplified in the `test_sync` function above. The copy constructor for `unique_ptr<>` is explicitly deleted (later on this).
 
