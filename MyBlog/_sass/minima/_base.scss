@@ -23,6 +23,10 @@ body {
        -o-font-feature-settings: "kern" 1;
           font-feature-settings: "kern" 1;
   font-kerning: normal;
+
+  @include media-query($on-palm){    
+      font-size: 14px;    
+  }    
 }
 
 
@@ -95,7 +99,7 @@ a {
   text-decoration: none;
 
   &:visited {
-    color: darken($brand-color, 15%);
+    color: darken($brand-color, 5%);
   }
 
   &:hover {
@@ -129,10 +133,11 @@ blockquote {
  */
 pre,
 code {
-  font-size: 15px;
-  border: 1px solid $grey-color-light;
-  border-radius: 3px;
-  background-color: #eef;
+  font-size: 12px;
+  font-family: "Emilbus Mono", "Consolas", "Courier New", monospace;
+  border: 0px;
+  border-radius: 5px;
+  background-color: $grey-color-dark;
 }
 
 code {

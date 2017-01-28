@@ -1,12 +1,20 @@
 /**
  * Syntax highlighting styles
  */
+
+.highlighter-rouge {
+    color: #454545;
+    background-color: #fdfdfd;
+}
+
 .highlight {
   background: #fff;
+  color: $background-color;
   @extend %vertical-rhythm;
 
   .highlighter-rouge & {
-    background: #eef;
+    color: #454545;
+    background-color: #fdfdfd;
   }
 
   .c     { color: #998; font-style: italic } // Comment
@@ -68,4 +76,20 @@
   .vg    { color: #008080 } // Name.Variable.Global
   .vi    { color: #008080 } // Name.Variable.Instance
   .il    { color: #099 } // Literal.Number.Integer.Long
+}
+
+.face-alex-gris {
+  border-width: 0;
+  border-radius: 50%;
+  max-width: 200px;
+  max-height: 200px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block; 
+  
+ @include media-query($on-palm)
+  {
+      max-width: 100px;
+      max-height: 100px;       
+  }
 }
