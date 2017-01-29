@@ -276,8 +276,9 @@ void test_recursive_lambdas() {
 *`this` can also be captured, like in the snipped below:*
 
 ```csharp
-void CaptureThis() {
-	PrintSmth([this](const std::string& out) { // "this" must be in the capture list for the following to work
+void CaptureThis::CaptureThis() {
+	// "this" must be in the capture list for the following to work
+	PrintSmth([this](const std::string& out) { 
 
 	this->x++; // works
 	this->y++; // works
@@ -302,7 +303,8 @@ void CaptureThis() {
 	for_each(numbers.begin(), numbers.end(), [prev](int& value) mutable { 
 		// value is sent by reference, so I can modify it in place
 		// I send prev by value => prev does not modify in the upper scope BUT!
-		// because I define the function as mutable, I can modify it in the scope of the lambda (in the generated class)
+		// because I define the function as mutable, 
+		// I can modify it in the scope of the lambda (in the generated class)
 		prev = value = prev + value;
 	});
 
@@ -362,7 +364,8 @@ Two usage scenarios:
 
 ```csharp
 // starting with c++14 compiler can autodeduce return type
-template<typename T1, typename T2, typename T3, typename T4> auto multiply(T1 t1, T2 t2, T3 t3, T4 t4)  /*-> decltype (t1 * t2 * t3 * t4) */ { 
+template<typename T1, typename T2, typename T3, typename T4> 
+auto multiply(T1 t1, T2 t2, T3 t3, T4 t4)  /*-> decltype (t1 * t2 * t3 * t4) */ { 
 
 	auto ret = t1 * t2 * t3 * t4;
 
@@ -395,7 +398,8 @@ public:
 
 //...
 
-// declval can only be used where it will not be evaluated, but only checked for type - like in decltype
+// declval can only be used where it will not be evaluated, 
+//but only checked for type - like in decltype
 cout << typeid(decltype(declval<A>())).name() << endl; 
 ```
 
@@ -439,17 +443,20 @@ private:
 	int row_count = 0;
 	Stream* stream = nullptr;
 
-	template<typename T> const T& validate(const T& t) { // called for each parameter
+	// called for each parameter
+	template<typename T> const T& validate(const T& t) { 
 		//cout << typeid(T).name() << endl;
 		return t;
 	}
 
-	template<typename FirstColumn, typename... Columns> void print_row_internal(const FirstColumn& v, const Columns&... reminder_columns) {
+	template<typename FirstColumn, typename... Columns>  
+	void print_row_internal(const FirstColumn& v, const Columns&... reminder_columns) {
 		*stream << v << ", ";
 		print_row_internal(reminder_columns...);
 	}
 
-	template<typename LastColumn> void print_row_internal(const LastColumn& v) {
+	template<typename LastColumn> 
+	void print_row_internal(const LastColumn& v) {
 		*stream << v;
 	}
 
@@ -465,7 +472,8 @@ public:
 
 	~CSVPrinter() { cout << endl; }
 
-	template<typename... Columns> void print_row(const Columns&... cols) {
+	template<typename... Columns> 
+	void print_row(const Columns&... cols) {
 
 		if (row_count > 0) { cout << ", " << endl; }		
 		row_count++;
