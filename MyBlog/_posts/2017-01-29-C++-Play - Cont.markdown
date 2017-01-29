@@ -200,4 +200,89 @@ void test_reference_qualifiers_for_member_functions() {
 }
  ```
 
- 
+ ### Inheriting constructors, delegated constructors, static_assert, exceptions
+
+*Inheriting constructors*
+
+```csharp
+class Derived : Base  
+{  
+public:  
+    // Inherit all constructors from Base  
+    using Base::Base;    
+private:      
+    int private_member = 0;  // x is initialized inline
+};  
+```
+
+*Delegated constructors*
+
+Please note the private `Test2(int x, int y)` and the invocation `Test2() : Test2(0, 0)`
+
+```csharp
+class Test2 { // Delegated constructors
+public:
+	Test2() : Test2(0, 0){
+		cout << "Test2 default constructor" << endl;
+	}
+	Test2(Test2& tst2) : Test2(1, 1){
+		cout << "Test2 copy constructor" << endl;
+	}
+
+private:
+	Test2(int x, int y){
+		cout << "Test2 delegated constructor" << endl;
+	}
+};
+```
+
+*Static asserts*
+
+This is a topic which is worth going into deeper details, but I am just going to hit at it through a very simple example.
+
+```csharp
+class AX {
+public:
+	virtual ~AX() {}
+};
+
+class B : public AX {
+public:
+	B() {
+		// todo: check type traits
+		// if the AX class does not have a virtual destructor, the code below 
+		// generates a compile error
+		static_assert(has_virtual_destructor<AX>::value, 
+			"A must have a virtual destructor"); 
+	}
+};
+```
+
+*Exceptions - not new, but worth mentioning anyway*
+
+```csharp
+void test_exceptions() {
+	try {
+
+		auto pTest = make_shared<Test>(1, 2, "Trei"); // RAII
+		throw exception("Hello World! :)");
+
+	}
+	// catch as const &; if not caught as "&", you suffer slicing, 
+	// that is you lose part of the class that was derived from exception. 
+	// you only get the base class.
+	catch (const std::exception& ex) { 
+		cout << ex.what() << endl;
+	}
+}
+```
+
+Notable here is the `noexcept` keyword which marks that the method does not throw an exception. See above for use, in the "move" section. From the 
+[CPP Reference](http://en.cppreference.com/w/cpp/language/noexcept_spec):
+
+> The compiler can use this information to enable certain optimizations on non-throwing functions as well as enable the noexcept 
+> operator, which can check at compile time if a particular expression is declared to throw any exceptions. 
+> For example, containers such as `std::vector` will move their elements if the elements' move constructor 
+> is noexcept, and copy otherwise (unless the copy constructor is not accessible, but a potentially 
+> throwing move constructor is, in which case the strong exception guarantee is waived). 
+
