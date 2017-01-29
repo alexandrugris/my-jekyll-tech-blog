@@ -6,8 +6,8 @@ categories: Native coding
 ---
 
 In the previous blog post I covered a lot of ground: variadic templates, improvements to classes, improvements to standard library, smart pointers and lambdas. 
-We also briefly touched move semantics as well as decltype and declval. In this part I am going to continue with move and local storage for threads while briefly touching 
-thread support in the new standard library, delegated constructors, user defined literals and static_assert.
+We also briefly touched move semantics as well as decltype and declval. In this part I am going to continue with move, delegated constructors, user defined literals and static_assert. In the next article 
+I will write about local storage for threads while briefly touching thread support in the new standard library.
 
 ### Move
 
@@ -238,7 +238,7 @@ private:
 
 *Static asserts*
 
-This is a topic which is worth going into deeper details, but I am just going to hit at it through a very simple example.
+This is a topic which is worth going into deeper details, but I am just going to hint at it through a very simple example. The same example also hints at type-traits.
 
 ```csharp
 class AX {
@@ -249,7 +249,7 @@ public:
 class B : public AX {
 public:
 	B() {
-		// todo: check type traits
+		// TODO: check type traits
 		// if the AX class does not have a virtual destructor, the code below 
 		// generates a compile error
 		static_assert(has_virtual_destructor<AX>::value, 
@@ -286,3 +286,48 @@ Notable here is the `noexcept` keyword which marks that the method does not thro
 > is noexcept, and copy otherwise (unless the copy constructor is not accessible, but a potentially 
 > throwing move constructor is, in which case the strong exception guarantee is waived). 
 
+### User defined literals
+
+This is especially useful for code which relies on units conversion. For instance physics code. It allows type-safe conversions and compile-type error checking. Here is an example, just to wet your appetite:
+
+```csharp
+class Km;
+
+class M {
+	double value;
+public:
+	constexpr M(const double& d) : value(d) {}
+	operator double() { return value; }
+	operator Km();
+};
+
+class Km {
+	double value;
+public:
+	constexpr Km(const double& d) : value(d) {}
+	operator double() { return value; }
+	operator M() { return M(value * 1000.0f); }
+};
+
+M::operator Km() {
+	return value / 1000.0f;
+}
+
+constexpr Km operator "" _km(long double d) {
+	return d;
+}
+constexpr M operator "" _m(long double d) {
+	return d;
+}
+
+void test_user_defined_literals() {
+
+	Km dist_in_km = 10.5_km;	
+
+	M dist_in_m = dist_in_km;
+	dist_in_km = dist_in_m;
+
+	cout << "The distance is " << dist_in_m << "m" << endl;
+	cout << "The distance is " << dist_in_km << "km" << endl;
+}
+```
