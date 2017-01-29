@@ -8,7 +8,7 @@ layout: home
 ![This is me](assets/me.png){: .face-alex-gris }
 
 This blog is a complement to [www.alexandrugris.ro](http://www.alexandrugris.ro) and is dedicated mostly to technology. My initial idea was to have 
-a notebook where I jot dow what I read on tech, so that I have a reference point for later use. Then I thought, hey, why not make it public? So here it is: “From The Trenches - The Code”.
+a notebook where I jot down interesting stuff I read on tech, so that I have a reference point for later use. Then, I thought, hey, why not make it public? So here it is: “From The Trenches - The Code”.
 
 Who am I?
 
