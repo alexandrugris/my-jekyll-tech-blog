@@ -200,7 +200,7 @@ void test_reference_qualifiers_for_member_functions() {
 }
  ```
 
- ### Inheriting constructors, delegated constructors, static_assert, exceptions
+### Inheriting constructors, delegated constructors, static_assert, exceptions
 
 *Inheriting constructors*
 
