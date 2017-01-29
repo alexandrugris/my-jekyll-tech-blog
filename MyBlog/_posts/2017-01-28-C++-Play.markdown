@@ -193,10 +193,10 @@ for_each(cubes.begin(), cubes.end(), [](int  value) {
 These include type deduction for lambda parameters - no need to send them explicitly, `auto` is enough and also 
 initialization for capture parameters - useful when, for instance, you want to `move` an object when captured to lambda instead of just simply copy it by value, or apply any type of other transformation.
 
-The code below uses another cool feature from C++ 11, the vadiadic templates. The template `invoke` simply invokes the functor it receives with the list of parameters it receives, 
-all in a typesafe matter. This pattern can be applied when you want in a template to store a function and then invoke it later, with different paramters. 
+The code below uses another cool feature from C++ 11, the variadic templates. The template `invoke` simply invokes the functor it receives with the list of parameters it receives, 
+all in a typesafe matter. This pattern can be applied when you want a template to store a function and then invoke it later, with different parameters. 
 
-Same for lambda, when writing it, the programmer might simply not care what the p1 and p2 types are - they are deduced by the compiler given the way the function is invoked - in this case p1 is an `int` and p2 is a `const char*`. 
+Same for lambdas, the programmer might simply not care what the p1 and p2 types are - they are deduced by the compiler given the way the function is invoked - in this case p1 is an `int` and p2 is a `const char*`. 
 Note though, this check is performed at compile time, so it is not at all a form of dynamic invocation.
 
 ```csharp
@@ -272,4 +272,213 @@ void test_recursive_lambdas() {
 	cout << endl;
 }
 ```
+
+*`this` can also be captured, like in the snipped below:*
+
+```csharp
+void CaptureThis() {
+	PrintSmth([this](const std::string& out) { // "this" must be in the capture list for the following to work
+
+	this->x++; // works
+	this->y++; // works
+
+	x++; // works
+	y++; // works
+
+	cout << this->x << " " << this->y << " " << out.c_str() << endl;
+
+	}
+	, "Hello World");
+}
+```
+
+*Changing values and mutable lambdas*
+
+```csharp
+	vector<int> numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+	int prev = 0;
+
+	for_each(numbers.begin(), numbers.end(), [prev](int& value) mutable { 
+		// value is sent by reference, so I can modify it in place
+		// I send prev by value => prev does not modify in the upper scope BUT!
+		// because I define the function as mutable, I can modify it in the scope of the lambda (in the generated class)
+		prev = value = prev + value;
+	});
+
+	for_each(numbers.begin(), numbers.end(), [](int val) {
+		cout << val << endl;
+	});
+```
+
+The output of this program is:
+
+```
+1
+3
+6
+10
+15
+21
+28
+36
+45
+55
+```
+
+Because the lambda was postfixed with the `mutable` keyword, it allows me to modify the captured values. 
+However, since the capture was not done by reference, it is not modified in the outer scope. If we were to write in pseudo-c++,
+the generated lambdas are similar with the following classes:
+
+By-value capture without the `mutable` postfix:
+
+```
+class Lambda{
+	const Type t;
+	operator() {
+		// t cannot change
+	}
+}
+```
+
+By-value with the `mutable` postfix:
+
+```
+class Lambda{
+	Type t;
+	operator () {
+		// t can change
+	}
+}
+```
+
+In the example above, since we declared the input parameter for the lambda as a reference (```int&```), it gives me direct write access to the ```vector``` content.
+
+### Decltype and Declval
+
+Two usage scenarios:
+
+1. We need a way to compute at compile-time the return type of a template function.
+
+```csharp
+// starting with c++14 compiler can autodeduce return type
+template<typename T1, typename T2, typename T3, typename T4> auto multiply(T1 t1, T2 t2, T3 t3, T4 t4)  /*-> decltype (t1 * t2 * t3 * t4) */ { 
+
+	auto ret = t1 * t2 * t3 * t4;
+
+	cout << typeid(ret).name() << endl;
+
+	return ret;
+}
+
+//...
+
+int x = 5;
+double y = 5.4;
+float z = 3.1f;
+long w = 6;
+
+cout << multiply(x, y, z, w) << endl;
+```
+
+2. We have a private constructor, but we still need the type of the class:
+
+```csharp
+class A {
+private: 
+	A() {}
+public:
+	static shared_ptr<A> create() {
+		return shared_ptr<A>(new A());
+	}
+};
+
+//...
+
+// declval can only be used where it will not be evaluated, but only checked for type - like in decltype
+cout << typeid(decltype(declval<A>())).name() << endl; 
+```
+
+### Variadic templates (templates with a variable number of arguments)
+
+I think this is one of the coolest features of C++11, as it allows very clean usage of libaries. In an example above, we saw the `emplace_back` method of std::collections 
+which permits the caller to send the constructor parameters directly to the method, and the method inside does the allocation of the object. Here is a more complex example, 
+which shows how to:
+
+- Create a template function with a variable number of parameters
+- Call another function for each parameter 
+- Recursively extract each parameter and use it in a strongly typed manner
+- Use the library in a very natural way.
+
+Let's assume we want to write a library class which outputs CSV to a stream. We want to use it in a straight forward manner, like in the snippet below:
+
+```csharp
+template<class Stream> auto createCSVPrinter(Stream& s) -> CSVPrinter<Stream> {
+	return CSVPrinter<Stream>(s);
+}
+
+void test_variadic_templates() {
+	
+	// let's simply use a template function to deduce the type of cout
+	auto csvPrinter = createCSVPrinter(cout); 
+
+	// we are outputting a row or parameters of different types
+	csvPrinter.print_row(5, 20, 32.5f, 22, "Hello World");
+	csvPrinter.print_row(5, 20, 32.5f, 22, "Hello World");
+	csvPrinter.print_row(5, 20, 32.5f, 22, "Hello World");
+	csvPrinter.print_row(5, 20, 32.5f, 22, "Hello World");
+}
+```
+
+The `CSVPrinter` class is clearly a template of type `Stream` which includes a method, `print_row` which receives a variable number of parameters of different types.
+
+```csharp
+template<typename Stream> class CSVPrinter {
+
+private:
+	int row_count = 0;
+	Stream* stream = nullptr;
+
+	template<typename T> const T& validate(const T& t) { // called for each parameter
+		//cout << typeid(T).name() << endl;
+		return t;
+	}
+
+	template<typename FirstColumn, typename... Columns> void print_row_internal(const FirstColumn& v, const Columns&... reminder_columns) {
+		*stream << v << ", ";
+		print_row_internal(reminder_columns...);
+	}
+
+	template<typename LastColumn> void print_row_internal(const LastColumn& v) {
+		*stream << v;
+	}
+
+
+public:
+
+	CSVPrinter(Stream& _stream) : stream(&_stream) {}
+
+	CSVPrinter(const CSVPrinter& other) {
+		this->row_count = other->row_count;
+		this->stream = other->stream;
+	}
+
+	~CSVPrinter() { cout << endl; }
+
+	template<typename... Columns> void print_row(const Columns&... cols) {
+
+		if (row_count > 0) { cout << ", " << endl; }		
+		row_count++;
+
+		// function validate is called for each parameter in cols
+		print_row_internal(validate(cols)...); 
+	}
+};
+```
+
+Let's look at the `print_row` function:
+
+1. It calls `print_row_internal` with `validate(cols)...`. This syntax allows calling the `validate` function for each `col` prior to calling `print_row_internal`.
+2. `print_row_internal` has two specializations. One for a single parameter, which closes the recursive loop, and one with one specialized (extracted) parameter and the rest of the `colls` as bulk. 
+This recursive definition allows processing each parameter in a type-safe manner, one by one.
 
