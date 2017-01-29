@@ -11,8 +11,12 @@ I was looking for a simple blogging platform that provided for my following need
  - To be able to edit my content easily, just like I would take notes for myself.
  - To move my blog to anywhere I want and be am able to change formatting the way I want.
 
-Writing content in Markdown seemed like a good, simple idea. Easy to write, total control over content, no complex editors, no vendor lock-in. As a bonus, Jekyll also offers 
-powerful support for code snippets. Being a technical blog, this was just great.
+Writing content in Markdown seemed like a good, simple idea. Easy to write, total control over content, no complex editors, no vendor lock-in. 
+Here is a screenshot of my editing experience in Visual Studio Code:
+
+![Edit experience in Visual Studio Code]({{site.url}}/assets/jekyll_editing_experience.png)
+
+As a bonus, Jekyll also offers powerful support for code snippets. Being a technical blog, this was just great.
 
 {% highlight ruby %}
 def print_hi(name)

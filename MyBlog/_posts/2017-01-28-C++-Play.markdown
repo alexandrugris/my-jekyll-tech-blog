@@ -81,6 +81,195 @@ void test_smart_pointers() {
 ```
 
 
-*Note:* `unique_ptr<>` cannot be sent by value - it will result in a compilation error. If the receiving function accepts the `unique_ptr<>` by value as parameter,
-it can only be passed using the `std::move` function, which will nullify the pointer in the calling function. This is called the *sink pattern* and it is exemplified in the `test_sync` function above. The copy constructor for `unique_ptr<>` is explicitly deleted (later on this).
+*Note:* `unique_ptr<>` cannot be sent by value - it will result in a compilation error. 
+If the receiving function accepts the `unique_ptr<>` by value as parameter,
+it can only be passed using the `std::move` function, which will nullify the pointer in the calling function. 
+This is called the *sink pattern* and it is exemplified in the `test_sync` function above. 
+The copy constructor for `unique_ptr<>` is explicitly deleted (later on this).
+
+## Improvements to collections
+
+C++11 brings us unordered associative containers, a fixed size array class and a singly-linked list (std::forwad_list): [http://www.cplusplus.com/reference/stl/](http://www.cplusplus.com/reference/stl/).
+
+Because of the new language features (move semantics, std::initializer_list and variadic templates), collections have become much more useful and expressive 
+For instance, now you can actually consider storing a full instance in a collection instead of just a pointer,
+without worrying about endless copies and reallocations. This improves data locality and cache friendliness (provided that you have the appropriate move operations in place). 
+For instance, old pattern in which we push pointers to `std::vector<FullType*>` is now similar in iteration speed with `std::lists<FullType>::emplace_back`. See below.
+
+Here are some small examples:
+
+```csharp
+void test_collections() {
+
+	vector<unique_ptr<Test>> v_Test;
+
+	// uses move semantics to fully change the ownership of the pointer to the collection.
+	// provided that we had a full type with move constructor / move assignment,
+	// on vector reallocation only the move operations would have been called.
+	v_Test.push_back(make_unique<Test>()); 
+
+	// initializer list for vector and list
+	vector<int> v_Int = { 1, 2, 3, 4, 5 };
+
+	list<Test> tst = {
+		Test()
+	};
+
+	// new member function, based on variadic templates argument. 
+	// No copy constructor, no move. 
+	// Just construct the object at the end of the collection, invoking the right parameters
+	// Better locality as the two pointers to back and forward from the list are stored next to the 
+	// allocated memory for the Test object in this case.
+	tst.emplace_back(4, 5, "Test test test"); 
+}
+
+void test_collections_priority_queue() {
+
+	// deque does not do copies on increase; a little bit slower random access though
+	priority_queue<Test, deque<Test> > tst; 
+
+	tst.emplace(3, 0, "A");
+	tst.emplace(1, 0, "B");
+	tst.emplace(2, 0, "C");
+
+	std::cout << "Popping out elements..." << endl;
+	while (!tst.empty())
+	{
+		const Test& t = tst.top();
+		cout << t.str.c_str() << endl;
+		tst.pop();
+	}
+	std::cout << endl;
+}
+```
+
+### Lambdas
+
+I think it is pretty obvious why lambdas were introduced. Before lamdas, you were bind either to pointer to functions or to functor objects, 
+which were implemended "far" from the point of interest. This made the std-algorithms harder to use, due to code verbosity and scrolling back and forth in the source code. 
+All in all, lambdas are mostly syntactic sugar, but a very useful one.
+
+*Returning a lambda from a function and storing a lambda in a variable*
+
+```csharp
+std::function<double()> getPIFunction() {
+	static double PI = 3.1415;
+
+	return []() { // because PI is declared as static, it does not need to be captured explicitly;
+		return PI;
+	};
+}
+
+//....
+
+auto PI_func = getPIFunction();
+cout << typeid(PI_func).name() << ": " << PI_func() << endl;
+// output: class std::function<double __cdecl(void)>: 3.1415
+```
+
+*Using lambdas in std::algorithms - passing them as arguments*
+
+```csharp
+vector<int> arr = { 1, 2, 3, 4, 5 };
+
+for_each(arr.begin(), arr.end(), [] (int value) {
+	cout << value << endl;
+});
+
+vector<int> cubes;
+
+// back_inserter - very useful function
+transform(arr.begin(), arr.end(), back_inserter(cubes), [](int n) { 
+	return n * n * n;
+});
+
+for_each(cubes.begin(), cubes.end(), [](int  value) {
+	cout << value << endl;
+});
+```
+
+*Improvements to lambdas starting with C++14*
+
+These include type deduction for lambda parameters - no need to send them explicitly, `auto` is enough and also 
+initialization for capture parameters - useful when, for instance, you want to `move` an object when captured to lambda instead of just simply copy it by value, or apply any type of other transformation.
+
+The code below uses another cool feature from C++ 11, the vadiadic templates. The template `invoke` simply invokes the functor it receives with the list of parameters it receives, 
+all in a typesafe matter. This pattern can be applied when you want in a template to store a function and then invoke it later, with different paramters. 
+
+Same for lambda, when writing it, the programmer might simply not care what the p1 and p2 types are - they are deduced by the compiler given the way the function is invoked - in this case p1 is an `int` and p2 is a `const char*`. 
+Note though, this check is performed at compile time, so it is not at all a form of dynamic invocation.
+
+```csharp
+template<typename Fn, typename... T> void invoke(const Fn& fn, const T&... params){
+	fn(params...);
+}
+
+void test_lambdas_cxx14() {
+
+	auto ptr = make_unique<Test>();
+
+	// auto parameters for lambda, initialization for capture parameters (c++14)
+	invoke( [ptr = move(ptr)] (auto p1, auto p2){ 
+
+		cout << ptr->str.c_str() << " " << p1 << " " << p2 << endl;
+
+	}, 2, "Hello World");
+
+	// should be null because it was moved in the lambda initialization
+	cout << "Value of ptr:" <<  ptr.get() << endl; 
+
+}
+```
+
+A little bit of extra explanation. 
+
+```csharp
+int x = 1;
+[x = x + 1](){
+	cout << x << endl;
+}();
+cout << x << endl;
+```
+
+This code prints `2` followed by `1`. The reason is that `x` in the lambda is a different variable than `x` in the outer function. 
+The code above is identical to the following (also running code, although `__x` is not specifically declared anywhere)
+
+```csharp
+int x = 1;
+[__x = x + 1](){
+	cout << __x << endl;
+}();
+cout << x << endl;
+```
+
+*Lambdas can also be recursive*
+
+But in this case, they need to be explicily captured like in the code below. Please note the capture by reference. 
+If an attempt is made to send the lambda by value the code compiles but you get a runtime error - the lambda has been declared but not defined yet.
+
+```csharp
+void test_recursive_lambdas() {
+
+	// a redundant implementation but serves the purpose :)
+	std::function<int(int)> fibonacci = [&fibonacci](int n) -> int{
+
+		if (n < 1)
+			return -1;
+		if (n == 1 || n == 2)
+			return 1;
+
+		return fibonacci(n - 1) + fibonacci(n - 2);
+	};
+
+	std::vector<int> v = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+	// range for; prefered to use int& in order to reference elements in v
+	// range for is a new C++ 11 construct
+	for (int &number : v) { 
+		cout << fibonacci(number) << "; ";
+	}
+
+	cout << endl;
+}
+```
 
