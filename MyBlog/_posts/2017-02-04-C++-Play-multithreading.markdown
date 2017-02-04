@@ -152,7 +152,77 @@ t1.join();
 - `scoped_lock` - tries to take ownership of several mutexes.
 - `future`, `promise`, `async` - futures package to facilitate asynchronous programming, without manual management of threads - [async example](http://en.cppreference.com/w/cpp/thread/async).
 
+## But How Do These Work?
 
+While I do believe that the best code is written using higher level abstractions, preferably standard and cross platform, I also believe that it is critical that, at least once, to dive into the details how these abstractions are implemented. 
+Many times I find myself stepping through library code just to validate my understanding of the concepts behind. I also think that playing around with library-like code is a very good exercise in coding skills. 
+Libraries should have a very clean and intuitive interface. They should be type-safe and, as much as possible, prevent unintended / wrong usage. 
+
+So let's try to build a very simple and incomplete threads library, but with good abstractions. As I am writing this blogpost on a Windows machine, I will use the Windows primitives as the underlying OS API. 
+
+Let's start with the usage (interface) - creating and waiting for threads. Comments in the code.
+
+```csharp
+void test_create_threads() {
+	using namespace std;
+
+	// use a windows_handle -> unique wrapper around handle. 
+    // can be passed around but not owned by several objects at the same time; 
+    // only move operations allowed
+	// function create_thread wraps CreateThread function so that 
+    // it accepts lambdas and various parameters; not just a void*
+
+	try {
+        // create thread should receive a lambda, with a set of type-safe transmitted parameters.
+        // RAII, so that, in case of exception, everyhing is cleaned up nicely.
+		windows_handle wh = create_thread([](auto a, auto b, auto c) -> DWORD {
+
+			cout << "Hello from windows threads: " << a << " " << b << " " << c << endl;
+
+			return EXIT_SUCCESS;
+
+		}, 5, 7, "Hello World");
+
+		wait_for_all(true, INFINITE, wh);
+
+		cout << "Done. " << endl;
+
+	}
+	catch (const win_exception& ex) {
+		cout << ex.what() << endl;
+	}
+}
+```
+
+Thread synchronization. For now, only mutexes, with similar usage as in the standard library.
+
+```csharp
+void test_mutexes() {
+	using namespace std;
+
+    // can be shared across processes if name != NULL
+	mutex_handle mtx = ::CreateMutex(NULL, FALSE, NULL); 
+
+	auto fn = [&mtx]() -> DWORD {
+		try{
+			auto lock = mtx.acquire(); // RAII
+			cout << "Hello World from Mutexes" << endl;
+			::Sleep(1000);			
+		}
+		catch (const win_exception& ex) {
+			cout << ex.what() << endl;
+		}
+		return 0;
+	};
+
+	windows_handle th1 = create_thread(fn);
+	windows_handle th2 = create_thread(fn);
+	windows_handle th3 = create_thread(fn);
+	windows_handle th4 = create_thread(fn);
+
+	wait_for_all(true, INFINITE, th1, th2, th3, th4);
+}
+```
 
 
 
