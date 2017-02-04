@@ -16,5 +16,5 @@ My name is Alexandru Gris. Most of my professional life I have spent working in 
 During my career there, I had various positions: engine developer, lead programmer, producer and, finally, studio production manager (Head Of Game Development). I love technology, I love building stuff while working with smart, creative people. 
 I have a deep interest in software architecture, clean code, leadership, organization design, entrepreneurial thinking and high quality project management.
 
-I currently work for [1and1](https://www.1und1.de/), a major European Internet company, owner of the [Web.de](https://web.de) and [GMX](https://gmx.de) portals.
+I currently work for [1and1](https://www.1und1.de/), a major European Internet company, which owns the [Web.de](https://web.de) and [GMX](https://gmx.de) portals.
 
