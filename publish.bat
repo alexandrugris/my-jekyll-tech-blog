@@ -1,10 +1,14 @@
-echo off
+rem echo OFF
 
 set PUBLISH_DIR="..\alexandrugris.github.io\"
 
 set CURRENT_DIR=%CD%
 
-xcopy /y .\MyBlog\_site\* %PUBLISH_DIR% /s /e /f
+cd MyBlog
+
+rem bundle exec jekyll build --destination .\_site_release
+
+xcopy /y .\_site_release\* %PUBLISH_DIR% /s /e /f
 
 cd %PUBLISH_DIR%
 

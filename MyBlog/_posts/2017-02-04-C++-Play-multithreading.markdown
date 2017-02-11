@@ -6,7 +6,7 @@ categories: Native coding
 ---
 In this post I am planning to build upon C++ 11/14 features introduced in the previous posts and play around with threads and synchronization. 
 I am going to start with the threading support introduced in the standard library, then move forward to Windows-specific code. 
-I use Windows code to exemplify how to build a minimal type-safe threading library using the new C++ 11/14, similar to the standard one.
+I will use Windows code to exemplify how to build a minimal type-safe threading library using the new C++ 11/14, similar to the standard one.
 
 Unix multithreading and server programming I will probably cover in another post.
 
@@ -113,9 +113,9 @@ This lifecycle requires special care when managing dynamically allocated memory 
 In the code above we use the following:
 
 - Creating and running threads, using the `std::thread` standard library class. Threads can be instantiated with a lambda and can capture any members. In our case, we capture the synchronization primitives `m` and `cv` by reference.
-- Thread synchronization in three different scenarios
+- Thread synchronization in three different scenarios:
 
-#### Having all threads wait until a certain condition is met. 
+*A) Having all threads wait until a certain condition is met.*
 
 This is done through the following calls: 
 
@@ -127,7 +127,7 @@ This is done through the following calls:
 ```
 in the waiting threads and then notifying all threads using the same condition variable ```	cv.notify_all();```. Important to notice that `cv.wait()` requires a `unique_lock` on a mutex in order for the thread to block.
 
-#### Protecting critical sections of code from running in parallel
+*B) Protecting critical sections of code from running in parallel*
 
 Using the scoped:
 
@@ -139,9 +139,9 @@ Using the scoped:
         // different addresses of i;
 }
 ```
-the protection being against several threads running `cout` in parallel and generating garbage output on the console. As we have already seen, `i` is `thread_local`.
+the protection being against several threads running `cout` in parallel and generating garbage output on the console. As we have already seen, `i` is `thread_local` and there is no need for synchronization around it.
 
-#### Waiting for several threads to finish before exiting the method.
+*C) Waiting for several threads to finish before exiting the method*
 
 ```csharp
 t2.join();
@@ -197,7 +197,7 @@ void test_create_threads() {
 }
 ```
 
-Thread synchronization. For now, only mutexes, with similar usage as in the standard library.
+Thread synchronization. For now only mutexes with similar usage as in the standard library.
 
 ```csharp
 void test_mutexes() {
@@ -227,7 +227,7 @@ void test_mutexes() {
 }
 ```
 
-There are several issues that impede a direct mapping between C++ and standard Windows API. Windows API is a plain C API, which uses extensively opaque `HANDLE`s and `void*` to pack user data. 
+There are several issues that impede a direct mapping between C++ and the standard Windows API. The Windows API is a plain C API, which uses extensively opaque `HANDLE`s and `void*` to pack user data. 
 Memory management is done manually, resources being allocated and de-allocated through pairs of "Create" / "Release" C APIs. Error management is done through checking return values.
 In C++, we expect type safety, RAII and exception handling. Clearly this is an impedance mismatch we need to bridge.
 
@@ -262,12 +262,16 @@ All magic happens in the `ts->fn();` call, which is our lambda packed together w
 std::function<DWORD()> fn = nullptr;
 
 __internal_thread_struct(const Fn& f, const Params&... p) {
-    // this is required so that parameters of type char o[12] like constants "Hello World" are transformed in const char*
+    // this is required so that parameters of type char o[12] like 
+    // constants "Hello World" are transformed in const char*
 	transform_from_arrays_to_ptrs(f, fwd(p)...);		 
 }
 
-template<typename... ParamsWashed> void transform_from_arrays_to_ptrs(const Fn& f, const ParamsWashed&... p) {
-    // here is a trick. in order to be able to keep params... for later, we wrap them in a closure in a std::function
+template<typename... ParamsWashed> void transform_from_arrays_to_ptrs(const Fn& f, 
+            const ParamsWashed&... p) {
+    // here is a trick. in order to be able to keep params... for later, 
+    // we wrap them in a closure in a std::function
+
 	fn = [f, p...]()->DWORD{ 
 		return f(p...);
 	};
@@ -312,12 +316,15 @@ Again variadic templates, because we need to pack the list of mutexes to a stack
 
 template<typename... WindowsHandles> void pack(HANDLE* arr){} // recursion end
 
-template<typename... WindowsHandles> void pack(HANDLE* arr, const windows_handle& wh, const WindowsHandles&... rest) { // bind to windows_handle type only
+template<typename... WindowsHandles> void pack(HANDLE* arr, const windows_handle& wh, 
+            const WindowsHandles&... rest) { // bind to windows_handle type only
+
 	*arr = wh;
 	pack(++arr, rest...);
 }
 
-template<typename... WindowsHandles> DWORD wait_for_all(bool wait_all, int millis, const WindowsHandles&... handles) {
+template<typename... WindowsHandles> DWORD wait_for_all(bool wait_all, int millis, 
+        const WindowsHandles&... handles) {
 
 	HANDLE arr[sizeof...(handles)];
 	pack(arr, handles...);
@@ -332,7 +339,7 @@ template<typename... WindowsHandles> DWORD wait_for_all(bool wait_all, int milli
 
 #### Nice object oriented interface:
 
-Arguably nice, as aggregation should be preferred to inheritance (which is, in itself a form of hidden aggregation), and especially given the need to explicitly `delete` a function from the base class. But it is short and it works:
+Arguably nice, as aggregation should be preferred to inheritance (which is, in itself, a form of hidden aggregation) and especially given the need to explicitly `delete` a function from the base class. But it is short and it works:
 
 ```csharp
 class windows_handle {
