@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "C++ Play - Multithreading Part 2"
-date:   2017-02-04 12:15:16 +0200
+date:   2017-02-11 12:15:16 +0200
 categories: Native coding
 ---
 In this post I am going to touch a little bit synchronization primitives and write two different implementations for a reader-writer lock. The code comes from an earlier project, before `std::shared_lock` was introduced to the standard. 

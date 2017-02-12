@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Docker And Containers"
-date:   2017-02-04 12:15:16 +0200
+date:   2017-02-12 12:15:16 +0200
 categories: Web Development
 ---
 In this blogpost I will write about Docker. My personal Docker cheatsheet. So why Docker? Because I am interested in distributed computing and I want to play with various technologies. 
