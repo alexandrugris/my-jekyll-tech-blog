@@ -4,7 +4,7 @@ title:  "C++ Play - Multithreading Part 2"
 date:   2017-02-11 12:15:16 +0200
 categories: Native coding
 ---
-In this post I am going to touch a little bit synchronization primitives and write two different implementations for a reader-writer lock. The code comes from an earlier project, before `std::shared_lock` was introduced to the standard. 
+In this post I touch a little bit synchronization primitives and write two different implementations for a reader-writer lock. The code comes from an earlier project, started before `std::shared_lock` was introduced to the standard. 
 Beside the standard library, RW locks are part of Windows SDK as [Slim Reader/Writer (SRW) Locks](https://msdn.microsoft.com/en-us/library/windows/desktop/aa904937(v=vs.85).aspx) and on Linux, with [pthreads](https://linux.die.net/man/3/pthread_rwlock_rdlock).
 There is no need (and not recommended) to implement them manually, as I do in the code below. But since this is a tech blog and and it is meant to play around with technology, here are two possible implementations.
 
