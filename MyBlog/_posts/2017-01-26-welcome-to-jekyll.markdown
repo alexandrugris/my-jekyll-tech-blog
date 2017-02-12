@@ -16,6 +16,10 @@ Here is a screenshot of my editing experience in Visual Studio Code:
 
 ![Edit experience in Visual Studio Code]({{site.url}}/assets/jekyll_editing_experience.png)
 
+and simple publishing to github through a basic batch script:
+
+![Github Publish]({{site.url}}/assets/jekyll_publish.png)
+
 As a bonus, Jekyll also offers powerful support for code snippets. Being a technical blog, this was just great.
 
 {% highlight ruby %}
