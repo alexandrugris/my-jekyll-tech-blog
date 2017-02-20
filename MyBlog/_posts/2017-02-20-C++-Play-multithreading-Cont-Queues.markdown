@@ -187,8 +187,8 @@ template<template<class...> class QueueType,
 			typename mtx_type = critical_section_win, 
 			typename cond_variable_type = condition_variable_win, 
 			typename TT_ctor = default_ctor<TT>> 
-
-void test_mt_bq(int LOOP_CNT = 10000000, int MAX_THREADS = std::thread::hardware_concurrency()) {
+void test_mt_bq(int LOOP_CNT = 10000000, 
+                int MAX_THREADS = std::thread::hardware_concurrency()) {
 
 	std::vector<std::thread> threads;
 
@@ -202,7 +202,8 @@ void test_mt_bq(int LOOP_CNT = 10000000, int MAX_THREADS = std::thread::hardware
 		running_threads++;
 
 		threads.push_back(std::thread([&]() {
-			auto my_rand = std::bind(std::uniform_int_distribution<int>(0, RAND_MAX), default_random_engine(ix));
+			auto my_rand = std::bind(std::uniform_int_distribution<int>(0, RAND_MAX), 
+									default_random_engine(ix));
 
 			for (int i = 0; i < LOOP_CNT; i++) {
 
@@ -353,9 +354,11 @@ public:
 	}
 
 	template<class R, class P> 
-	cv_status wait_for(const unique_lock<critical_section_win>& csw, const chrono::duration<R, P>& duration) {
+	cv_status wait_for(const unique_lock<critical_section_win>& csw, 
+						const chrono::duration<R, P>& duration) {
 
-		DWORD ms = static_cast<DWORD>(chrono::duration_cast<chrono::milliseconds>(duration).count());
+		DWORD ms = static_cast<DWORD>(
+			chrono::duration_cast<chrono::milliseconds>(duration).count());
 
 		if (!SleepConditionVariableCS(&cv, &csw.mutex()->cs, ms)) {
 			return cv_status::timeout;
@@ -373,8 +376,8 @@ So the main optimization has to do with locking. The simplest way to achieve it 
 Here is the code:
 
 ```csharp
-template<typename T, typename mtx_type, typename cond_variable_type> class multi_blocking_queue {
-
+template<typename T, typename mtx_type, typename cond_variable_type> 
+class multi_blocking_queue {
 private:
 
 	static const int QUEUES = 4; 
@@ -389,9 +392,11 @@ public:
 
 	multi_blocking_queue() {}
 
+	// round robin for better filling of queues - 
+	// do not allow elements to remain for too long in one queue	
 	int get_next_queue() {		
 		static thread_local int i = 0;
-		return i = ((i++) % QUEUES); // round robin for better filling of queues - do not allow elements to remain for too long in one queue
+		return i = ((i++) % QUEUES); 
 	}
 
 	bool try_get_all_queues(char unallocated[sizeof(T)]) {
@@ -411,7 +416,8 @@ public:
 	T get() {
 
 		char stack_alloc[sizeof(T)];
-		T* ret = reinterpret_cast<T*>(stack_alloc); // do not call constructor here.
+		// do not call constructor here.
+		T* ret = reinterpret_cast<T*>(stack_alloc); 
 
 		while (true) {
 			for (int sp = 0; sp < SPIN_COUNT; sp++)
