@@ -275,8 +275,209 @@ Initially I have started without this consumer thread and I realized that, at th
 2. The `std::mutex` does, by default, more spinning than the defaults in Windows `CRITICAL_SECTION`. When using the `std::mutex`, the CPU goes to 100% and the system becomes almost unresponsive. When using the Windows `CRITICAL_SECTION`, with the default spin count, the CPU stays at around 70% (configuration: 4 cores, MAX_THREADS = 4, no `last_consumer` thread). 
 3. For 1000000 loops, the amount of memory allocations is about 2500. The `std::deque` is very memory stable and reuses very nicely the memory already allocated on repeated `pop_front`, `push_back`. 
 
-Here is the rest of the code:
+Here is the Windows `CRITIAL_SECTION` and `CONDITION_VARIABLE` implementation of the synchronization interface:
 
 ```csharp
+class critical_section_win {
+private:
+	CRITICAL_SECTION cs;
+public:
+	friend class condition_variable_win;
+	std::atomic<int> lk_cnt = 0;
 
+public:
+
+	critical_section_win() {
+		// ::InitializeCriticalSectionAndSpinCount(&cs, 0); 
+		::InitializeCriticalSection(&cs); // leave the spin count as it is; test the defaults
+	}
+
+	~critical_section_win() {
+		::DeleteCriticalSection(&cs);
+	}
+
+	critical_section_win(const critical_section_win& csw) = delete;
+	critical_section_win(critical_section_win&& csw) = delete; // TODO: move
+
+	bool try_lock() {
+
+		int k = 0;
+		if (!lk_cnt.compare_exchange_strong(k, 1) )
+			return false;
+
+		if (!TryEnterCriticalSection(&cs)) {
+			lk_cnt--;
+			return false;
+		}
+		return true;
+	}
+
+	void lock() {
+		lk_cnt++;
+		EnterCriticalSection(&cs);
+	}
+
+	void unlock() {		
+		LeaveCriticalSection(&cs);
+		lk_cnt--;
+	}
+};
+
+class condition_variable_win {
+private:
+
+	CONDITION_VARIABLE cv;
+public:
+
+	condition_variable_win() {
+		InitializeConditionVariable(&cv);
+	}
+
+	condition_variable_win(const condition_variable_win& csw) = delete;
+	condition_variable_win(condition_variable_win&& csw) = delete; // TODO: move
+
+	~condition_variable_win() {
+		// TODO: defensive programming - test for locked threads
+	}
+
+	void notify_all() {
+		WakeAllConditionVariable(&cv);
+	}
+
+	void notify_one() {
+		WakeConditionVariable(&cv);
+	}
+
+	void wait(const std::unique_lock<critical_section_win>& csw) {
+		SleepConditionVariableCS(&cv, &csw.mutex()->cs, INFINITE);
+	}
+
+	template<class R, class P> 
+	cv_status wait_for(const unique_lock<critical_section_win>& csw, const chrono::duration<R, P>& duration) {
+
+		DWORD ms = static_cast<DWORD>(chrono::duration_cast<chrono::milliseconds>(duration).count());
+
+		if (!SleepConditionVariableCS(&cv, &csw.mutex()->cs, ms)) {
+			return cv_status::timeout;
+		}
+
+		return cv_status::no_timeout;
+	}
+};
 ```
+
+### Multi-queue blocking queue:
+
+So the main optimization has to do with locking. The simplest way to achieve it is to have a multi-queue implemented as a collection of several other queues and `try_lock` each of them one by one, until the ownership is obtained. In case the ownership cannot be acquired, simply move to the next. With 4 queues and a spin count of 2 (try locking twice all the queues before forcibly locking one of them), the total amount of time spent in synchronization in external code becomes trivial. `mutex::lock` completely loses its predominant status in the list of CPU spent-time and is replaced by other functions like accessing the internal `std::deque` or inserting a new element in it (`get`, `put`). 
+
+Here is the code:
+
+```csharp
+template<typename T, typename mtx_type, typename cond_variable_type> class multi_blocking_queue {
+
+private:
+
+	static const int QUEUES = 4; 
+	static const int SPIN_COUNT = 2;
+
+	mtx_type				mtx[QUEUES];
+	mtx_type				mtx_block;
+	cond_variable_type		cv;
+	blocking_queue<T, no_lock_mtx, no_lock_condition_var> _queues[QUEUES];
+
+public:
+
+	multi_blocking_queue() {}
+
+	int get_next_queue() {		
+		static thread_local int i = 0;
+		return i = ((i++) % QUEUES); // round robin for better filling of queues - do not allow elements to remain for too long in one queue
+	}
+
+	bool try_get_all_queues(char unallocated[sizeof(T)]) {
+
+		for (int i = 0; i < QUEUES; i++) {
+
+			int q = get_next_queue();
+
+			unique_lock<mtx_type> lk(mtx[q], std::defer_lock);
+			if (lk.try_lock() && _queues[q].try_get(unallocated))
+				return true;
+		}
+
+		return false;
+	}
+
+	T get() {
+
+		char stack_alloc[sizeof(T)];
+		T* ret = reinterpret_cast<T*>(stack_alloc); // do not call constructor here.
+
+		while (true) {
+			for (int sp = 0; sp < SPIN_COUNT; sp++)
+				if (try_get_all_queues(stack_alloc))
+					return move(*ret);
+						
+			unique_lock<mtx_type> lk(mtx_block);
+			if (try_get_all_queues(stack_alloc))
+				return move(*ret);
+
+			cv.wait(lk);
+		}
+	}
+
+	bool try_put_all_queues(T&& t) {
+
+		for (int i = 0; i < QUEUES; i++) {
+
+			int q = get_next_queue();
+
+			unique_lock<mtx_type> lk(mtx[q], std::defer_lock);
+			if (lk.try_lock()) {
+				_queues[q].put(move(t));
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void put(T&& t) {
+		__put(move(t));
+		cv.notify_one();
+	}
+
+	void __put(T&& t) {
+
+		for (int sp = 0; sp < SPIN_COUNT; sp++) {
+			if (try_put_all_queues(move(t)))
+				return;
+		}
+	
+		{
+			unique_lock<mtx_type> lk_block(mtx_block);
+			while (!try_put_all_queues(move(t)));
+		}
+	}
+};
+```
+
+Notes on the implementation:
+
+- To keep the `try_lock` semantic as described for the `blocking_queue`, I had to trick the underlying `blocking_queues` into no locking. For this specific purpose I have created two clases:
+
+```csharp
+class no_lock_mtx {
+public:
+	void lock() {}
+	void unlock() {}
+};
+
+class no_lock_condition_var {
+public:
+	void notify_all() {}
+	void notify_one() {}
+	void wait(const std::unique_lock<critical_section_win>& csw) {}
+};
+```
+and passed them as synchronization primitives to the underlying `blocking_queues`.
