@@ -480,4 +480,18 @@ public:
 	void wait(const std::unique_lock<critical_section_win>& csw) {}
 };
 ```
-and passed them as synchronization primitives to the underlying `blocking_queues`.
+and passed them as synchronization primitives to the underlying `blocking_queues`. As mentioned before, this was a design choice, to keep `try_get` method return `false` only if the size of the underlying `std::deque` is 0. 
+
+- `get_next_queue` is used to loop through the list of blocking_queues instead of simply starting each time from 0. This is to ballance the queues and not let elements lost too long in queues with numbers 1->4. In most of the cases locking is possible on queue no. 0, thus the rest of the queues are used less often, resulting in an unbalanced response: some elements will be postponed very much on `get` if the implementation does not use the queues in a round-robin fashion. 
+
+- `try_lock` from `CONDITION_VARIABLE` uses a very simple atomic flag to quickly return if the ownership is taken. The flag is just a hint which is good enough and is not worth CPU cycles to remove the race condition between the checking of the flag and the `TryEnterCriticalSection` call. 
+
+### Conclusions:
+
+1. A multi queue gives a huge performance improvement by reducing thread contention to trivial. 
+2. In some conditions, using the Windows CRITICAL_SECTION over std::thread might improve system responsiveness at the expense of slightly longer execution times. 
+3. Performance monitoring tools from Visual Studio 2015 and 2017 are really nice. :)
+4. `std::deque` does an awesome job at reducing the number of memory allocation calls, even in cases of high dynamism (lots of pushes and lots of pops)
+5. The code might seem long, but getting to it was a process of continuous small steps, iterative, improvements, followed by testing and continuous refactoring.
+6. My initial assumptions were partly wrong. I was expecting memory allocation to be a much higher performance problem than it was. 
+7. Thread contention and locking, if not performed properly, can dramatically affect performance. However, I would advise incremental development: first a system that works correctly, then incrementally find ways to reduce locking while keeping the system running without crashes caused by race conditions, invalid data or deadlocks. 
