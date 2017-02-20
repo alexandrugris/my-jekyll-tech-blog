@@ -122,3 +122,161 @@ Design considerations:
 - I specifically omited a method `size()` to return the numer of elements in the queue. Being in a multithreaded context, this method would not make much sense.
 - Replacement for the method `size()` is the `try_get()` which will lock the queue and atomically return an element if one exists. This design will have further implications down the stream, when I will use the queue in a multi-queue configuration and I will be forced to use external locking to obtain the minimum contention. The other option would have been an implementation that follows the pattern `try_lock` then `if(size() > 0) return element;` but in this case there would have been no hint on the actual size of the queue. So being in doubt on the best design, I kept locking external in the multi-queue and preserved the method as it is. 
 - I added two `try_get`s. One of them accepts a stack allocated block of memory as input parameter to hint to the caller to avoid default-constructing the receiving object of type `T`. The method will invoke the move constructor itself on that memory. 
+
+### Testing
+
+1. Very basic tests, just to make sure data isn't lost on transfer between the callers and the queue.
+
+```csharp
+void test_basic_bq() {
+
+	typedef blocking_queue<unique_ptr<TestType>, std::mutex, std::condition_variable> MutexBlockingQueue;
+
+	{
+		MutexBlockingQueue bq;
+		auto p = make_unique<TestType>();
+		p->not_null();
+
+		bq.put(move(p));
+		p->not_null();
+
+		p = bq.get();
+		p->not_null();
+	}
+
+	{
+		MutexBlockingQueue b;
+		b.put(make_unique<TestType>());
+		MutexBlockingQueue bq = move(b);
+	}
+}
+```
+
+2. Multithreading tests:
+
+Aim is to combine in a simple manner various parameters. Here is an example of a possible `main` function:
+
+```csharp
+int main()
+{
+
+	test_basic_bq();
+
+	test_mt_bq<blocking_queue, TestType>(0);
+	test_mt_bq<blocking_queue, unique_ptr<TestType>>(0);
+	test_mt_bq<blocking_queue, TestType, std::mutex, std::condition_variable>(0);
+
+	test_mt_bq<multi_blocking_queue, TestType>();
+
+	return 0;
+}
+```
+
+I am instatiating the `test_mt_bq` with various parameters:
+
+1. Simple blocking queue (the one I spoke about before) with `TestType` - default it uses windows critical sections as synchronization mechanism (see below)
+2. Simple blocking queue with `unique_ptr<TestType>`
+3. Simple blocking queue with `std::mutex` and `std::condition_variable`
+4. Multi-queue blocking queue with default synchronization (windows critical sections) and `TestType`
+
+Below is the test function:
+
+```csharp
+template<template<class...> class QueueType, 
+			typename TT, 
+			typename mtx_type = critical_section_win, 
+			typename cond_variable_type = condition_variable_win, 
+			typename TT_ctor = default_ctor<TT>> 
+
+void test_mt_bq(int LOOP_CNT = 10000000, int MAX_THREADS = std::thread::hardware_concurrency()) {
+
+	std::vector<std::thread> threads;
+
+	QueueType<TT, mtx_type, cond_variable_type> queue;
+
+	std::atomic<int> elems = 0;
+	std::atomic<int> running_threads = 0;
+
+	for (int ix = 0; ix < MAX_THREADS; ix++) {
+
+		running_threads++;
+
+		threads.push_back(std::thread([&]() {
+			auto my_rand = std::bind(std::uniform_int_distribution<int>(0, RAND_MAX), default_random_engine(ix));
+
+			for (int i = 0; i < LOOP_CNT; i++) {
+
+				if (my_rand() % 2) {
+					queue.put(TT_ctor()());
+					elems++;
+				}
+				else {
+					elems--;
+					queue.get();
+				}
+			}
+
+			running_threads--;
+
+		}));
+	}
+
+	// watchdog
+	running_threads++;
+	threads.push_back(std::thread([&]() {
+
+		while (running_threads.load() > 1) {
+			while (elems.load() <= 0) {
+				queue.put(TT_ctor()());
+				elems++;
+			}
+			
+			this_thread::yield();
+		}
+
+		running_threads--;
+
+	}));
+
+	auto last_consumer = std::thread([&running_threads, &elems, &queue]() {
+
+		while (running_threads.load() > 0 || elems.load() > 0) {
+			while (elems.load() > 0) {
+				queue.get();
+				elems--;
+			}
+			this_thread::yield();
+		}
+	});
+
+
+	std::for_each(threads.begin(), threads.end(), [](auto &th) {
+		th.join();
+	});
+
+	// just make sure there is at least one element to consume, so the thread above does not block.
+
+	elems++;
+	queue.put(TT_ctor()());
+	last_consumer.join();
+}
+```
+
+This functio has several parts:
+- It creates `MAX_THREADS` which randomly produce and consume events from the queue
+- It creates a watchdog thread to make sure the `MAX_THREADS` do not all starve and lock
+- It creates a consumer thread just to make sure the queue does not grow too much.
+
+Initially I have started without this consumer thread and I realized that, at the function exit, there are around 3000 unconsumed elements in the queue when considering 1000000 loops in each of the `MAX_THREADS` (monitored in the `elems` variable)
+
+### Results from the simple queue testing:
+
+1. Around 80% of the time it spends in the `mutex::lock` function, in kernel. Optimizing the amount of locking brings by far the biggest performance improvements (I used Visual Studio performance analysis tools).
+2. The `std::mutex` does, by default, more spinning than the defaults in Windows `CRITICAL_SECTION`. When using the `std::mutex`, the CPU goes to 100% and the system becomes almost unresponsive. When using the Windows `CRITICAL_SECTION`, with the default spin count, the CPU stays at around 70% (configuration: 4 cores, MAX_THREADS = 4, no `last_consumer` thread). 
+3. For 1000000 loops, the amount of memory allocations is about 2500. The `std::deque` is very memory stable and reuses very nicely the memory already allocated on repeated `pop_front`, `push_back`. 
+
+Here is the rest of the code:
+
+```csharp
+
+```
