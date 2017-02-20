@@ -54,7 +54,7 @@ A simple multithreaded queue with all operations synchronized with a mutex. I we
 
 - I wanted be able to use various synchronization primitives as long as they respect the `std::mutex` and `std::condition_variable` interface. I wanted to be to play around and alter the default behavior.
 - I wanted to be able to track memory allocations. My initial assumption was that optimizing memory allocations will play a significant part in the process of streamlining the queue. Therefore I built my own allocator, which simply wraps `malloc` and `free`. More on this later.
-- I wanted a very straight forward interface, encapsulating all the behavior. 
+- I wanted a very straight-forward interface, encapsulating all the behavior. 
 
 ```csharp
 template<typename T, typename mtx_type, typename cond_variable_type> class blocking_queue {
@@ -116,3 +116,9 @@ public:
   
 };
 ```
+
+Design considerations:
+
+- I specifically omited a method `size()` to return the numer of elements in the queue. Being in a multithreaded context, this method would not make much sense.
+- Replacement for the method `size()` is the `try_get()` which will lock the queue and atomically return an element if one exists. This design will have further implications down the stream, when I will use the queue in a multi-queue configuration and I will be forced to use external locking to obtain the minimum contention. The other option would have been an implementation that follows the pattern `try_lock` then `if(size() > 0) return element;` but in this case there would have been no hint on the actual size of the queue. So being in doubt on the best design, I kept locking external in the multi-queue and preserved the method as it is. 
+- I added two `try_get`s. One of them accepts a stack allocated block of memory as input parameter to hint to the caller to avoid default-constructing the receiving object of type `T`. The method will invoke the move constructor itself on that memory. 
