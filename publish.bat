@@ -1,3 +1,4 @@
+
 echo OFF
 
 set PUBLISH_DIR="..\alexandrugris.github.io\"
