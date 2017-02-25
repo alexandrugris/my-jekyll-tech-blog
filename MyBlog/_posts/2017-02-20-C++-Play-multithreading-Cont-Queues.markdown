@@ -130,7 +130,9 @@ Design considerations:
 ```csharp
 void test_basic_bq() {
 
-	typedef blocking_queue<unique_ptr<TestType>, std::mutex, std::condition_variable> MutexBlockingQueue;
+	typedef blocking_queue<unique_ptr<TestType>, 
+			std::mutex, 
+			std::condition_variable> MutexBlockingQueue;
 
 	{
 		MutexBlockingQueue bq;
@@ -496,6 +498,8 @@ and passed them as synchronization primitives to the underlying `blocking_queues
 
 In the following pictures I am only looking at the `get` function. Please note that the `put` has very similar characteristics.
 
+
+
 ![blocking_queue - release]({{site.url}}/assets/queue_1.png)
 
 *Blocking queue with CRITICAL_SECTION synchronization in release mode* 
@@ -503,6 +507,8 @@ In the following pictures I am only looking at the `get` function. Please note t
 33.73% of CPU time (`get` function) spent in external code. Only 4% spent in own code, which includes the pushing / popping from the queue. 
 Together with a similar percentage in the `put` function, adds up to about 70% of the time our process in running it spends in code external to our app (mostly synchronization, to be seen below in the debug capture). 
 Also noticeable is that CPUs are used to about 70% of their capacity - here we run `CRITICAL_SECTION` syncrhronization, not the `std::mutex`.
+
+
 
 ![multi-queue - release]({{site.url}}/assets/queue_2.png)
 
@@ -513,15 +519,22 @@ We also notice a much better usage of the CPU, which stays at almost 100%.
 
 A direct comparison of the CPU time spent might be misleading though. We notice that on 10 million loops per thread, the `multi_blocking_queue` finishes in approx 25 seconds (on my 6 cores AMD Athlon FX) while the `blocking_queue` takes more than 1 minute and 35 seconds to finish.
 
-*Multi queue in debug*
+
+
 ![multi-queue - debug]({{site.url}}/assets/queue_3.png)
+
+*Multi queue in debug*
 
 In the `get` method, only around 6% spent in trying to actively obtain the lock on the thread. Most of the time, 26%, is spent in dequeuing from the underlying list. Real performance is measured on release, where the queue and all the own code is optimized by the compiler. The debug is just for hints on where the bottlenecks may occur. 
 
-*Single queue in debug, with std::mutex*
+
+
 ![multi-queue - debug]({{site.url}}/assets/queue_4.png)
 
+*Single queue in debug, with std::mutex*
+
 Notice the CPU usage of 90+% and the large amount of time spent in trying to obtain the lock. From this measurement is clear that the `std::mutex` implementation does  more spinning before reaching to the kernel than the `CRITICAL_SECTION` implementation with the default spin count.
+
 
 *In short:*
 
