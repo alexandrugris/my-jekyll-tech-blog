@@ -86,6 +86,8 @@ docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined
         && bash"
 ```
 
+![Running the command above]({{site.url}}/assets/docker_2_8.png)
+
 2. Type Linux password when prompted.
 
 3. Create a Visual C++ for Linux project. Set connection to localhost on port 2222 (forwarded 22, the default sshd port, from the container)
