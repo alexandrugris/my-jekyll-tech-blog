@@ -106,3 +106,50 @@ The container is run with the `--rm` flag above. You may want to remove it and s
 
 ### Creating an image to host all the tools needed for building and debugging with VC++ for Linux
 
+- Create the docker file (Dockerfile):
+
+```
+FROM debian:latest
+
+ARG USERNAME=agris
+ARG PASSWD=1234
+
+ENV USERNAME $USERNAME
+ENV PASSWD $PASSWD
+
+RUN echo sshd: ALL >> /etc/hosts.allow
+
+RUN apt-get update
+
+RUN apt-get install -y apt-utils
+
+RUN apt-get install -y openssh-server openssl g++ gdb gdbserver
+
+RUN mkdir /home/$USERNAME \
+        && useradd -d /home/$USERNAME $USERNAME -s /bin/bash -p `openssl passwd -1 -salt iuuA8932 $PASSWD` \
+        && /etc/init.d/ssh restart \
+        && chown -hR $USERNAME /home/$USERNAME
+        
+CMD /etc/init.d/ssh start && bash
+```
+
+- Build the image with the `gcc_debug_debian:latest` tag:
+
+```
+c:>docker build -t gcc_debug_debian:latest .
+```
+
+- Run the container and map the port 22 to 2222 on the host:
+
+```
+c:>docker run -it -p 2222:22 gcc_debug_debian
+```
+
+- Try SSH by running ssh command in another container:
+
+```
+c:>docker run -it gcc_debug_debian /usr/bin/ssh -l agris -p 2222 192.168.1.6
+```
+
+
+
