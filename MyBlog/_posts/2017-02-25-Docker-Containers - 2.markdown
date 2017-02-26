@@ -4,8 +4,8 @@ title:  "Docker And Containers Part 2"
 date:   2017-02-25 10:25:16 +0200
 categories: Web Development
 ---
-This is the second part of my personal Docker cheatsheet. So why Docker? Because I am interested in distributed computing and I want to play with various technologies. 
-I want to be able to spin quickly complex setups and, at the same time, keep my desktop as clean as possible. 
+This is the second part of my personal Docker cheatsheet. In this part I will enable host file access to containers 
+and continue with the more complex example of building and debugging Linux C++ applications in Visual Studio, using a Debian container in the background.
 
 Here is the first part: [Docker And Containers]({% post_url 2017-02-12-Docker-Containers %}) 
 
