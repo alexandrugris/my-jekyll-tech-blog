@@ -49,7 +49,7 @@ For a list of parameters of the `docker run` command, here they are: [Docker Run
 
 ### Example no. 1: delete all "mongo"-named containers:
 
-The following example uses a mixture of batch commands (running on the Windows host) and Linux commands running in the Docker container.
+The following example uses a mixture of batch commands (running on the Windows host) and Linux commands running in the Docker container. It is clearly not efficient at all as it is much simpler to simply use batch `for` and `if` in Windows, but it is just an example to show that it actually works. 
 
 ```
 docker ps -a 
