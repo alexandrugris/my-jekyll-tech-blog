@@ -71,7 +71,7 @@ Visual C++ for Linux is great and  works right outside the box when connected to
 
 However, creating full VMs, starting them and moving them around is complex and tedious. Here is a ligher alternative - use a Docker container for running and debugging the app.
 
-1. Run a Debian Linux distribution. Map ports. Create a local user and install g++, gdb and openssh-server. Drop into the bash console. Attention to the flag `--security-opt seccomp=unconfined` - gdb will not be able to connect to the executable otherwise.
+- Run a Debian Linux distribution. Map ports. Create a local user and install g++, gdb and openssh-server. Drop into the bash console. Attention to the flag `--security-opt seccomp=unconfined` - gdb will not be able to connect to the executable otherwise.
 
 ```
 docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined
@@ -88,20 +88,28 @@ docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined
 
 ![Running the command above]({{site.url}}/assets/docker_2_8.png)
 
-2. Type Linux password when prompted.
+- Type Linux password when prompted.
 
-3. Create a Visual C++ for Linux project. Set connection to localhost on port 2222 (forwarded 22, the default sshd port, from the container)
+- Create a Visual C++ for Linux project. Set connection to localhost on port 2222 (forwarded 22, the default sshd port, from the container)
 
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_5.png)
 
-4. Set the debugger type to gdb. 
+- Set the debugger type to gdb. 
 
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_6.png)
 
-5. Clean / Rebuild the project.
+- Clean / Rebuild the project.
 
-6. Happy debugging. :)
+- Happy debugging. :)
 
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_7.png)
 
-The container is run with the `--rm` flag above. You may want to remove it not to install everything everytime the command is run. 
+The container is run with the `--rm` flag above. You may want to remove it and save the image, not to have to install everything everytime the command is run. 
+
+```
+c:>docker run -it --env "USERNAME=agris" --name debian_gcc_debug -p 2222:22 --security-opt seccomp=unconfined debian bash -c "echo sshd: ALL >> /etc/hosts.allow && apt-get update && apt-get install -y openssh-server g++ gdb gdbserver && mkdir /home/$USERNAME && useradd -d /home/$USERNAME $USERNAME && passwd $USERNAME && /etc/init.d/ssh restart && chown -hR $USERNAME /home/$USERNAME && bash"
+
+c:>docker commit debian_gcc_debug debian_gcc_debug:agris
+
+c:>docker images
+```
