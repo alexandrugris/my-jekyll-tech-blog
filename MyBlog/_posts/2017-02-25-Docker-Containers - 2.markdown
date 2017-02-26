@@ -15,7 +15,7 @@ First thing, we need to enable drives to be visible within the container. For th
 
 ![Settings Dialog Mount FileSystem]({{site.url}}/assets/docker_2_1.png)
 
-Attention: port 445 must be opened in Windows Firewall.
+Port 445 must be opened in the Windows Firewall.
 
 ![Firewall warning]({{site.url}}/assets/docker_2_2.png)
 
@@ -47,7 +47,9 @@ Let's disect it:
 
 For a list of parameters of the `docker run` command, here they are: [Docker Run](https://docs.docker.com/engine/reference/commandline/run/). Another parameter very useful is the `--env` to sent environment variables in the container.
 
-### Example no. 1: delete all mongo-named containers:
+### Example no. 1: delete all "mongo"-named containers:
+
+The following example uses a mixture of batch commands (running on the Windows host) and Linux commands running in the Docker container.
 
 ```
 docker ps -a 
@@ -84,21 +86,19 @@ docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined
         && bash"
 ```
 
+2. Type Linux password when prompted.
 
-
-3. Type Linux password when prompted.
-
-4. Create a Visual C++ for Linux project. Set connection to localhost on port 2222 (forwarded 22, the default sshd port, from the container)
+3. Create a Visual C++ for Linux project. Set connection to localhost on port 2222 (forwarded 22, the default sshd port, from the container)
 
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_5.png)
 
-5. Set the debugger type to gdb. 
+4. Set the debugger type to gdb. 
 
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_6.png)
 
-6. Clean / Rebuild the project.
+5. Clean / Rebuild the project.
 
-7. Happy debugging. :)
+6. Happy debugging. :)
 
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_7.png)
 
