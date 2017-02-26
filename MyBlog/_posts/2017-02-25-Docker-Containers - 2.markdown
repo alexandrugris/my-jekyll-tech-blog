@@ -63,6 +63,12 @@ Explanation: the command uses two files `d:\to_delete.txt` and `d:\to_delete_2.t
 
 ### <a name="vclinuxdocker"></a> Example no. 2: developing Linux applications with Visual C++ for Linux and Docker
 
+Visual C++ for Linux is great and it works right outside the box when connected to a Virtual Box VM (in my picture below the VM is running a Debian). 
+
+![VM VC for Linux]({{site.url}}/assets/vsdebian.jpg)
+
+However, creating full VMs, starting them and moving them around is complex and tedious. Here is a ligher weight alternative - use docker for the same task.
+
 1. Run a Debian Linux distribution. Map ports. Create a local user and install g++, gdb and openssh-server. Drop into the bash console.
 
 ```
@@ -78,9 +84,9 @@ docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined
         && bash"
 ```
 
-2. Type Linux password when prompted.
+2. Attention to the flag `--security-opt seccomp=unconfined` - gdb will not be able to connect to the executable otherwise.
 
-3. Attention to the flag `--security-opt seccomp=unconfined` - gdb will not be able to connect to the executable otherwise.
+3. Type Linux password when prompted.
 
 4. Create a Visual C++ for Linux project. Set connection to localhost on port 2222 (forwarded 22, the default sshd port, from the container)
 
