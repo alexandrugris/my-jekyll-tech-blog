@@ -96,8 +96,10 @@ docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined
 
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_6.png)
 
-6. Happy building and debugging. :)
+6. Clean / Rebuild the project.
+
+7. Happy debugging. :)
 
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_7.png)
 
-The container is run with the --rm flag above. You may want to remove it and save the container not to install everything everytime the command s run. 
+The container is run with the `--rm` flag above. You may want to remove it not to install everything everytime the command is run. 
