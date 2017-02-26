@@ -2,4 +2,4 @@ _site
 _site_release
 .sass-cache
 .jekyll-metadata
-.db
+Thumbs.db
