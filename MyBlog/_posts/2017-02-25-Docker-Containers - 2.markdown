@@ -74,16 +74,14 @@ However, creating full VMs, starting them and moving them around is complex and 
 - Run a Debian Linux distribution. Map ports. Create a local user and install g++, gdb and openssh-server. Drop into the bash console. Attention to the flag `--security-opt seccomp=unconfined` - gdb will not be able to connect to the executable otherwise.
 
 ```
-docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined
+c:>docker run -it --env "USERNAME=agris" --rm --name debian_gcc_debug -p 2222:22 --security-opt seccomp=unconfined 
     debian bash -c "echo sshd: ALL >> /etc/hosts.allow 
         && apt-get update 
         && apt-get install -y openssh-server g++ gdb gdbserver 
-        && mkdir /home/agris 
-        && useradd -d /home/agris agris 
-        && passwd agris 
+        && mkdir /home/$USERNAME && useradd -d /home/$USERNAME $USERNAME 
+        && passwd $USERNAME 
         && /etc/init.d/ssh restart 
-        && chown -hR agris /home/agris 
-        && bash"
+        && chown -hR $USERNAME /home/$USERNAME && bash"
 ```
 
 ![Running the command above]({{site.url}}/assets/docker_2_8.png)
@@ -105,11 +103,3 @@ docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_7.png)
 
 The container is run with the `--rm` flag above. You may want to remove it and save the image, not to have to install everything everytime the command is run. 
-
-```
-c:>docker run -it --env "USERNAME=agris" --name debian_gcc_debug -p 2222:22 --security-opt seccomp=unconfined debian bash -c "echo sshd: ALL >> /etc/hosts.allow && apt-get update && apt-get install -y openssh-server g++ gdb gdbserver && mkdir /home/$USERNAME && useradd -d /home/$USERNAME $USERNAME && passwd $USERNAME && /etc/init.d/ssh restart && chown -hR $USERNAME /home/$USERNAME && bash"
-
-c:>docker commit debian_gcc_debug debian_gcc_debug:agris
-
-c:>docker images
-```
