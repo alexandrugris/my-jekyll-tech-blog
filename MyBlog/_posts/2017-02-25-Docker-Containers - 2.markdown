@@ -139,17 +139,28 @@ CMD /etc/init.d/ssh start && bash
 c:>docker build -t gcc_debug_debian:latest .
 ```
 
+- Clean up a little bit
+
+```
+c:>for /f "tokens=1, 3" %I in ('docker images') do if "%I"=="<none>" (docker rmi -f %J)
+```
+
 - Run the container and map the port 22 to 2222 on the host:
 
 ```
-c:>docker run -it -p 2222:22 gcc_debug_debian
+c:>docker run -it --rm -p 2222:22 --security-opt seccomp=unconfined gcc_debug_debian
 ```
 
-- Try SSH by running ssh command in another container:
+- Try SSH by running ssh command in another container to test the SSH connection (192.168.1.6 is the local IP of my computer):
 
 ```
-c:>docker run -it gcc_debug_debian /usr/bin/ssh -l agris -p 2222 192.168.1.6
+c:>docker run -it --rm gcc_debug_debian /usr/bin/ssh -l agris -p 2222 192.168.1.6
 ```
+
+- Clean / Rebuild and then Start Remote Debugging in Visual C++. If the build step works but debugging fails, please make sure you have not forgotten the `--security-opt seccomp=unconfined` flag.
+
+This is it for running and debugging C++ applications running in a Linux docker container. Happy Hacking! :)
+
 
 
 
