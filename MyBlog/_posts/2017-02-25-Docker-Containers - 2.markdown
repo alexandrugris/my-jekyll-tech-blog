@@ -160,8 +160,4 @@ c:>docker run -it --rm gcc_debug_debian /usr/bin/ssh -l agris -p 2222 192.168.1.
 
 - Clean / Rebuild and then Start Remote Debugging in Visual C++. If the build step works but debugging fails, please make sure you have not forgotten the `--security-opt seccomp=unconfined` flag.
 
-This is it for running and debugging C++ applications running in a Linux docker container. Happy Hacking! :)
-
-
-
-
+This is it for running and debugging C++ applications in a Linux docker container. Happy Hacking! :)

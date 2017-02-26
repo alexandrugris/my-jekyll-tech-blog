@@ -8,6 +8,7 @@ set CURRENT_DIR=%CD%
 call build_release.bat
 
 cd %CURRENT_DIR%
+del /s Thumbs.db
 xcopy /y .\MyBlog\_site_release\* %PUBLISH_DIR% /s /e /f
 
 cd %PUBLISH_DIR%
