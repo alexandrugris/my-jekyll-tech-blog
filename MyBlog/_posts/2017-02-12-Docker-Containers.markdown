@@ -51,6 +51,12 @@ To remove a container completely, stop it and then:
 c:>docker rm zealous_meninsky
 ```
 
+To remove all stopped containers (clean the system - Windows):
+
+```
+c:>FOR /f "tokens=*" %i IN ('docker ps -a -q') DO docker rm %i
+```
+
 In order to list the images:
 
 ```

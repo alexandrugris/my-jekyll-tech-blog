@@ -103,3 +103,6 @@ c:>docker run -it --env "USERNAME=agris" --rm --name debian_gcc_debug -p 2222:22
 ![Visual Studio Project Config]({{site.url}}/assets/docker_2_7.png)
 
 The container is run with the `--rm` flag above. You may want to remove it and save the image, not to have to install everything everytime the command is run. 
+
+### Creating an image to host all the tools needed for building and debugging with VC++ for Linux
+
