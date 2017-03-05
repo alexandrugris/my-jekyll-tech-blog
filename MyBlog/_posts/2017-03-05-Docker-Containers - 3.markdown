@@ -149,6 +149,86 @@ And the result is:
 
 ![Database Test still Exists]({{site.url}}/assets/docker_3_4.png)
 
-Please note that, because I continue to mount the same volume named `agris_data`, the database `test` I have created earlier is still there.
+Please note that, because I continue to mount the same volume named `agris_data`, the database `test` I have created earlier is still there. 
+However, if you deleted the volume, you will get the following error from `docker-compose up`:
+
+>ERROR: Volume agris_data declared as external, but could not be found. 
+>Please create the volume manually using `docker volume create --name=agris_data` and try again.
+
+so:
+
+```
+c:>docker volume create --name=agris_data
+c:>docker-compose up -d
+```
+
+### Networks:
+
+```
+c:>docker network ls
+c:>docker network inspect cppplaylinux_default
+```
+
+![docker network inspect]({{site.url}}/assets/docker_3_5.png)
+
+And we see:
+
+- we have a new network created by `docker-compose`, in this case `cppplaylinux_default`
+- we have one host  connected to this network, in this case `cppplaylinux_mysql_agris_1`, which is precisely the container created by the `docker-compose` and visible through `docker ps -a`
+
+Beside using `docker-compose` to create networks of containers, `docker network` command offers the options to:
+
+- create networks
+- delete networks
+- inspect networks
+- list networks
+
+Then you can use the `docker run --network` to attach a new container to an existing network.
+
+All user-defined networks have a embedded DNS server. Thus, assuming we add another container to the network, from that container we can simply do `ping mysql_agris` and it will work.
+
+```
+c:>docker run -it --rm --name ash --network cppplaylinux_default alpine-ssh sh
+```
+
+![ping]({{site.url}}/assets/docker_3_6.png)
+
+In the end:
+
+```
+c:>docker-compose down
+```
+
+to tear everything down.
+
+If we want to keep the network, just do:
+
+```
+c:>docker-compose rm
+```
+
+Speaking of docker-compose, it can be integrated directly with a Dockerfile instead of an existing image. So, instead of doing `docker build -t img_name .` we can simply add to the `docker-compose.yml` the following:
+
+```
+version: '3'
+
+services:
+    web_layer:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        ports:
+            - 8080:80            
+        environment:
+            - db_conn_str=...
+
+```
+
+A useful parameter is `depends_on:` which instructs docker to only start the container after the dependecies are statisfied. [docker](https://docs.docker.com/compose/compose-file/#dependson)
+
+Happy Hacking! :)
+
+
+
 
 
