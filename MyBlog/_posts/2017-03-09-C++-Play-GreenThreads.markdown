@@ -15,6 +15,8 @@ You have N CPUs and M threads, where M >> N  - the case for actors, for instance
 
 For this demo I will only implement `wait-for` (waiting for a thread to finish) and `yield` (give control to the next thread). Any other operations would only make the code more complex to read but not add much clarity into the concepts. Here is my test bed:
 
+![vs_run]({{site.ur}}/assets/green_threads_1.png)
+
 ```csharp
 void fn(thread_pool::thread_ctx *ctx, int p1, int p2) {
 
