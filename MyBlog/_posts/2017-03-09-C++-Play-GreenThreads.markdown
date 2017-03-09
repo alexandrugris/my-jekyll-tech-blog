@@ -76,6 +76,14 @@ The `fn` function spawns recursively many other child-threads which are waited f
 
 `template<class fn, typename... T> void thread_pool::call_fn(unsigned int stack_size, const char* name, fn* f, T... params)` - creates the parent thread. It is the way to initialize the threading library because for the parent thread return information should be stored in the main process stack. The function should wait for all its children to finish before exiting. 
 
-`
+`template<class fn, typename... T> shared_ptr<thread_ctx> thread_pool::thread_ctx::call_fn(unsigned int stack_size, const char* name ,fn* f, T... params)` - spawns a new child thread. 
+
+`void thread_pool::thread_ctx::wait_for(shared_ptr<thread_ctx>& other)` - waits for a child. 
+
+`void thread_pool::thread_ctx::yield()` - gives control to the next thread waiting for execution in a round-robin fashion. 
+
+### Implementation
+
+
 
 
