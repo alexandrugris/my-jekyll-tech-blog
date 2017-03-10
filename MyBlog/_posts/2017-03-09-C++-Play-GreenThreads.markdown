@@ -112,7 +112,9 @@ public:
 
 		thread_pool* th_p = nullptr;
 		bool	b_finished = false;
-		bool	b_yielded = false; // useful for when we have an out of order return from the function.
+		
+		// for when we have an out of order return from the function.
+		bool	b_yielded = false; 
 
 #ifdef _DEBUG
 		int stack_size = 0;
@@ -205,7 +207,8 @@ public:
 		}
 
 		template<class fn, typename... T> 
-		shared_ptr<thread_ctx> call_fn(unsigned int stack_size, const char* name ,fn* f, T... params) {
+		shared_ptr<thread_ctx> 
+		call_fn(unsigned int stack_size, const char* name ,fn* f, T... params) {
 			auto ctx = make_shared<thread_ctx>(th_p, stack_size);
 
 			if (name) 
@@ -365,7 +368,8 @@ public:
 		}
 	}
 
-	template<class fn, typename... T> void call_fn(unsigned int stack_size, const char* name, fn* f, T... params) {
+	template<class fn, typename... T> 
+	void call_fn(unsigned int stack_size, const char* name, fn* f, T... params) {
 		auto ctx = make_shared<thread_ctx>(this, stack_size);
 
 		if(name) ctx->thread_name = _strdup(name);
@@ -444,7 +448,11 @@ struct thread_ctx {
 
 		thread_pool* th_p = nullptr;
 		bool	b_finished = false;
-		bool	b_yielded = false; // useful for when we have an out of order return from the function.
+		// for when we have an out of order return from the function.
+		bool	b_yielded = false; 
+		
+		...
+}
 ```
 
  - `thread_ctx` - our thread. 
