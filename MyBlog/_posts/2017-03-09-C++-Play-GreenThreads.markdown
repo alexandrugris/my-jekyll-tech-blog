@@ -474,9 +474,9 @@ struct thread_ctx {
  
  ### Comments
  
- - I enjoyed very much writing the code. 
- - Assembly language is extremely powerful and suited for such hacks. It is probably the only reasonable use I can think of, as optimizations are usually better left of to the compiler. 
- - Debugging jumps between functions is relatively hard as there is little debugging information availabe, thus I coded incrementally, getting each line of code working, one by one. 
+ - I wrote this code for my own fun, with no intention except getting it to work.
+ - Assembly language is extremely powerful and suited for such hacks. Optimizations are usually better left off to the compiler, but doing magic and jumping between functions? Well, there are C APIs already battletested for this, but how do these APIs work?
+ - Debugging jumps between functions is relatively hard as there is little information availabe. I coded incrementally, getting each line of code working, one by one. 
  
  
 
