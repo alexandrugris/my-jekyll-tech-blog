@@ -5,17 +5,18 @@ date:   2017-03-09 16:15:16 +0200
 categories: Native coding
 ---
 
-In this post I will talk about [green threads](https://en.wikipedia.org/wiki/Green_threads) and give an example implementation in C++ - or, better say, in ASM. The code is highly compiler-dependant (VC++17) and fragile, thus not production-ready. It makes assumptions about stack layout and data in registers and even something as simple as turning on optimizations will most likely crash it. But it was a fun programming exercise for a concept often found in asynchronous libraries or implemented directly in language constructs. Interesting links: [Fibers](https://en.wikipedia.org/wiki/Fiber_%28computer_science%29), [Coroutines](https://en.wikipedia.org/wiki/Coroutine), [Set Context](https://en.wikipedia.org/wiki/Setcontext), [Actors](https://en.wikipedia.org/wiki/Actor_model), [Cooperative multitasking](https://en.wikipedia.org/wiki/Cooperative_multitasking)
+In this post I will write about [green threads](https://en.wikipedia.org/wiki/Green_threads) and provide a sample implementation in C++ - or, better say, in C++ mixed with assembly language. The code is highly compiler-dependant (VC++17) and fragile, thus not production-ready. It makes assumptions about stack layout and data in registers and even something as simple as turning on optimizations will most likely crash it. But it was a fun programming exercise for a concept often implemented in asynchronous libraries or found in some programming language constructs. Interesting links: [Fibers](https://en.wikipedia.org/wiki/Fiber_%28computer_science%29), [Coroutines](https://en.wikipedia.org/wiki/Coroutine), [Set Context](https://en.wikipedia.org/wiki/Setcontext), [Actors](https://en.wikipedia.org/wiki/Actor_model), [Cooperative multitasking](https://en.wikipedia.org/wiki/Cooperative_multitasking)
 
 ### The problem
 
 You have N CPUs and M threads, where M >> N  - the case for actors, for instance. You know that these M threads will most likely interact with each other (either passing messages or synchronizing on some primitive). You might also have I/O and you want to keep the program flow simple and not pollute it with lots of callbacks - synchronous I/O code is clearly much simpler to read than async I/O, but also more heavy on the OS. These problems are suitable for considering a cooperative scheduling approach.
 
+![vs_run]({{site.ur}}/assets/green_threads_1.png)
+
 ### The API and the test scenario
 
 For this demo I will only implement `wait-for` (waiting for a thread to finish) and `yield` (give control to the next thread). Any other operations would only make the code more complex to read but not add much clarity into the concepts. Here is my test bed:
 
-![vs_run]({{site.ur}}/assets/green_threads_1.png)
 
 ```csharp
 void fn(thread_pool::thread_ctx *ctx, int p1, int p2) {
@@ -57,7 +58,6 @@ void fn(thread_pool::thread_ctx *ctx, int p1, int p2) {
 	cout << "Ended WITH yields: " << ctx->name() << endl;
 }
 
-#pragma optimize ("", on)
 int main()
 {
 	int p1 = 0;
@@ -67,12 +67,11 @@ int main()
 	pool.call_fn(100000, "THREAD_0" ,fn, p1, p2);	
 	return 0;
 }
-
 ```
 
-In main I simply call on the main thread, which I name "THREAD_0" a procedure, `fn`, defined above. This is (and should be) a synchronous call. `fn` should wait for all spawned threads to be finished. Note: when I say "thread", I mean a "green thread". All my threads share the same OS thread. In this sample there is no OS multithreading involved. From the OS perspective, the application is single threaded. 
+In `main` I simply call on the main thread, which I named "THREAD_0", a procedure, `fn`, defined above. This is (and should be) a synchronous call. `fn` should wait for all spawned threads to be finished. Note: when I say "thread", I mean a "green thread". All my threads share the same OS thread. In this sample there is no OS multithreading involved. From the OS perspective the application is single threaded. 
 
-The `fn` function spawns recursively many other child-threads which are waited for at the end of the function. Context switching happens when control reaches the `ctx->yield()` call. `ctx` is our current thread (in code called `thread_context`). If control does not reach a `ctx->yield()`, the function is simply executed on the stack of the caller, synchronously, like a normal function. When control reaches `ctx->yield()` the function will be put on hold and the rest of the threads will be executed. On the spawning thread, the function seems to return asynchronously. The result is a `thread_ctx` object which can be queried for thread completion or waited for. When a thread is spawned, parameters can be sent to it like to any other function, on the stack - the implementation is based on a variadic template. In our case I send two `ints`. 
+The `fn` function spawns recursively many other child-threads which are waited for at the end of the function. Context switching happens when control reaches the `ctx->yield()` call. `ctx` is our current thread (an instance of the `thread_context` class). If control does not reach a `ctx->yield()`, the function is simply executed on the stack of the caller, synchronously, like a normal function. When control reaches `ctx->yield()` the function will be put on hold and the rest of the threads will be executed. On the spawning thread, control is given back to the caller, asynchronously, not waiting for the new thread to finish. The result is a `thread_ctx` object which can be queried for work completion or waited for. When a thread is spawned, parameters can be sent to it like to any other function, on the stack - the implementation is based on a variadic template. In our case I send two `ints`. 
 
 ### Api description:
 
@@ -168,7 +167,8 @@ public:
 
 			auto next_ptr = next.get();
 
-			// cout << "Yield: From " << this->thread_name << " To " << next_ptr->thread_name << endl;
+			// cout << "Yield: From " << this->thread_name << " To " 
+			// << next_ptr->thread_name << endl;
 
 			// save the jump location for this thread
 			__asm {				
@@ -275,7 +275,6 @@ public:
 				f(this, params...);
 
 				__asm {
-
 					pop ecx; // this is in ecx
 					mov eax, [ecx + b_yielded];
 					and al, 1
@@ -336,7 +335,6 @@ public:
 		}			
 	};
 
-
 private:
 	std::vector<shared_ptr<thread_ctx>> threads;
 
@@ -378,62 +376,9 @@ public:
 		ctx->assign_fn(nullptr, f, params...);
 	}
 };
-
-#pragma optimize ( "", off)
-
-// spanwn a huge tree of children.
-void fn(thread_pool::thread_ctx *ctx, int p1, int p2) {
-
-	if (p1 >= 4) {
-		cout << "Ended NO yields: " << ctx->name() << endl;
-		return;
-	}
-	
-	char thread_name[80];
-	sprintf_s(thread_name, "Thread %d - %d", p1 + 1, p2 + 2);
-	cout << "Starts: " << thread_name << endl;
-
-	auto child1 = ctx->call_fn(100000, thread_name, fn, p1 + 1, p2 + 2);
-
-	sprintf_s(thread_name, "Secondary thread %d - %d", p1 + 1, p2 + 2);
-	cout << "Starts: " << thread_name << endl;
-
-	auto child2 = ctx->call_fn(100000, thread_name, fn, p1 + 1, p2 + 2);
-
-	std::vector<decltype(child1)> children;
-
-	for (int i = 0; i < 7; i++) {
-
-		cout << p1 << p2 << endl;
-
-		auto p = ctx->call_fn(10000, "Child of child", fn, p1 + 1, p2 + 2);
-
-		children.push_back(p);
-		ctx->yield();
-	}
-
-	ctx->wait_for(child1);
-	ctx->wait_for(child2);
-
-	for (auto &c : children)
-		ctx->wait_for(c);
-
-	cout << "Ended WITH yields: " << ctx->name() << endl;
-}
-
-#pragma optimize ("", on)
-int main()
-{
-	int p1 = 0;
-	int p2 = 0;
-
-	thread_pool pool;
-	pool.call_fn(100000, "THREAD_0" ,fn, p1, p2);	
-	return 0;
-}
 ```
 
-And the explanations:
+### Explanations:
 
 ```csharp
 struct thread_ctx {
@@ -456,26 +401,26 @@ struct thread_ctx {
 ```
 
  - `thread_ctx` - our thread. 
- - `thread_name` - a private variable used for DEBUG - helps identifying our thread. 
+ - `thread_name` - a private variable used for debug - helps identifying our thread. 
  - `stack` - the `new`-allocated stack for our thread. 
- - `stack_ptr` - stack pointer (esp). When a context switch is performed, esp is saved / restored to / from this variable.
+ - `stack_ptr` - stack pointer (esp). When a context switch is performed, `esp` is saved / restored to / from this variable.
  - `continuation_location` - pointer to the code location from which the thread was interrupted. It is saved and jumped to on context switch. 
  - `thread_pool` - the parent thread, pool, 
  - `b_finished` set if the thread has finished its work. 
- - `b_yielded` an internal status set to true if the thread was ever interrupted. This is critical because, if the thread has been interrupted, the invocation will return asynchronously to the parent through an out-of-order return (`void assign_fn(thread_ctx* parent_thread, fn* f, T... params)`. 
+ - `b_yielded` an internal status set to true if the thread was ever interrupted. This is critical because, if the thread has been interrupted, the invocation will return asynchronously to the parent through an out-of-order return (`void assign_fn(thread_ctx* parent_thread, fn* f, T... params)`). The function will then continue, without another return to the caller. When it finishes, it just forwards control to the next waiting thread (a final call to `yield()`) and sets the `b_finished` flag.
  
- ### Some compiler specific assumptions:
+### Some compiler specific assumptions:
  
- - `ebp` is the root of the function stack ([/Oy will crash our code]https://msdn.microsoft.com/en-us/library/2kxx5t2c.aspx). This restriction can be removed through some extra push / pops but would only complicate the demo. 
- - `ecx` stores the `this` pointer (`thiscall` convention assumed). To access any members from `this` we do `mov ..., [ecx + var_name]
+ - `ebp` is the root of the function stack.[`/Oy` will crash our code](https://msdn.microsoft.com/en-us/library/2kxx5t2c.aspx). This restriction could be removed through some extra push / pops. 
+ - `ecx` stores the `this` pointer (`thiscall` convention assumed). To access any members from `this` we do `mov ..., [ecx + var_name]`
  - inline asm assumes VC++ on 32 bits. 
  
  Any optimizations that somehow assume the threads continue without interruptions will crash our code. 
  
- ### Comments
+### Comments
  
- - I wrote this code for my own fun, with no intention except getting it to work.
- - Assembly language is extremely powerful and suited for such hacks. Optimizations are usually better left off to the compiler, but doing magic and jumping between functions? Well, there are C APIs already battletested for this, but how do these APIs work?
+ - I wrote this code for my own fun, with no other intention except getting it to work.
+ - Assembly language is extremely powerful and suited for such hacks. Optimizations are usually better left off to the compiler, but doing magic and jumping between functions? Well, there are C APIs already battletested for this, but it is fun to play around and provide a possible implementation for how these APIs work behind the scenes. 
  - Debugging jumps between functions is relatively hard as there is little information availabe. I coded incrementally, getting each line of code working, one by one. 
  
  

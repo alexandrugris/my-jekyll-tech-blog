@@ -4,7 +4,7 @@ title:  "Docker And Containers Part 3"
 date:   2017-03-05 10:12:16 +0200
 categories: Web Development
 ---
-This is the third part of my personal Docker cheatsheet. The content includes: cleaning up the system, running an SQL Server Windows container and connecting to it through the SQL Server Management Studio and using volumes for storing container persistent data (in this post saving mysql databases). The last part will be dedicated to Docker Compose.
+This is the third part of my personal Docker cheatsheet. The content includes: cleaning up the system, running an SQL Server Windows container, connecting to it through the SQL Server Management Studio and using volumes for storing container persistent data (in this post saving mysql databases). The last part will be dedicated to Docker Compose.
 
 ### Cleaning up the system:
 
