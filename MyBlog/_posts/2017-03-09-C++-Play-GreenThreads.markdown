@@ -73,7 +73,7 @@ In `main` I simply call on the main thread, which I named "THREAD_0", a procedur
 
 The `fn` function spawns recursively many other child-threads which are waited for at the end of the function. Context switching happens when control reaches the `ctx->yield()` call. `ctx` is our current thread (an instance of the `thread_context` class). If control does not reach a `ctx->yield()`, the function is simply executed on the stack of the caller, synchronously, like a normal function. When control reaches `ctx->yield()` the function will be put on hold and the rest of the threads will be executed. On the spawning thread, control is given back to the caller, asynchronously, not waiting for the new thread to finish. The result is a `thread_ctx` object which can be queried for work completion or waited for. When a thread is spawned, parameters can be sent to it like to any other function, on the stack - the implementation is based on a variadic template. In our case I send two `ints`. 
 
-### Api description:
+### API description:
 
 `template<class fn, typename... T> void thread_pool::call_fn(unsigned int stack_size, const char* name, fn* f, T... params)` - creates the parent thread. It is the way to initialize the threading library because for the parent thread return information should be stored in the main process stack. The function should wait for all its children to finish before exiting. 
 
