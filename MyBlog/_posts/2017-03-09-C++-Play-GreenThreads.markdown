@@ -158,9 +158,10 @@ public:
 #endif
 			
 			unsigned char** loc_ptr		= &continuation_location;
-			auto next					= th_p->next();
+			auto next			= th_p->next();
 
-			while (next->b_finished || (next.get() != this && next->continuation_location == nullptr))
+			while (next->b_finished || 
+				(next.get() != this && next->continuation_location == nullptr))
 				next = th_p->next();
 
 			auto next_ptr = next.get();
@@ -203,7 +204,8 @@ public:
 			assert(stk_tst == 0);			
 		}
 
-		template<class fn, typename... T> shared_ptr<thread_ctx> call_fn(unsigned int stack_size, const char* name ,fn* f, T... params) {
+		template<class fn, typename... T> 
+		shared_ptr<thread_ctx> call_fn(unsigned int stack_size, const char* name ,fn* f, T... params) {
 			auto ctx = make_shared<thread_ctx>(th_p, stack_size);
 
 			if (name) 
@@ -216,7 +218,8 @@ public:
 
 	private:
 
-		template<class fn, typename... T> void assign_fn(thread_ctx* parent_thread, fn* f, T... params) {
+		template<class fn, typename... T> 
+		void assign_fn(thread_ctx* parent_thread, fn* f, T... params) {
 			int stk_tst = 0;
 
 			unsigned char* stk = stack_ptr;	
@@ -242,7 +245,7 @@ public:
 				unsigned char** loc_ptr		= &parent_thread->continuation_location;
 				unsigned char*	stck_ptr	= nullptr;
 				
-				// save the jump location -> in theory this is known at compile time, but maybe there will be different jump points
+				// save the jump location 
 				__asm {
 					mov eax, offset continuation_code_ptr;
 					mov ebx, loc_ptr;
@@ -452,4 +455,20 @@ struct thread_ctx {
  - `thread_pool` - the parent thread, pool, 
  - `b_finished` set if the thread has finished its work. 
  - `b_yielded` an internal status set to true if the thread was ever interrupted. This is critical because, if the thread has been interrupted, the invocation will return asynchronously to the parent through an out-of-order return (`void assign_fn(thread_ctx* parent_thread, fn* f, T... params)`. 
+ 
+ ### Some compiler specific assumptions:
+ 
+ - `ebp` is the root of the function stack ([/Oy will crash our code]https://msdn.microsoft.com/en-us/library/2kxx5t2c.aspx). This restriction can be removed through some extra push / pops but would only complicate the demo. 
+ - `ecx` stores the `this` pointer (`thiscall` convention assumed). To access any members from `this` we do `mov ..., [ecx + var_name]
+ - inline asm assumes VC++ on 32 bits. 
+ 
+ Any optimizations that somehow assume the threads continue without interruptions will crash our code. 
+ 
+ ### Comments
+ 
+ - I enjoyed very much writing the code. 
+ - Assembly language is extremely powerful and suited for such hacks. It is probably the only reasonable use I can think of, as optimizations are usually better left of to the compiler. 
+ - Debugging jumps between functions is relatively hard as there is little debugging information availabe, thus I coded incrementally, getting each line of code working, one by one. 
+ 
+ 
 
