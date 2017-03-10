@@ -445,4 +445,11 @@ struct thread_ctx {
 ```
 
  - `thread_ctx` - our thread. 
+ - `thread_name` - a private variable used for DEBUG - helps identifying our thread. 
+ - `stack` - the `new`-allocated stack for our thread. 
+ - `stack_ptr` - stack pointer (esp). When a context switch is performed, esp is saved / restored to / from this variable.
+ - `continuation_location` - pointer to the code location from which the thread was interrupted. It is saved and jumped to on context switch. 
+ - `thread_pool` - the parent thread, pool, 
+ - `b_finished` set if the thread has finished its work. 
+ - `b_yielded` an internal status set to true if the thread was ever interrupted. This is critical because, if the thread has been interrupted, the invocation will return asynchronously to the parent through an out-of-order return (`void assign_fn(thread_ctx* parent_thread, fn* f, T... params)`. 
 
