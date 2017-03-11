@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "My Machine Learning Notebook - Part 1"
+title:  "My Machine Learning Notebook - Part 1 (Data Preprocessing)"
 date:   2017-03-11 14:15:16 +0200
 categories: Machine Learning
 ---
