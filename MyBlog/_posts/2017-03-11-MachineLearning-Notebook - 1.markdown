@@ -72,7 +72,7 @@ dataset$Salary = ifelse(
 
 ***Back to Python***
 
-###Encoding categorical data to numbers for futher processing
+### Encoding categorical data to numbers for futher processing
 
 Two steps:
 
@@ -107,7 +107,7 @@ y = dataset.iloc[:, 3].values
 y = LabelEncoder().fit_transform(y)
 ```
 
-###Encoding categorial data in R
+### Encoding categorial data in R
 
 It seems in R we don't need to create the dummy features, so it is straight forward:
 
@@ -189,3 +189,86 @@ training_set[, 2:3] = scale(training_set[, 2:3])
 test_set[, 2:3] = scale(test_set[, 2:3])
 ```
 ![ML Feature Scaling]({{site.url}}/assets/ml_1_5.png)
+
+### Some sample implementation:
+
+In the snippets above, we use algorithms from various python libraries. Here are some sample implementations of how these algorithms.
+
+A basic function to generate data with random NaNs
+
+```python
+import numpy as np
+import random
+
+def generate_data(length, min = 0, max = 1, gaps_percent = 0):    
+    ret = np.random.rand(length) * (max - min) + min
+    cnt_nan = int (gaps_percent * length)
+    
+    ilen = int(length);
+    
+    for i in range(0, cnt_nan):
+        idx = random.randint(0, ilen - 1)
+        while(np.isnan(ret[idx])):
+            idx = int((idx + random.randint(1, 13)) % ilen)     # so we minimize clusters
+        ret[idx] = np.NaN
+             
+    return ret
+
+arr = generate_data(100, 10, 100, 0.2)
+
+```
+
+Cleaning up the data - the algorithm which replaces NaN with a value (either median or mean)
+
+```python
+def fill_nan_with_value(arr, func):
+    ret = np.array(arr)
+    mask = np.isnan(arr)
+    ret[mask] = func(arr[mask ^ True]);
+    return ret 
+
+0.5, gaps_percent)
+
+arr_filled = fill_nan_with_value(arr, np.mean)
+```
+
+Data scaling:
+
+```python
+"""Standardize features by removing the mean and scaling to unit variance
+For instance many elements used in the objective function of a learning algorithm 
+(such as the RBF kernel of Support Vector Machines or the L1 and L2 regularizers 
+of linear models) assume that all features are centered around 0 and have 
+variance in the same order. If a feature has a variance that is orders of 
+magnitude larger that others, it might dominate the objective function and 
+make the estimator unable to learn from other features correctly as expected.
+"""
+def scale_std_dev(arr_filled):
+    mean_arr = np.mean(arr_filled);
+    stddev_arr = np.sqrt( np.sum((arr_filled - mean_arr) ** 2) )
+    return (arr_filled - mean_arr) / stddev_arr
+
+def scale_normalize(arr_filled):
+    return (arr_filled - np.min(arr_filled)) / (np.max(arr_filled) - np.min(arr_filled))
+    
+array_scaled_std_dev = scale_std_dev(arr_filled)
+array_scaled_normal = scale_normalize(arr_filled)
+```
+
+Generate linear data with noise and plot it
+
+```python
+"""
+Format ax + b + error
+"""
+def generate_noisy_linear_data(start, end, size, a_coef, b_coef, error):
+    return np.linspace(start, end, size) * a_coef + generate_data(size, -error * 0.5, error * 0.5) + b_coef
+
+line_with_noise = generate_noisy_linear_data(0, 10, 100, 0.2, 20, 0.5)
+
+import matplotlib.pyplot as plt;
+plt.plot(np.linspace(0, 10, 100), line_with_noise, 'ro')
+```
+
+![Spyder]({{site.url}}/assets/ml_1_6.png)
+
