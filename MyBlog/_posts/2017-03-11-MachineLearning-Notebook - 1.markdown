@@ -192,7 +192,7 @@ test_set[, 2:3] = scale(test_set[, 2:3])
 
 ### Some sample implementation:
 
-In the snippets above, we use algorithms from various python libraries. Here are some sample implementations of how these algorithms.
+In the snippets above, we use algorithms from various python libraries. Here are some sample implementations of these algorithms.
 
 A basic function to generate data with random NaNs
 
@@ -245,7 +245,7 @@ make the estimator unable to learn from other features correctly as expected.
 """
 def scale_std_dev(arr_filled):
     mean_arr = np.mean(arr_filled);
-    stddev_arr = np.sqrt( np.sum((arr_filled - mean_arr) ** 2) )
+    stddev_arr = np.sqrt( np.sum((arr_filled - mean_arr) ** 2)  / arr_filled.size )
     return (arr_filled - mean_arr) / stddev_arr
 
 def scale_normalize(arr_filled):
