@@ -1,0 +1,143 @@
+---
+layout: post
+title:  "Statistics, continued"
+date:   2017-03-11 14:15:16 +0200
+categories: Machine Learning
+---
+This post tackles basic algorithms for computing probability density functions and cumulative distribution functions, as well as generating random numbers according to a distribution. I will compute the gini index and entropy, coefficients used to measure how much a distribution differs from the uniform distribution. [Gini index](https://en.wikipedia.org/wiki/Gini_coefficient) is referred also as categorical variance. It was initially introduced to "represent the income or wealth distribution of a nation's residents, and is the most commonly used measure of inequality." [Wikipedia]
+
+
+### Generating random numbers according to a given distribution
+
+Let's consider two distributions I will play arond with in this article:
+
+- **Power law** - sometimes referred as Pareto. Common in social systems or systems with strong network effects - wealth distribution, group size, productivity, website views. It models preferential attachment. Power law [density function](https://en.wikipedia.org/wiki/Probability_density_function) is `p(a) ~= a / x^lambda` where `lambda` reflects the steepness of the fall. I am using `~=` because the integral on the (-infinity, +infinity) interval should be 1, thus the power law as expressed above is not really a density function. [Power Law, Wikipedia](https://en.wikipedia.org/wiki/Power_law)
+
+- **Gaussian** - common in physical systems, common in measurements or small random effect. `N(a, sigma) = C * e^[-(x-a)^2 / 2 * sigma^2]`, where `C` is a constant, `a` is the average and `sigma^2` the variance. 88% of the values fall between a+-sigma, 99.7% between a+-3*sigma. Z-scoring (`y=(x-a)/sigma`) brings the values to the N(0,1) standard form - useful as input for machine learning algorithms.
+
+Let's plot the [Probability Density Function](https://en.wikipedia.org/wiki/Probability_density_function) and [Cumulative Distribution Function](https://en.wikipedia.org/wiki/Cumulative_distribution_function) of a normally (Gaussian) distributed random variable:
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+x_axis = np.linspace(-10, 10, 1000)
+
+def gaussian(x, a, sigma):
+    return np.e**(-(x-a)**2 / (2 * sigma ** 2))
+
+def pdf(x_step, y):
+    return y / (np.sum(y) * x_step)
+
+def cdf(y):
+    cdf_arr = np.empty_like(y)
+    cdf_arr[0] = 0
+    for i in range(1, y.size):
+        cdf_arr[i] = cdf_arr[i-1] + y[i-1]
+        
+    return cdf_arr / cdf_arr[cdf_arr.size - 1]
+    
+def mean(x):
+    return np.sum(x) / np.size(x)
+
+def sigma(x):
+    return np.sqrt(1/np.size(x) * np.sum((x-mean(x))**2))
+
+
+plt.plot(x_axis, pdf(x_axis[1] - x_axis[0], gaussian(x_axis, 0, 1)))
+plt.plot(x_axis, cdf(pdf(x_axis[1] - x_axis[0], gaussian(x_axis, 0, 1))))
+```
+
+**Result:**
+
+![PDF, CDF]({{site.url}}/assets/ml_2_1.png)
+
+In order to draw the PDF, one needs to normalize the function so that its integral is 1 on the (-infinite,+infinite) interval - see the `pdf` function above. I kept the `pdf`, `cdf`, mean and `sigma` functions generic, so that they can be applied to any distribution, although for the Gaussian, pdf and cdf analytic formulas already exist. The integrals are computed incrementally, thus errors tend to accumulate. For precise results or for production code analytic formulas should be preferred (if they exist).
+
+Now, let's compute a random variable distributed according to a specific probability density function.
+
+Using the functions cdf and pdf from above, I will generate a set a randomly distributed numbers based on the power law distribution. First part generates the numbers. `func` - the function, `pdf_func` - probability density of func and `cdf_func` the cumulative distribution - please note that `cdf(func)` and `cdf(pdf(func))` produce similar results because `cdf` has normalization embedded.
+
+```python
+import numpy.random as rnd
+
+x_axis = np.linspace(0, 50, 1000)
+func = 1 / (x_axis + 0.5) ** 1.8
+
+pdf_func = pdf(x_axis[1] - x_axis[0], func)
+cdf_func = cdf(func)
+
+plt.plot(x_axis, func)
+plt.plot(x_axis, pdf_func)
+plt.plot(x_axis, cdf(func))
+```
+
+![PDF, CDF]({{site.url}}/assets/ml_2_2.png)
+
+```python
+
+def rand_cdf(array, cdf_arr):
+
+    def inv_cdf(cdf_arr, cnt):
+        x = np.empty(cnt)
+        prev_cdf_idx = 1
+    
+        for i in range(0, cnt):
+            next_val = float(i) / float(cnt)
+            
+            while cdf_arr[prev_cdf_idx] < next_val:
+                prev_cdf_idx = prev_cdf_idx + 1
+                
+            # a more accurate version would consider a linear interpolation
+            # between prev_cdf_idx - 1 and prev_cdf_idx
+            # for now, simple code is more important
+            x[i] = prev_cdf_idx - 1
+        
+        return x
+    
+    scale = 10000 # a constant
+    
+    cdf_inv = inv_cdf(cdf_arr, scale)
+    return cdf_inv[np.array(array * scale, dtype=np.integer)]
+
+rand_0_1 = rnd.random(1000)
+rand_distributed_arr = rand_cdf(rand_0_1, cdf_func)
+
+plt.hist(rand_distributed_arr)
+
+```
+![PDF, CDF]({{site.url}}/assets/ml_2_3.png)
+
+The `rand_cdf` takes as parameters two arrays - a uniform randomly distributed array with values between 0 and 1 and the CDF of the function I want my resulting random numbers to be distributed on. Then it computes the inverse of the CDF and uses the random numbers as indices in this array. Please see the CDF^(-1) below:
+
+![Inverse CDF]({{site.url}}/assets/ml_2_4.png)
+
+As one can notice, x axis is between (0,1) and y axis between (0, 1000), where 1000 is the size of the random number array. In plain English, it basically reads: "for any number received as parameter between 0 and 0.8, I will output a very small number. For any number higher than 0.8, I will output a larger number.". As my input is uniformly distributed between (0,1), The probability of outputting a smaller number is much higher than outputting a larger number. How much larger? It is precisely based on the CDF received as input. 
+
+### Entropy and Gini index
+
+[Entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory))
+
+Entropy measures the amount of information in signals being transferred over a communication channel. A rare signal bares more information than a more frequent one and since the signals are considered to be independent of each other, they can be summed up to estimate the total amount of information. Because of these, we can choose `log(1/p) = log(p^-1) = -log(p)` for scoring the level of information in a signal which appears with probability `p`. We define entropy to be the averaged level of information in categories of a categorical feature.
+
+Thus, considering a categorical feature with p1..pn probabilities of occurence:
+
+`Entropy = H = Sum(-pi log(pi))` and it is smaller than `log(n)` where n is the number of categories. H for a uniform distribution is `log(n)` and it is the maximum entropy. 
+
+According to [Wikipedia]()https://en.wikipedia.org/wiki/Entropy_(information_theory):
+
+>Entropy is a measure of unpredictability of the state, or equivalently, of its average information content. To get an intuitive understanding of these terms, consider the example of a political poll. Usually, such polls happen because the outcome of the >poll is not already known. In other words, the outcome of the poll is relatively unpredictable, and actually performing the poll and learning the results gives some new information; these are just different ways of saying that the a priori entropy of the >poll results is large. Now, consider the case that the same poll is performed a second time shortly after the first poll. Since the result of the first poll is already known, the outcome of the second poll can be predicted well and the results should not >contain much new information; in this case the a priori entropy of the second poll result is small relative to that of the first.
+
+```
+H of uniform distribution - m elements =>
+probability p = 1/m  = -Sum(1/p * log(p)) = -p * (1/p) * log(p) = log(1/p) = log(m)
+```
+
+[Gini index](https://en.wikipedia.org/wiki/Gini_coefficient) 
+
+Gini index is defined as a measurement for the average level of error for the method of the proportional classifier (proportional clasifier: given a feature which appears with a frequency f, its probability equals its frequency). E.g., consider a category with frequency p = 20%, the average error is p*(1-p) = 20% * 80% = 16%. Gmax = (m-1) / m and is obtained for a uniform distribution. G = sum( pi * (1 - pi) ).
+
+
+
+
+

@@ -190,9 +190,9 @@ test_set[, 2:3] = scale(test_set[, 2:3])
 ```
 ![ML Feature Scaling]({{site.url}}/assets/ml_1_5.png)
 
-### Some sample implementation:
+### Some implementations:
 
-In the snippets above, we use algorithms from various python libraries. Here are some sample implementations of these algorithms.
+In the snippets above, we use algorithms from various python libraries. Here are some implementations of these algorithms.
 
 A basic function to generate data with random NaNs
 
@@ -232,7 +232,7 @@ def fill_nan_with_value(arr, func):
 arr_filled = fill_nan_with_value(arr, np.mean)
 ```
 
-Data scaling:
+Data scaling - Z-scoring and normalization:
 
 ```python
 """Standardize features by removing the mean and scaling to unit variance
@@ -242,6 +242,9 @@ of linear models) assume that all features are centered around 0 and have
 variance in the same order. If a feature has a variance that is orders of 
 magnitude larger that others, it might dominate the objective function and 
 make the estimator unable to learn from other features correctly as expected.
+
+- Also known as Z-Scoring
+
 """
 def scale_std_dev(arr_filled):
     mean_arr = np.mean(arr_filled);
