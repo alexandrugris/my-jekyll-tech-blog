@@ -211,6 +211,37 @@ Gini index is referred also as categorical variance. It was initially introduced
 
 E.g., consider a category with frequency `p = 20%`, the average error is `p*(1-p) = 20% * 80% = 16%`. `Gmax = (m-1) / m` and is obtained for a uniform distribution. `G = sum( p_i * (1 - p_i)` ).
 
+Same as before:
+
+```python
+def gini_idx(histogram):
+    prb = histogram / np.sum(histogram)
+    return 1.0 - np.sum(prb * prb)
+
+def gini_idx_max(histogram):
+    return (histogram.size - 1) / histogram.size
+```
+
+For Gaussian (5 elements):
+
+```
+histogram = np.histogram(rand_gaussian_arr, 5)[0]
+print ("Gini: {} ; Max Gini: {}".format(gini_idx(histogram), gini_idx_max(histogram)))
+
+Gini: 0.674266 ; Max Gini: 0.8
+```
+
+For skewed distribution:
+
+```
+histogram = np.array([1, 0, 0, 0, 0], dtype=np.float)
+print ("Gini: {} ; Max Gini: {}".format(gini_idx(histogram), gini_idx_max(histogram)))
+Gini: 0.0 ; Max Gini: 0.8
+```
+
+Evolution of Gini index (G) for a set of probabilities (p, 1-p):
+
+![Gini Index]({{site.url}}/assets/ml_2_6.png)
 
 
 
