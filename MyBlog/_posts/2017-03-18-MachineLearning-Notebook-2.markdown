@@ -242,7 +242,7 @@ Evolution of Gini index (G) for a set of probabilities (p, 1-p):
 
 ![Gini Index]({{site.url}}/assets/ml_2_6.png)
 
-Mean, median, entropy index (H) and Gini index (G) are different aggregate indices (summaries) for a distribution. Because our sample size may not be large enough, they are subject to measurement erros. Therefore, if we need to improve our knowledge of the data, we can compute their distribution as well, usually Gaussian. We would obtain then the mean and stddev of mean, or of entropy index, for instance. Two outstanding methods are bootstrapping and K-fold crossvalidation.
+Mean, median, entropy index (H) and Gini index (G) are different aggregate indices (summaries) for a distribution. Because our sample size may not be large enough, they are subject to measurement errors. Therefore, if we need to improve our knowledge of the data, we can compute their distribution as well - which is Gaussian. If we take the mean as the parameter we want to investigate, we obtain the mean of the mean and the stddev of mean. But any other index can be considered. Two outstanding methods are bootstrapping and K-fold crossvalidation.
 
 ### Bootstrapping
 
@@ -285,7 +285,7 @@ print("Mean of distribution: {:.4f}, Mean boostrapped: {:.4f}, Stddev mean boots
       .format(np.mean(rand_powerlaw_arr), np.mean(means), np.std(means)))
 ```
 
-And the output:
+And the output - shows the distribution of the mean is Gaussian:
 
 ![First distribution]({{site.url}}/assets/ml_2_8.png)
 
