@@ -242,5 +242,55 @@ Evolution of Gini index (G) for a set of probabilities (p, 1-p):
 
 ![Gini Index]({{site.url}}/assets/ml_2_6.png)
 
+Mean, median, entropy index (H) and Gini index (G) are different aggregate indices (summaries) for a distribution. Because our sample size may not be large enough, they are subject to measurement erros. Therefore, if we need to improve our knowledge of the data, we can compute their distribution as well, usually Gaussian. We would obtain then the mean and stddev of mean, or of entropy index, for instance. Two outstanding methods are bootstrapping and K-fold crossvalidation.
 
+### Bootstrapping
 
+Bootstrapping is a resampling method which works like this:
+
+1. Consider M random trials and an entity set with N entities
+2. Randomly extract and put back N entities from the entity set => on average only `(e-1) / e = 63.2%` will be selected in a trial. (p of an entity not to be drawn = 1 - 1/N, we have N trials => p of not drawn for N trials is (1 - 1/N)^N -> 1/e = 36% of all entities)
+3. Compute the desired index for the trial
+4. Summarize for all trials the indices into the mean / stddev form; plot a histogram.
+
+Here is the code for computing mean variation through bootstrapping. We will consider a power-law distribution for start, with 20 extractions.
+
+Initialization:
+
+```python
+x_axis          = np.linspace(0, 50, 1000)
+powerlaw        = 1 / (x_axis + 1.0) ** 1.2
+rand_0_1        = rnd.random(20) # 20 extractions
+rand_powerlaw_arr = rand_cdf(rand_0_1, cdf(powerlaw))
+
+plt.hist(rand_powerlaw_arr) # just check the distribution is power-law-ish
+```
+
+![First distribution]({{site.url}}/assets/ml_2_7.png)
+
+```python
+# prepare space for mean for 500 trials
+means = np.empty(500)
+
+for i in range(0, means.size): #500 trials
+    bootstrapped = np.empty_like(rand_powerlaw_arr)
+    for j in range(0, rand_powerlaw_arr.size):
+        bootstrapped[j] = rand_powerlaw_arr[int(rnd.random() * rand_powerlaw_arr.size)]
+        
+    means[i] = np.mean(bootstrapped)
+    
+plt.hist(means)
+
+print("Mean of distribution: {:.4f}, Mean boostrapped: {:.4f}, Stddev mean bootstrapped {:.4f} "
+      .format(np.mean(rand_powerlaw_arr), np.mean(means), np.std(means)))
+```
+
+And the output:
+
+![First distribution]({{site.url}}/assets/ml_2_8.png)
+
+```
+Mean of distribution: 0.1402, Mean boostrapped: 0.1408, Stddev mean bootstrapped 0.0346 
+```
+
+Intrestingly enough, as the initial sample is quite narrow (20 extractions), the mean and std-dev of mean varies significantly between successive runs of the algorithm.
