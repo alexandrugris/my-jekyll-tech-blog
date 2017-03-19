@@ -293,4 +293,4 @@ And the output - shows the distribution of the mean is Gaussian:
 Mean of distribution: 0.1402, Mean boostrapped: 0.1408, Stddev mean bootstrapped 0.0346 
 ```
 
-Intrestingly enough, as the initial sample is quite narrow (20 extractions), the mean and std-dev of mean varies significantly between successive runs of the algorithm.
+Intrestingly enough, as the initial sample is quite narrow (20 extractions), the mean and std-dev of mean vary significantly between successive runs of the algorithm.
