@@ -4,7 +4,7 @@ title:  "Statistics, continued"
 date:   2017-03-11 14:15:16 +0200
 categories: Machine Learning
 ---
-This post tackles basic algorithms for computing probability density functions and cumulative distribution functions, as well as generating random numbers according to a distribution. I will compute the gini index and entropy, coefficients used to measure how much a distribution differs from the uniform distribution. [Gini index](https://en.wikipedia.org/wiki/Gini_coefficient) is referred also as categorical variance. It was initially introduced to "represent the income or wealth distribution of a nation's residents, and is the most commonly used measure of inequality." [Wikipedia]
+This post tackles basic algorithms for computing probability density functions and cumulative distribution functions, as well as generating random numbers according to a distribution. I will compute the gini index and entropy, coefficients used to measure how much a distribution differs from the uniform distribution. 
 
 
 ### Generating random numbers according to a given distribution
@@ -83,22 +83,21 @@ def rand_cdf(array, cdf_arr):
         prev_cdf_idx = 1
     
         for i in range(0, cnt):
-            next_val = float(i) / float(cnt)
+            next_val = float(i + 1) / float(cnt)
             
             while cdf_arr[prev_cdf_idx] < next_val:
                 prev_cdf_idx = prev_cdf_idx + 1
                 
             # a more accurate version would consider a linear interpolation
             # between prev_cdf_idx - 1 and prev_cdf_idx
-            # for now, simple code is more important
             x[i] = prev_cdf_idx - 1
         
-        return x
+        return x / cdf_arr.size
     
-    scale = 10000 # a constant
+    scale = 10000
     
     cdf_inv = inv_cdf(cdf_arr, scale)
-    return cdf_inv[np.array(array * scale, dtype=np.integer)]
+    return cdf_inv[np.array(array * (scale - 1.0 / scale), dtype=np.integer)] 
 
 rand_0_1 = rnd.random(1000)
 rand_distributed_arr = rand_cdf(rand_0_1, cdf_func)
@@ -133,10 +132,84 @@ H of uniform distribution - m elements =>
 probability p = 1/m  = -Sum(1/p * log(p)) = -p * (1/p) * log(p) = log(1/p) = log(m)
 ```
 
+The formulas above translate to the following python code:
+
+```python
+def entropy(histogram):
+    mask = np.ma.masked_values(histogram, 0.0, copy=False)
+    
+    if type(mask.mask) is np.ndarray:
+        histogram[mask.mask] = 1e-4 # so we don't have 1/0
+    
+    prb = histogram / np.sum(histogram)
+    return np.sum(prb * np.log2( 1 / prb ))
+
+def max_entropy(histogram):
+    return np.log2(histogram.size)
+```
+
+Example 1:
+
+Compute entropy for a completely skewed distribution of 5 items, [1, 0, 0, 0, 0]
+
+```python
+histogram = np.array([1, 0, 0, 0, 0], dtype=np.float)
+print ("Entropy: {} ; Max Entropy: {}".format(entropy(histogram), max_entropy(histogram)))
+```
+
+With output:
+
+```
+Entropy: 0.0058899223994331295 ; Max Entropy: 2.321928094887362
+```
+
+Example 2:
+
+Compute entropy for a gaussian distrbuted random variable split into 5 categories.
+
+```python
+histogram = np.histogram(rand_gaussian_arr, 5)[0]
+print ("Entropy: {} ; Max Entropy: {}".format(entropy(histogram), max_entropy(histogram)))
+```
+
+With output:
+
+```
+Entropy: 1.8286832347936723 ; Max Entropy: 2.321928094887362
+```
+
+Example 3: 
+
+Plot the chart for the evolution of the entropy index for a set of probabilities [p, 1-p]
+
+```python
+x_axis = np.linspace(0.01, 0.99, 100)
+e = np.empty_like(x_axis)
+e_idx = 0
+
+probs = np.empty(2)
+
+for i in x_axis:    
+    probs[0] = i 
+    probs[1] = 1.0 - probs[0]
+    e[e_idx] = entropy(probs)
+    
+    print (probs, e[e_idx])
+    
+    e_idx = e_idx + 1
+    
+plt.plot(x_axis, e)
+```
+
+With the output:
+
+![Entropy]({{site.url}}/assets/ml_2_5.png)
+
 [Gini index](https://en.wikipedia.org/wiki/Gini_coefficient) 
 
-Gini index is defined as a measurement for the average level of error for the method of the proportional classifier (proportional clasifier: given a feature which appears with a frequency f, its probability equals its frequency). E.g., consider a category with frequency p = 20%, the average error is p*(1-p) = 20% * 80% = 16%. Gmax = (m-1) / m and is obtained for a uniform distribution. G = sum( pi * (1 - pi) ).
+Gini index is referred also as categorical variance. It was initially introduced to "represent the income or wealth distribution of a nation's residents, and is the most commonly used measure of inequality." [Wikipedia]. We define it as a measurement for the average level of error for the method of the proportional classifier (proportional clasifier: given a feature which appears with a frequency f, its probability equals its frequency). 
 
+E.g., consider a category with frequency `p = 20%`, the average error is `p*(1-p) = 20% * 80% = 16%`. `Gmax = (m-1) / m` and is obtained for a uniform distribution. `G = sum( p_i * (1 - p_i)` ).
 
 
 
