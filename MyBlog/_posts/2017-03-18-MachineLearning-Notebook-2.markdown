@@ -242,7 +242,7 @@ Evolution of Gini index (G) for a set of probabilities (p, 1-p):
 
 ![Gini Index]({{site.url}}/assets/ml_2_6.png)
 
-Mean, median, entropy index (H) and Gini index (G) are different aggregate indices (summaries) for a distribution. Because our sample size may not be large enough, they are subject to measurement errors. Therefore, if we need to improve our knowledge of the data, we can compute their distribution as well - which is Gaussian. If we take the mean as the parameter we want to investigate, we obtain the mean of the mean and the stddev of mean. But any other index can be considered. Two outstanding methods are bootstrapping and K-fold crossvalidation.
+Mean, median, entropy index (H) and Gini index (G) are different aggregate indices (summaries) for a distribution. Because our sample size is not large enough, they are subject to measurement errors. If we want to understand a little bit better how much error our computed index on the sample data hides, we can compute its distribution (its mean and its stddev). For instance, if we take the mean as the parameter we want to investigate, we obtain the mean of the mean and the stddev of mean. But any other index can be considered. Two outstanding methods are bootstrapping and K-fold cross validation.
 
 ### Bootstrapping
 
@@ -294,3 +294,21 @@ Mean of distribution: 0.1402, Mean boostrapped: 0.1408, Stddev mean bootstrapped
 ```
 
 Intrestingly enough, as the initial sample is quite narrow (20 extractions), the mean and std-dev of mean vary significantly between successive runs of the algorithm.
+
+### K-fold cross validation
+
+Another set of validation techniques use the splitting of the initial array into two parts of pre-specified sizes: train set and test set, so the results obtained on the train set are compared with the data from the test set. 
+
+K-fold cross validation works as follows:
+
+1. Split the set in K parts of equal sizes
+2. For each part k, 0 <= k < K, use Part_k as the test set and the rest of the parts as the train set.
+3. The average score of all test sets constitutes a K-fold cross validation estimate of the method quality.
+
+E.g. - mean.
+
+1. We split the set in K parts.
+2. For each part k: we take the rest of K-1 parts and we compute the mean. We compute the mean on the k part and we substract (mean(k-1) - mean_k)^2
+3. We average all the mean_k obtained before and we also compute the stddev sigma=sqrt(1/K * Sum(squares from step 2))
+
+
