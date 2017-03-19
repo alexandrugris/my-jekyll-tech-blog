@@ -4,8 +4,7 @@ title:  "Statistics, continued"
 date:   2017-03-11 14:15:16 +0200
 categories: Machine Learning
 ---
-This post tackles basic algorithms for computing probability density functions and cumulative distribution functions, as well as generating random numbers according to a distribution. I will compute the gini index and entropy, coefficients used to measure how much a distribution differs from the uniform distribution. 
-
+This post tackles basic algorithms for computing probability density functions and cumulative distribution functions, as well as generating random numbers according to a distribution. I will compute the Gini index (G) and the entropy (H) coefficients, which are used to measure how much a distribution differs from the uniform distribution. 
 
 ### Generating random numbers according to a given distribution
 
@@ -123,7 +122,7 @@ Thus, considering a categorical feature with p1..pn probabilities of occurence:
 
 `Entropy = H = Sum(-pi log(pi))` and it is smaller than `log(n)` where n is the number of categories. H for a uniform distribution is `log(n)` and it is the maximum entropy. 
 
-According to [Wikipedia]()https://en.wikipedia.org/wiki/Entropy_(information_theory):
+According to [Wikipedia](https://en.wikipedia.org/wiki/Entropy_(information_theory)):
 
 >Entropy is a measure of unpredictability of the state, or equivalently, of its average information content. To get an intuitive understanding of these terms, consider the example of a political poll. Usually, such polls happen because the outcome of the >poll is not already known. In other words, the outcome of the poll is relatively unpredictable, and actually performing the poll and learning the results gives some new information; these are just different ways of saying that the a priori entropy of the >poll results is large. Now, consider the case that the same poll is performed a second time shortly after the first poll. Since the result of the first poll is already known, the outcome of the second poll can be predicted well and the results should not >contain much new information; in this case the a priori entropy of the second poll result is small relative to that of the first.
 
