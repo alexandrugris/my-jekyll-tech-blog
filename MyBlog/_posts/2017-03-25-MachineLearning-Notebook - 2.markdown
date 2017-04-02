@@ -151,10 +151,10 @@ Until no more variables can enter or stay - this is the model.
 
 *Null hypothesis (Wikipedia)*
 
-> The term "null hypothesis" is a general statement or default position that there is no relationship between two measured phenomena, or no association among groups.Rejecting or disproving the null hypothesis—and thus concluding that there are grounds for believing that there is a relationship between two phenomena (e.g. that a potential treatment has a measurable effect)—is a central task in the modern practice of science; the field of statistics gives precise criteria for rejecting a null hypothesis.
+> The term "null hypothesis" is a general statement or default position that there is no relationship between two measured phenomena, or no association among groups. Rejecting or disproving the null hypothesis—and thus concluding that there are grounds for believing that there is a relationship between two phenomena (e.g. that a potential treatment has a measurable effect)—is a central task in the modern practice of science; the field of statistics gives precise criteria for rejecting a null hypothesis.
 The null hypothesis is generally assumed to be true until evidence indicates otherwise. 
 
-TODO: how to compute the P-value
+TODO in a future post: how to compute the P-value
 
 ### Multiple linear regression - the code
 
@@ -256,3 +256,80 @@ Without library support, we compute the multiple regression line according to th
 We consider the line `Y = b0 + b1 * x1 + b2 * x2 + ...`.
 
 *Theorem:* The regression line has the following form: `Y - y_mean = sum(bj * (xj - xj_mean))`, where `bj` solve the following system of equations: `cov(y, xj) = sum(bm * cov(xm, xj))` [here](http://www.real-statistics.com/multiple-regression/least-squares-method-multiple-regression/)
+
+We are going to to precisely this. The [covariation] between two vectors is expressed through the following function. However, we are not going to use it but rather use directly numpy's matrices for faster computation.
+
+```python
+####################################
+### multiple regression
+# y = b0 + x1 * b1 + x2 * b2 + x3 * b3 ...
+# line has the form
+# (y - y_mean) = sum(b(x - x_mean))
+
+def cov(_x, _y):
+
+    x = _x.flatten()
+    y = _y.flatten()
+
+    if x.size != y.size:
+        raise Exception("x and y should have the same size")
+
+    mean_x = np.mean(x)
+    mean_y = np.mean(y)
+
+    N = x.size
+
+    return (1 / N) * np.sum((x - mean_x) * (y - mean_y))
+```
+
+```python
+def cov_matrix(_y, _x):
+    
+    if _x.shape[0] != _y.shape[0]:
+        raise Exception("Shapes do not match")
+
+    # make sure we use matrix multiplication, not array multiplication
+    _xm = np.matrix(np.mean(_x, axis=0).repeat(_x.shape[0], axis = 0).reshape(_x.shape))
+    _ym = np.matrix(np.mean(_y, axis=0).repeat(_y.shape[0], axis = 0).reshape(_y.shape))
+
+    return ((_x - _xm).T * (_y - _ym)) * 1 / _x.shape[0]
+
+def compute_b0_bn(ym, Xm):
+    
+    if ym.shape[1] != 1:
+        raise Exception ("ym should be a vector with shape [n, 1]")
+        
+    if Xm.shape[0] != ym.shape[0]:
+        raise Exception ("Xm should have the same amount of lines as ym")
+    
+    C_y_x = cov_matrix(ym, Xm)
+    C_x_x = cov_matrix(Xm, Xm)
+
+    b1_bn  = C_x_x.I * C_y_x
+    
+    x_mean  = np.matrix(np.mean(Xm, axis = 0))
+    y_mean  = np.mean(ym)
+    
+    b0 = -x_mean * b1_bn + y_mean
+    
+    return (np.float(b0), np.array(b1_bn).flatten())
+
+
+Xm = np.matrix(X)
+ym = np.matrix(y.reshape((y.shape[0], 1)))
+
+ret = compute_b0_bn(ym, Xm)
+```
+
+In order to test my function I have compared it with the library results. They are identical.
+
+```python
+from sklearn.linear_model import LinearRegression
+
+regressor = LinearRegression()
+regressor = regressor.fit(X, y)
+coef = regressor.coef_
+intercept = regressor.intercept_
+```
+
+![Identical results between library and own function]({{site.url}}/assets/ml_3_6.png)
