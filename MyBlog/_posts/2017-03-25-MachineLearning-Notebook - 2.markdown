@@ -257,7 +257,7 @@ We consider the line `Y = b0 + b1 * x1 + b2 * x2 + ...`.
 
 *Theorem:* The regression line has the following form: `Y - y_mean = sum(bj * (xj - xj_mean))`, where `bj` solve the following system of equations: `cov(y, xj) = sum(bm * cov(xm, xj))` [here](http://www.real-statistics.com/multiple-regression/least-squares-method-multiple-regression/)
 
-We are going to to precisely this. The [covariation] between two vectors is expressed through the following function. However, we are not going to use it but rather use directly numpy's matrices for faster computation.
+We are going to do precisely this. The [covariation](https://en.wikipedia.org/wiki/Covariance) between two vectors is expressed through the following function:
 
 ```python
 ####################################
@@ -281,6 +281,8 @@ def cov(_x, _y):
 
     return (1 / N) * np.sum((x - mean_x) * (y - mean_y))
 ```
+
+However, we are not going to use it but rather use directly numpy's matrices for faster computation.
 
 ```python
 def cov_matrix(_y, _x):
@@ -321,7 +323,7 @@ ym = np.matrix(y.reshape((y.shape[0], 1)))
 ret = compute_b0_bn(ym, Xm)
 ```
 
-In order to test my function I have compared it with the library results. They are identical.
+In order to test my function, I have compared its results with the results of algorithm from the library. They are identical.
 
 ```python
 from sklearn.linear_model import LinearRegression
