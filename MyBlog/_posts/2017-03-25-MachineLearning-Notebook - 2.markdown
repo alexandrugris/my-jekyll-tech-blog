@@ -8,11 +8,13 @@ This is the second part of my Machine Learning notebook, following the Udemy cou
 
 ### Simple Linear Regression With Plot
 
+Let's draw a plot with the following convesion:
 - Pink dots - training set X
 - Blue line - regression line on the train set
 - Red dots - values to predict (test set)
 - Green dots - predicted values for the test set (situated on the blue line)
-- Assumption is `y = ax + b`. We have sets of `y`s and `x`s, what value for `a` and `b` minimize the error of `sum ((yi-(axi + b))^2)`. `b` is called also the intercept and `a` is the slope.
+
+We consider sets of `y`s and `x`s, derived from experiments. Assuming that `y = ax + b`,  what value for `a` and `b` minimize the error of `sum ((yi-(axi + b))^2)`? `b` is called intercept and `a` is the slope.
 
 ```python
 import pandas as pd
@@ -109,7 +111,7 @@ Assumptions that need to be checked first:
 - Independence of errors
 - Lack of multicolinearity - [is a phenomenon in which two or more predictor variables in a multiple regression model are highly correlated, meaning that one can be linearly predicted from the others with a substantial degree of accuracy](https://en.wikipedia.org/wiki/Multicollinearity)
 
-For categorial variables, we need to transform them in dummy binary variables, but not include all of them in the regression model - dummy variable trap. The idea is that if we include all the categories in the multiple regression we break the rule of lack of multicolinearity. Afterall, if a value does not belong to a category, it will belong to another. The rule is "always omit one dummy variable". 
+For categorial variables, we need to transform them in dummy binary variables, but *not include all of them in the regression model - dummy variable trap*. The idea is that if we include all the categories in the multiple regression we break the rule of lack of multicolinearity. Afterall, if a value does not belong to a category, it will belong to another. The rule is "always omit one dummy variable". 
 
 Methods for building a multiple regression model:
 
@@ -126,7 +128,7 @@ In the end we have a model in which all variables have their P-value less than o
 
 - *Forward selection* - Steps: 
 
-1. Select a significance level to enter the model. E.g. SL = 0.05. 2. 
+1. Select a significance level to enter the model. E.g. SL = 0.05. 
 2. Fit all simple regression models y ~ xi. Select the one with the lowest P-value
 3. Construct all possible models with this variable AND with another predictor added to this one.
 4. Select the predictor with the lowest P-value. If P-value < SL, go to 3. Else finish and keep the previous model.
@@ -137,12 +139,12 @@ In the end we have a model in which all variables have their P-value less than o
 2. Perform next step from forward selection.
 3. Perform all steps from backward elimiation.
 
+The model is considered finished when no more variables can enter or stay.
+
 - *Score comparison*
 
 1. Build several models
 2. Select the one that fits best a specific criterion 
-
-Until no more variables can enter or stay - this is the model.
 
 *P-value (Wikipedia):*
 
