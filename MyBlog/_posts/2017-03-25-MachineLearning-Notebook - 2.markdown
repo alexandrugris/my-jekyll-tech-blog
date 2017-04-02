@@ -99,6 +99,38 @@ Note:
 
 I kept the function above simple, but it is not numerically friendly. Numbers `xi_2_sum`, `xi_yi_sum`, etc. might get very high. Therefore some rearangement of the computation should be performed for production code.
 
+Another method for obtaining similar results is to use the corellation coefficient for determining `a` and `b`. `a = R * stddev(y) / stddev(x), b = mean(y) - a * mean(x)` where `R = dot(z_score(x), z_score(y)) / sizeof(x)` and `z_score(x) = (x - mean(x)) / stddev(x)`
+
+Here is the python code:
+
+```python
+
+# 50 points, x between 10, 100, a = 2, b = 126, variation of y = 20
+y = m.generate_noisy_linear_data(10, 100, 50, 2, 126, 20)
+x = np.linspace(10, 100, 50)
+
+plt.scatter(x, y)
+plt.show()
+
+# z-score
+x_ = m.scale_std_dev(x)
+y_ = m.scale_std_dev(y)
+
+plt.scatter(x, y)
+plt.show()
+
+correlation = (1 / x_.size) * np.dot(x_ , y_)
+
+print(correlation)
+
+a = correlation * np.std(y) / np.std(x)
+b = np.mean(y) - a * np.mean(x)
+
+print(a, b)
+```
+
+Giving very close results for `corellation=0.994670853834`, `a = 2.01623520593` and `b = 125.614041068`.
+
 ### Multiple linear regression
 
 Formula: `y = b + a1 * x1 + a2 * x2 + a3 * x3 + ...`
