@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Nature-inspired Optimizations"
+title:  "Nature Inspired Optimizations"
 date:   2017-04-03 12:15:16 +0200
 categories: statistics
 ---
