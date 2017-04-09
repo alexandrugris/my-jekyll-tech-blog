@@ -386,7 +386,7 @@ To keep the model simple, for multiple regression we can opt to minimize the fol
 
 ```sum( (yi - (b0 + b1x1 + b2x2 + .. + bnxn)) ^ 2 + C(b0^2 + b1^2 + ... + bn^2) )```
 
-The idea with `C` and is based on the analogy between a simple model and a model with small coefficients. `C` is called regularization term. The first (the sum) term keeps the model close to the truth (training data) while second term instructs the model to keep the coefficients small. `C` is computed through nested cross validation.
+The idea with `C` and is based on the analogy between a simple model and a model with small coefficients. `C` is called regularization term. The first (the sum) term keeps the model close to the truth (training data) while second term instructs the model to keep the coefficients small. `C` is a number and can be computed through nested cross validation.
 
 ### Support vector machines
 
