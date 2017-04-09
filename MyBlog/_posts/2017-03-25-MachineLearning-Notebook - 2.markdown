@@ -374,7 +374,8 @@ intercept = regressor.intercept_
 
 ### Polynomial regression
 
+Given the two ecuations, one for multiple linear regression ( `y= b0 + b1*x1 + b2*x2 + ...`) and the other one for polynomial regression (`y = b0 + b1*x + b2*x^2 +... `), we can obviously substitute `xi` for `x^i` in the first ecuation and apply the multiple linear regression algorithm to compute the polynom. 
 
 ### Linearization models
 
-In case of non-linear functions (power law, exponential decay), the standard way to do the regression is to apply a logarithm and then compute the coefficients according to linear model. E.g. `y = a*x^b -> log(y) = log(a) + b * log(x)`, a linear ecuation. However, computing the regression coefficients this way is prone to large errors due to the fundamentally non-linear underlying relationship. A solution which yields much better results is to consider the function as it is and then find its regression coefficients using an optimization method like, for instance, a nature inspired optimization - see post about nature inspired optimizations.  
+In case of non-linear functions (power law, exponential decay), the standard way to do the regression is to apply a logarithm and then compute the coefficients according to the newly obtained linear model. E.g. `y = a*x^b -> log(y) = log(a) + b * log(x)`, a linear ecuation. However, computing the regression coefficients this way is prone to large errors due to the fundamentally non-linear underlying relationship. A solution which yields much better results is to consider the function as it originally is and then find its regression coefficients using an optimization method like, for instance, a nature inspired optimization - see post about nature inspired optimizations.  
