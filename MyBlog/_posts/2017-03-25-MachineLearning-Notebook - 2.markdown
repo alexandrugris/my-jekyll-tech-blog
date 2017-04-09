@@ -379,3 +379,22 @@ Given the two ecuations, one for multiple linear regression ( `y= b0 + b1*x1 + b
 ### Linearization models
 
 In case of non-linear functions (power law, exponential decay), the standard way to do the regression is to apply a logarithm and then compute the coefficients according to the newly obtained linear model. E.g. `y = a*x^b -> log(y) = log(a) + b * log(x)`, a linear ecuation. However, computing the regression coefficients this way is prone to large errors due to the fundamentally non-linear underlying relationship. A solution which yields much better results is to consider the function as it originally is and then find its regression coefficients using an optimization method like, for instance, a nature inspired optimization - see post about nature inspired optimizations.  
+
+### Ridge regression
+
+To keep the model simple, for multiple regression we can opt to minimize the following function:
+
+```sum( (yi - (b0 + b1x1 + b2x2 + .. + bnxn)) ^ 2 + C(b0^2 + b1^2 + ... + bn^2) )```
+
+The idea with `C` and is based on the analogy between a simple model and a model with small coefficients. `C` is called regularization term. The first (the sum) term keeps the model close to the truth (training data) while second term instructs the model to keep the coefficients small. `C` is computed through nested cross validation.
+
+### Support vector machines
+
+Similar to ridge regression, the difference comes from the first term. Instead of using the sum of error squares, 
+it uses a function `g(y - f(x)) = 0 if |y-f(x)| < epsilon and  y-f(x) otherwise`
+
+Below you can see the difference in error function between ridge regression and svm regression (screenshots from a MVA class on Machine Learning)
+
+![Ridge Regression]({{site.url}}/assets/ml_3_7.png)
+![SVM Regression]({{site.url}}/assets/ml_3_8.png)
+
