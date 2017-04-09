@@ -55,7 +55,8 @@ returns = np.empty((2, 10))
 for j in range (0, returns.shape[1]):
 
     try:
-        optim_evolve = create_optimization(pop_size, no_of_variables, lower_bound, upper_bound, evaluate_population_with_constraints)
+        optim_evolve = create_optimization(pop_size, no_of_variables, 
+            lower_bound, upper_bound, evaluate_population_with_constraints)
         ret = []
         for i in range(0, 100):
             (ret, population) = optim_evolve()
@@ -110,7 +111,8 @@ The algorithm has two main parts: initialization and the evolutionary step.
 def create_optimization(pop_size, no_of_variables, lower_bound, upper_bound, evaluate):
 
      def generate_population(lower_bound, upper_bound, pop_size):
-        return lower_bound + np.random.uniform(size=pop_size) * (upper_bound - lower_bound)
+        return lower_bound + 
+        np.random.uniform(size=pop_size) * (upper_bound - lower_bound)
         
     def worst_best(array):
 
@@ -137,7 +139,8 @@ def create_optimization(pop_size, no_of_variables, lower_bound, upper_bound, eva
         nonlocal values
         nonlocal iteration
         
-        population = np.array([generate_population(lower_bound[i], upper_bound[i], pop_size) for i in range(0, no_of_variables)])
+        population = np.array([generate_population(lower_bound[i], upper_bound[i], pop_size) 
+                for i in range(0, no_of_variables)])
         values     = evaluate(population)    
         iteration  = np.ones(no_of_variables) * pop_size
         
@@ -179,7 +182,8 @@ Here is the code:
         nonlocal iteration        
         
         # add random Gaussian noise
-        rnd = np.transpose(np.random.normal(0, (upper_bound - lower_bound) / iteration, size=population.shape[::-1]))
+        rnd = np.transpose(np.random.normal(0, (upper_bound - lower_bound) 
+                            / iteration, size=population.shape[::-1]))
         pop_evolved = population + rnd
 
         # to delete
@@ -212,8 +216,10 @@ Here is the code:
 
         for i in idxs:
             # fake a little bit a Pareto distribution with 5 buckets -> tunable parameter
-            # best_so_far is sorted backwards, so we want to increase the probability of selecting from the first part
-            # if there are two or more very close maximums, one of them will gain dominance over the other.
+            # best_so_far is sorted backwards, so we want to increase the probability of 
+            # selecting from the first part
+            # if there are two or more very close maximums, 
+            # one of them will gain dominance over the other.
             bucket = np.random.randint(1, 6)
             j = np.random.randint(0,  min((len(best_so_far) / bucket) + 1, len(best_so_far)))
 
@@ -316,7 +322,9 @@ The function we consider is `x * sin(x)` on the [-15, 15] interval. Below is the
 
 ```python
 no_of_variables = 1
-pop_size = 100 # attention also to the population size - a population size too close to the nyquist rate may miss some possible maximums
+# attention also to the population size - 
+# a population size too close to the nyquist rate may miss some possible maximums
+pop_size = 100
 lower_bound = np.array([-15])
 upper_bound = np.array([15])          
 
