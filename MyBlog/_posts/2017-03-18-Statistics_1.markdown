@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Statistics, continued"
-date:   2017-03-11 14:15:16 +0200
+date:   2017-03-18 14:15:16 +0200
 categories: Machine Learning
 ---
 In this post I tackle basic algorithms for computing probability density functions and cumulative distribution functions, as well as generating random numbers according to a distribution. Afterwards, I will compute the Gini index (G) and the entropy (H) coefficients, which are used to measure how much a distribution differs from the uniform distribution. Towards the end, I will touch the topic of validation with two methods: bootstrapping and k-fold cross validation.

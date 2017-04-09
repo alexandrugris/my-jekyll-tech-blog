@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "My Machine Learning Notebook - Part 2 (Regression)"
-date:   2017-03-11 14:15:16 +0200
+date:   2017-03-25 14:15:16 +0200
 categories: Machine Learning
 ---
 This is the second part of my Machine Learning notebook, following the Udemy course "Machine Learning A-Z™: Hands-On Python & R".
@@ -98,6 +98,8 @@ Results:
 Note:
 
 I kept the function above simple, but it is not numerically friendly. Numbers `xi_2_sum`, `xi_yi_sum`, etc. might get very high. Therefore some rearangement of the computation should be performed for production code.
+
+### Linear Regression And Correlation
 
 Another method for obtaining similar results is to use the corellation coefficient for determining `a` and `b`. `a = R * stddev(y) / stddev(x), b = mean(y) - a * mean(x)` where `R = dot(z_score(x), z_score(y)) / sizeof(x)` and `z_score(x) = (x - mean(x)) / stddev(x)`. This is clearly simpler to read and also provides more context to the results of the method - corellation coefficient (`R`) is between -1 and 1, with 0 meaning there is no corellation. This correlation coefficient is also known as the [Pearson coefficient](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient)
 
