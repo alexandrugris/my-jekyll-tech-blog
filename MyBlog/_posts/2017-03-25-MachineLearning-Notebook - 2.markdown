@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "My Machine Learning Notebook - Part 2 (Regression)"
+title:  "Simple and Multiple Linear Regression"
 date:   2017-03-25 14:15:16 +0200
 categories: Machine Learning
 ---
-This is the second part of my Machine Learning notebook, following the Udemy course "Machine Learning A-Z™: Hands-On Python & R".
+This is the second part of my Machine Learning notebook. It talks about simple and multiple linear regression, as well as polynomial regression as a special case of multiple linear regression. It provides several methods for doing regression, both with library functions as well as implementing the algorithms from scratch.
 
 ### Simple Linear Regression With Plot
 
@@ -51,7 +51,7 @@ plt.show()
 
 ![Results]({{site.url}}/assets/ml_3_1.png)
 
-The implementation of simple linear regression using the ordinary least squares method is straight forward:
+The implementation of a simple linear regressor using the ordinary least squares method is straight forward:
 
 ```python
 import numpy as np
@@ -89,7 +89,7 @@ Y = ols_train_predict(X_train, y_train, X_train)
 plt.plot(X_train, Y, color="orange")
 ```
 
-The basic idea for all least squares methods is that the function `S=sum((yi-f(xi, B))^2)` is minimized where `B` is a vector of variables we need to identify. In the particular case of linear regression, `B = [a, b]` and `f(xi, B) = axi + b`. Minimized means the conditions `dS / dB[i] = 0`. In the case above, we have a system of two equations with two unknowns, `d(sum ((yi-(axi + b))^2))/da = 0` and `d(sum ((yi-(axi + b))^2))/db = 0`.
+The basic idea for all least squares methods is that the function `S=sum((yi-f(xi, B))^2)` should be minimized, where `B` is a vector of variables we need to identify. In the particular case of linear regression, `B = [a, b]` and `f(xi, B) = axi + b`. Minimized means the conditions `dS / dB[i] = 0`. In the case above, we have a system of two equations with two unknowns, `d(sum ((yi-(axi + b))^2))/da = 0` and `d(sum ((yi-(axi + b))^2))/db = 0`.
 
 Results:
 
@@ -287,7 +287,7 @@ According to algorithm, we remove x2 and redo the ordinary least square fit.
 
 In the end, if we continue to run the backwards elimination algorithm, we notice that the only variable that significantly influences the profit is the R&D Spent. :)
 
-Without library support, we compute the multiple regression line according to the following.
+### Multiple Linear Regression From Scratch
 
 We consider the line `Y = b0 + b1 * x1 + b2 * x2 + ...`.
 
@@ -318,7 +318,7 @@ def cov(_x, _y):
     return (1 / N) * np.sum((x - mean_x) * (y - mean_y))
 ```
 
-However, we are not going to use it but rather use directly numpy's matrices for faster computation.
+However, we are not going to use it, but rather use directly numpy's matrices for faster computation.
 
 ```python
 def cov_matrix(_y, _x):
@@ -371,3 +371,10 @@ intercept = regressor.intercept_
 ```
 
 ![Identical results between library and own function]({{site.url}}/assets/ml_3_6.png)
+
+### Polynomial regression
+
+
+### Linearization models
+
+In case of non-linear functions (power law, exponential decay), the standard way to do the regression is to apply a logarithm and then compute the coefficients according to linear model. E.g. `y = a*x^b -> log(y) = log(a) + b * log(x)`, a linear ecuation. However, computing the regression coefficients this way is prone to large errors due to the fundamentally non-linear underlying relationship. A solution which yields much better results is to consider the function as it is and then find its regression coefficients using an optimization method like, for instance, a nature inspired optimization - see post about nature inspired optimizations.  
