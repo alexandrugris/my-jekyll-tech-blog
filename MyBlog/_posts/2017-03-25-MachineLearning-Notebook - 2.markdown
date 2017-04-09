@@ -180,17 +180,7 @@ The model is considered finished when no more variables can enter or stay.
 1. Build several models
 2. Select the one that fits best a specific criterion 
 
-*P-value (Wikipedia):*
-
-> In statistical hypothesis testing, the p-value is the probability for a given statistical model that, when the null hypothesis is true, the statistical summary (such as the sample mean difference between two compared groups) would be the same as or more extreme than the actual observed results.
-> The p-value is defined informally as the probability of obtaining a result equal to or "more extreme" than what was actually observed, when the null hypothesis is true.
-
-*Null hypothesis (Wikipedia)*
-
-> The term "null hypothesis" is a general statement or default position that there is no relationship between two measured phenomena, or no association among groups. Rejecting or disproving the null hypothesis—and thus concluding that there are grounds for believing that there is a relationship between two phenomena (e.g. that a potential treatment has a measurable effect)—is a central task in the modern practice of science; the field of statistics gives precise criteria for rejecting a null hypothesis.
-The null hypothesis is generally assumed to be true until evidence indicates otherwise. 
-
-TODO in a future post: how to compute the P-value
+TODO in a future post: how to numerically compute the [P-value](http://www.wikihow.com/Calculate-P-Value)
 
 ### Multiple linear regression - the code
 
@@ -382,11 +372,11 @@ In case of non-linear functions (power law, exponential decay), the standard way
 
 ### Ridge regression
 
-To keep the model simple, for multiple regression we can opt to minimize the following function:
+To keep the model simple (few, small coefficients), for multiple regression we can opt to minimize the following function:
 
 ```sum( (yi - (b0 + b1x1 + b2x2 + .. + bnxn)) ^ 2 + C(b0^2 + b1^2 + ... + bn^2) )```
 
-The idea with `C` and is based on the analogy between a simple model and a model with small coefficients. `C` is called regularization term. The first (the sum) term keeps the model close to the truth (training data) while second term instructs the model to keep the coefficients small. `C` is a number and can be computed through nested cross validation.
+The idea with `C` and is based on the analogy between a simple model and a model with small coefficients. `C` is called regularization term. The first (the sum) term keeps the model close to the truth (training data) while second term instructs the model to keep the coefficients small. `C` is a number and can be computed through nested cross validation. Ridge regression helps us not overfit the model.
 
 ### Support vector machines
 
