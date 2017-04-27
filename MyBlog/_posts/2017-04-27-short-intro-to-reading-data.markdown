@@ -17,3 +17,22 @@ The problem to solve: how do we know when we are dealing with noise and when we 
 
 ### Plotting the system behavior chart
 
+The system behavior chart looks like this:
+
+!(System Behavior Chart)[sbc_1.png]
+
+1. Data is the data we want to plot over time
+2. Average is the average of the data
+3. Moving range is the absolute delta of two consecutive measurements
+4. Average moving range is the average of all moving ranges
+5. Lower / upper natural system limits is computed as `system average +/- 2.66 * moving range`
+
+Please note that you don't need a lot of measurements to compute meaningful system parameters and that, after an intervention is performed, new system parameters need to be computed again and behavior chart updated for future data. 
+
+### When to intervene
+
+There are several rules to look for:
+
+1. Any point that is below the lower system limit or above the upper system limit is a valid signal which needs to be investigated.
+2. Three out of four points closer to the system limit than to the average (do not need to be on the same side of the average!)
+3. 
