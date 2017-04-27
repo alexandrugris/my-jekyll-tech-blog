@@ -35,4 +35,17 @@ There are several rules to look for:
 
 1. Any point that is below the lower system limit or above the upper system limit is a valid signal which needs to be investigated.
 2. Three out of four points closer to the system limit than to the average (do not need to be on the same side of the average!)
-3. 
+3. Eight or more consecutive points on the same side of the average
+4. Repeating patterns of cycles
+
+It is important to note that in some of the cases, the rules above might not be obvious to the naked eye and signals can be hidden in plain sight. The reverse is true as well; where signal might appear as obvious, there might be simply a statistical error. Therefore, computations must be performed. 
+
+Below are some examples of valid signals, conforming to the rules above:
+
+!(System Behavior Chart)[sbc_2.png]
+
+!(System Behavior Chart)[sbc_3.png]
+
+!(System Behavior Chart)[sbc_4.png]
+
+Happy play with data. :)
