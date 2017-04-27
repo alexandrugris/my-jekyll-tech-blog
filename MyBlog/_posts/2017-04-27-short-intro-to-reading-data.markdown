@@ -48,4 +48,4 @@ Below are some examples of valid signals, conforming to the rules above:
 
 !(System Behavior Chart)[sbc_4.png]
 
-Happy play with data. :)
+Please remember that blind comparison to the average without the full context or comparisons to a small amount of past data does not higlight the real signals and trends. Doing these will surely lead to wrong conclusions and ineffective, if not damaging, actions. Happy play with numbers. :)
