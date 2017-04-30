@@ -21,11 +21,13 @@ The system behavior chart looks like this:
 
 ![System Behavior Chart]({{site.url}}/assets/sbc_1.png)
 
-1. Data is the data we want to plot over time
-2. Average is the average of the data
-3. Moving range is the absolute delta of two consecutive measurements
-4. Average moving range is the average of all moving ranges
-5. Lower / upper natural system limits is computed as `system average +/- 2.66 * moving range`
+Columns:
+
+1. *Data* is the data we want to plot over time
+2. *Average* is the average of the data - single value, computed as a column to simplify charting.
+3. *Moving range* is the absolute delta of two consecutive measurements
+4. *Average moving range* is the average of all moving ranges - single value
+5. *Lower / upper natural system limits* are computed as `system average +/- 2.66 * moving range` - single values
 
 Please note that you don't need a lot of measurements to compute meaningful system parameters and that, after an intervention is performed, new system parameters need to be computed again and behavior chart updated for future data. 
 
@@ -50,4 +52,6 @@ Below are some examples of valid signals, conforming to the rules above:
 ![System Behavior Chart]({{site.url}}/assets/sbc_4.png)
 
 
-Please remember that blind comparison to the average without the full context or comparisons to a small amount of past data does not higlight the real signals and trends. Doing these will surely lead to wrong conclusions and ineffective, if not damaging, actions. Happy play with numbers. :)
+Please remember that blind comparison to the average without taking into consideration the full context of data or limited comparisons to a small amount of past data do not contribute to a good understanding of the system. A real understanding means identifying signals and trends. Actions derived from a poor system understanding will only amplify local errors, causing oscillations erratic behavior. 
+
+Happy play with numbers. :)
