@@ -19,7 +19,7 @@ The problem to solve: how do we know when we are dealing with noise and when we 
 
 The system behavior chart looks like this:
 
-!(System Behavior Chart)[sbc_1.png]
+![System Behavior Chart]({{site.url}}/assets/sbc_1.png)
 
 1. Data is the data we want to plot over time
 2. Average is the average of the data
@@ -42,10 +42,12 @@ It is important to note that in some of the cases, the rules above might not be 
 
 Below are some examples of valid signals, conforming to the rules above:
 
-!(System Behavior Chart)[sbc_2.png]
 
-!(System Behavior Chart)[sbc_3.png]
+![System Behavior Chart]({{site.url}}/assets/sbc_2.png)
 
-!(System Behavior Chart)[sbc_4.png]
+![System Behavior Chart]({{site.url}}/assets/sbc_3.png)
+
+![System Behavior Chart]({{site.url}}/assets/sbc_4.png)
+
 
 Please remember that blind comparison to the average without the full context or comparisons to a small amount of past data does not higlight the real signals and trends. Doing these will surely lead to wrong conclusions and ineffective, if not damaging, actions. Happy play with numbers. :)
