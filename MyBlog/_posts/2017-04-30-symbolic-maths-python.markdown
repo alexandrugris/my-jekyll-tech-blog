@@ -254,3 +254,5 @@ Some formulas:
 
 1. Probability of event A and event B: `P(A and B) = P(A intersect B) = P(A) * P(B)`
 2. Probability of event A or event B: `P(A or B) = P (A union B) = P(A) + P(B) - P(A) * P(B)`
+3. Conditional probability (Bayes Theorem): `P(A|B) = P(B|A) * P(A) / P(B)`. Speaking of Bayes theorem, this is a very interesting link: [Base rate fallacy](https://en.wikipedia.org/wiki/Base_rate_fallacy)
+
