@@ -148,6 +148,19 @@ with the following output if ran from the ipython console
 
 The `solve` function is not limited only to polynomials. For example, `solve(sin(x)/x)` will correctly output the value `[pi]` - [docs](http://docs.sympy.org/dev/modules/solvers/solvers.html)
 
+Another example for solving more complex equations:
+
+```python
+import sympy as sp
+
+# symbolic solving
+x, y, z = sp.symbols('x y z')
+eq = sp.sin(x) + y * z
+print(sp.solve(eq, x))
+```
+
+And the output is `[asin(y*z) + pi, -asin(y*z)] `. If we want to obtain a numeri expression, we can do `ret = sp.solve(eq, x)` and then `[r.subs({y:0.4, z:-0.3}) for r in ret]`.
+
 For a system of equations, it works like this:
 
 ```python
@@ -239,7 +252,7 @@ for i in s:
     print(i)
 ```
 
-### Playing with probability and sets
+### Playing with probabilities and sets
 
 Let's define the following terms:
 
@@ -256,3 +269,98 @@ Some formulas:
 2. Probability of event A or event B: `P(A or B) = P (A union B) = P(A) + P(B) - P(A) * P(B)`
 3. Conditional probability (Bayes Theorem): `P(A|B) = P(B|A) * P(A) / P(B)`. Speaking of Bayes theorem, this is a very interesting link: [Base rate fallacy](https://en.wikipedia.org/wiki/Base_rate_fallacy)
 
+```python
+dice    = FiniteSet(1, 2, 3, 4, 5, 6)
+odd     = FiniteSet(1, 3, 5)
+even    = FiniteSet(2, 4, 6)
+prime   = FiniteSet(2, 3, 5)
+
+p_odd   = len(odd) / len(dice)
+p_odd_and_prime = len(odd.intersect(prime)) / len(dice)
+p_odd_or_prime = len(odd.union(prime)) / len(dice)
+```
+
+### Assumptions
+
+The behavior of symbols can be modified through what is called assumptions. Below is a list of assumptions with their default behavior and an usage example. 
+
+```python
+import sympy as sp
+ 
+"""
+Assumptions:    
+                algebraic: False,
+                commutative: True,
+                complex: False,
+                composite: False,
+                even: False,
+                imaginary: False,
+                integer: False,
+                irrational: False,
+                negative: False,
+                noninteger: False,
+                nonnegative: False,
+                nonpositive: False,
+                nonzero: False,
+                odd: False,
+                positive: False,
+                prime: False,
+                rational: False,
+                real: False,
+                transcendental: False,
+                zero: False
+"""
+ 
+A, B = sp.symbols('A B', commutative=False)
+print(A * B == B * A)
+
+```
+
+### Calculus
+
+The following code should be run line by line in an interpreter like IPython. For my own play, I am using `select line + CTRL+ENTER` in Spyder.
+
+![CTRL+ENTER in Spyder]({{site.url}}/assets/smp_2.png)
+
+```python
+import sympy as sp
+sp.init_printing()
+
+x, y, z = sp.symbols('x y z')
+
+## Limits
+sp.Limit(sp.sin(x)/x, x, sp.S.Infinity).doit()
+sp.Limit(1/x, x, 0, dir='-').doit()
+sp.Limit((1 + 1/x) ** x, x, sp.S.Infinity).doit() # output "E" - nice
+ 
+## Derivative
+sp.Derivative(sp.sin(x) ** 2 + 2 * x ** 2, x).doit()
+
+# Partial derivative
+sp.Derivative(sp.sin(x) / y + y * x, y).doit()
+
+# Finding maximum and minimum (critical points)
+sp.solve(sp.Derivative(x**2 - 2*x - 15, x).doit())
+sp.plot(x**2 - 2*x - 15)
+
+# For equations of motion - throwing a ball at an angle theta, with velocity V, we find the range R
+theta = sp.Symbol('t')
+v = sp.Symbol('v')
+g = sp.Symbol('g')
+R = v**2 * sp.sin(theta) / g
+
+R_deriv = sp.Derivative(R, theta).doit()
+sp.solve(R_deriv, theta)
+
+sp.plot(R.subs({v:10, g:9.81})) # just to have a graphical plot of the distance
+
+# Integrals - no interval
+sp.Integral(sp.sin(x) * x, x).doit()
+
+# Integrals - with interval
+sp.Integral(sp.sin(x) * x, (x, 0, 1)).doit()
+```
+
+### Conclusion
+
+I wrote this article as a short cheat-sheet for myself. Python is a great tool for mathemathics, not only for the numeric but also for the symbolic domain. Libraries like `sympy` make it both a powerful tool to write large programs but also a useful super easy-to-use desktop calculator. Of course, [`sympy`](http://docs.sympy.org/latest/index.html) is much larger than presented here, but the article should be helpful for a quicker start next time I am in front of a mathematical problem. 
