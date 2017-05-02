@@ -159,7 +159,7 @@ eq = sp.sin(x) + y * z
 print(sp.solve(eq, x))
 ```
 
-And the output is `[asin(y*z) + pi, -asin(y*z)] `. If we want to obtain a numeri expression, we can do `ret = sp.solve(eq, x)` and then `[r.subs({y:0.4, z:-0.3}) for r in ret]`.
+And the output is `[asin(y*z) + pi, -asin(y*z)]`. If we want to obtain a numeric result, we can do `ret = sp.solve(eq, x)` and then `[r.subs({y:0.4, z:-0.3}) for r in ret]`.
 
 For a system of equations, it works like this:
 
@@ -320,7 +320,7 @@ print(A * B == B * A)
 
 The following code should be run line by line in an interpreter like IPython. For my own play, I am using `select line + CTRL+ENTER` in Spyder.
 
-![CTRL+ENTER in Spyder]({{site.url}}/assets/smp_2.png)
+![CTRL+ENTER in Spyder]({{site.url}}/assets/smp_3.png)
 
 ```python
 import sympy as sp
