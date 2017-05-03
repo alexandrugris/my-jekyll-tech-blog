@@ -4,7 +4,7 @@ title:  "Symbolic Maths in Python"
 date:   2017-04-30 13:15:16 +0200
 categories: maths
 ---
-Doing symbolic computations is a crucial component of any mathematics-oriented package. It gives the ability to solve complex expressions, work with sets and probabilities, perform integrals or derivatives, plot charts based on user input, which further offer the possibility to implement generic numeric algorithms. 
+Ability to perform symbolic computations is a crucial component of any mathematics-oriented package. Symbolic mathematics can be used to work with complex expressions, sets and probabilities, perform integrals or derivatives, plot charts based on user input, without explicit numeric computations. This way, the Python interpreter becomes very much like a piece of paper on which one can jot down equations. By the end of the article I will implement a gradient descent function to demonstrate the power of `sympy` to code easy to work with generic algorithms.
 
 ### Basic usage
 
@@ -308,6 +308,7 @@ Assumptions:   
                 real: False,
                 transcendental: False,
                 zero: False
+
 """
  
 A, B = sp.symbols('A B', commutative=False)
@@ -316,6 +317,7 @@ print(A * B == B * A)
 ```
 
  ### Calculus
+
 
 The following code should be run line by line in an interpreter like IPython. For my own play, I am using `select line + CTRL+ENTER` in Spyder.
 
@@ -368,6 +370,57 @@ sp.Integral(sp.sqrt(1 + (sp.Derivative(x ** 2) ** 2)), (x, -1, 1)).doit()
 
 Length of the curve is computed by: `Integral(sqrt(1 + (df/dx)**2))` on the desired domain.
 
+### A more complex example - gradient descent
+
+```python
+import sympy as sp
+
+def grad_descent(f, lmbda, **initial_values):    
+    
+    derivatives = { k: sp.Derivative(f, k).doit() for k in initial_values.keys() }
+    
+    n_val = f.subs(initial_values)
+    c_val = n_val
+    
+	# variable step (used to secure it does not accidentally jump over a peak)
+    lambda_changes = 4 
+    while lambda_changes > 0:
+        
+        no_change = True
+        
+        # advance a little bit each coordinate
+        for k, v in initial_values.items():
+            
+            initial_values[k] = initial_values[k] - lmbda * derivatives[k].subs(initial_values)
+            n_val = f.subs(initial_values)
+                        
+            if n_val + 1e-10  >= c_val:
+                initial_values[k] = v # preserve the past value
+            else:
+                c_val = n_val
+                no_change = False
+                
+        if no_change == True:
+            lambda_changes -= 1
+            lmbda *= 0.5
+
+    return initial_values            
+
+                
+if __name__ == "__main__":
+
+	sp.init_printing()	
+
+	# the function to minimize; obviously the minimum is in (0, 0, 0)
+	x, y, z = sp.symbols('x y z')
+	f = x ** 2 + y ** 2 + z ** 2
+
+	# start with a large lambda factor to exemplify the variable step
+	# start with a random initial condition
+	ret = grad_descent(f, 1.0, x=4, y=-5, z=10)
+	print(ret)
+```
+
 ### Conclusion
 
-I wrote this article as a short cheat-sheet for myself. Python is a great tool for mathemathics, not only for the numeric but also for the symbolic domain. Libraries like `sympy` make it both a powerful tool to write large programs but also a useful super easy-to-use desktop calculator. Of course, [`sympy`](http://docs.sympy.org/latest/index.html) is much larger than presented here, but the article should be helpful for a quicker start next time I am in front of a mathematical problem. 
+I wrote this article as a short cheat-sheet for myself. Python is a great tool for mathemathics, not only for the numeric but also for the symbolic domain. Libraries like `sympy` make it both a powerful tool to write large programs but also a useful super easy-to-use desktop calculator. Of course, [`sympy`](http://docs.sympy.org/latest/index.html) is much larger than presented here, but the article should be helpful for a quicker start next time you are in front of a mathematical problem. 
