@@ -301,8 +301,7 @@ Assumptions:   
                 noninteger: False,
                 nonnegative: False,
                 nonpositive: False,
-                nonzero: False,
-                odd: False,
+                nonzero: False,                odd: False,
                 positive: False,
                 prime: False,
                 rational: False,
@@ -316,7 +315,7 @@ print(A * B == B * A)
 
 ```
 
-### Calculus
+ ### Calculus
 
 The following code should be run line by line in an interpreter like IPython. For my own play, I am using `select line + CTRL+ENTER` in Spyder.
 
@@ -326,7 +325,7 @@ The following code should be run line by line in an interpreter like IPython. Fo
 import sympy as sp
 sp.init_printing()
 
-x, y, z = sp.symbols('x y z')
+.x, y, z = sp.symbols('x y z')
 
 ## Limits
 sp.Limit(sp.sin(x)/x, x, sp.S.Infinity).doit()
@@ -360,6 +359,14 @@ sp.Integral(sp.sin(x) * x, x).doit()
 # Integrals - with interval
 sp.Integral(sp.sin(x) * x, (x, 0, 1)).doit()
 ```
+
+A more complex example which employs both derivative and integrals in the same formula: computing the length of the `x**2` curve between -1 and 1. Please note that `.doit()` may only called once. 
+
+```python
+sp.Integral(sp.sqrt(1 + (sp.Derivative(x ** 2) ** 2)), (x, -1, 1)).doit()
+```
+
+Length of the curve is computed by: `Integral(sqrt(1 + (df/dx)**2))` on the desired domain.
 
 ### Conclusion
 
