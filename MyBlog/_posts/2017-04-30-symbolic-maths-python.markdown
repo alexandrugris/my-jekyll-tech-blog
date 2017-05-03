@@ -4,7 +4,7 @@ title:  "Symbolic Maths in Python"
 date:   2017-04-30 13:15:16 +0200
 categories: maths
 ---
-Ability to perform symbolic computations is a crucial component of any mathematics-oriented package. Symbolic mathematics can be used to work with complex expressions, sets and probabilities, perform integrals or derivatives, plot charts based on user input, without explicit numeric computations. This way, the Python interpreter becomes very much like a piece of paper on which one can jot down equations. By the end of the article I will implement a gradient descent function to demonstrate the power of `sympy` to code easy to work with generic algorithms.
+Ability to perform symbolic computations is a crucial component of any mathematics-oriented package. Symbolic mathematics is used to work with complex expressions, sets and probabilities, perform integrals or derivatives, plot charts based on user input, all without explicit numeric computations. This way, the Python interpreter becomes very much like a piece of paper on which one can jot down equations. To exemplify these, by the end of the article I will implement a short gradient descent function to demonstrate the power of `sympy` to code easy-to-work-with generic algorithms.
 
 ### Basic usage
 
@@ -317,7 +317,6 @@ print(A * B == B * A)
 ```
 
  ### Calculus
-
 
 The following code should be run line by line in an interpreter like IPython. For my own play, I am using `select line + CTRL+ENTER` in Spyder.
 
