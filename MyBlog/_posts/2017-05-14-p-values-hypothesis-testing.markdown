@@ -37,9 +37,9 @@ Notes: coin toss is represented by a `Binomial(n, p)` distribution, where `n` is
 ```python
 import math
 
-"""The binomial distribution with 
-parameters n and p is the discrete probability distribution of the number of 
-successes in a sequence of n independent experiments"""
+#The binomial distribution with 
+#parameters n and p is the discrete probability distribution of the number of 
+#successes in a sequence of n independent experiments
 def normal_approximation_to_binomial(n, p):    
     """finds mu and sigma corresponding to a Binomial(n, p)"""    
     mu = p * n    
@@ -59,10 +59,11 @@ def normal_probability_between(v1, v2, mu, sigma):
     return normal_probability_below(v2, mu, sigma) - normal_probability_below(v1, mu, sigma)
 
 
-""" Inverse through binary search; not optimal for more than a few values """
+#Inverse through binary search; not optimal for more than a few values
 def interval_probability_centered(p, mu, sigma):
     """
-    returns the interval (lower, upper) of values for which the probability of the result to be in it is equal to p.
+    returns the interval (lower, upper) of values for which the probability 
+    of the result to be in it is equal to p.
     """
     hw = 9 * sigma # half width of intw
     interval_low, interval_high = mu - hw, mu + hw
@@ -211,18 +212,18 @@ lower_p_value = normal_probability_below
 
 The first thing that is obvious is that the `two_sided_p_value` features a multiplication by 2, whereas the single-sided functions don't. We talked about two sided versus one sided tests in the previuos chapter. There is one very important result to consider: we can only decide to opt for a single-sided test _IF_ we didn't look at the data before. That means, that the hypothesis we want to test is not derived from our understanding of the data, but rather is a pure theoretical (blind) speculation. If we already have an idea of what the data is about, we need to opt for the two sided test. This comes from the fact that the data might be already unintentionally biased towards our result (or in the opposite side of our result) by precisely half of our confidence interval. 
 
-Here is a more detailed explanation: [hypothesis testing with p-values] (https://www.boundless.com/users/233402/textbooks/openintro-statistics/foundations-for-inference-4/hypothesis-testing-35/two-sided-hypothesis-testing-with-p-values-174-13787/)
+Here is a more detailed explanation: [hypothesis testing with p-values](https://www.boundless.com/users/233402/textbooks/openintro-statistics/foundations-for-inference-4/hypothesis-testing-35/two-sided-hypothesis-testing-with-p-values-174-13787/)
 
-Let's use the p-values. While in the previous chapter we estimated the validity of the test for a certain hypothesis, now we are looking at actual results. The problem sounds like: assuming that we obtain 530 tails in a 1000 trials experiment, is the coin biased? 
+Let's use the p-values. While in the previous chapter we estimated the validity of the test for a certain hypothesis, now we are looking at actual results. The problem sounds like: assuming that we obtain `530` tails in a `1000` trials experiment, is the coin biased? 
 
 ```python
 two_sided_p_value(529.5, mu, sigma) # continuity correction
 Out[76]: 0.06207721579598857
 ```
 
-Unfortunately we cannot dismiss the null hypothesis. If we had observed 531 tails, then the result would have looked different.
+Unfortunately we cannot dismiss the null hypothesis. Had we observed `531` tails, then the result would have looked different.
 
-*Note:* decreasing 530 by 0.5 in the test above is called continuity correction. It basically asserts that p(530) is better estimated by the average of p(529.5) p(530.5) than by the average of p(530) and p(531). [Continuity Correction - Wikipedia](https://en.wikipedia.org/wiki/Continuity_correction)
+*Note:* decreasing `530` by `0.5` in the test above is called continuity correction. It basically asserts that `p(530)` is better estimated by the average of `p(529.5)` and `p(530.5)` than by the average of `p(530)` and `p(531)`. [Continuity Correction - Wikipedia](https://en.wikipedia.org/wiki/Continuity_correction)
 
 ## Example - A/B testing
 
