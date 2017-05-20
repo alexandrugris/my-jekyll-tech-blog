@@ -195,7 +195,9 @@ While we still cannot confidently reject the null hypothesis with this test, but
 
 ## P-values:
 
-Instead of choosing bounds based on some probability cutoff, we compute the probability— assuming H0 is true—that we would see a value at least as extreme as the one we actually observed: 
+Instead of choosing bounds based on some probability cutoff, we compute the probability, assuming H0 is true, that we would see a value at least as extreme as the one we actually observed. From wikipedia,
+
+![pvalue](https://upload.wikimedia.org/wikipedia/commons/3/3a/P-value_in_statistical_significance_testing.svg)
 
 ```python
 def two_sided_p_value(x, mu=0, sigma=1):    
@@ -226,6 +228,77 @@ Unfortunately we cannot dismiss the null hypothesis. Had we observed `531` tails
 *Note:* decreasing `530` by `0.5` in the test above is called continuity correction. It basically asserts that `p(530)` is better estimated by the average of `p(529.5)` and `p(530.5)` than by the average of `p(530)` and `p(531)`. [Continuity Correction - Wikipedia](https://en.wikipedia.org/wiki/Continuity_correction)
 
 ## Example - A/B testing
+
+Let's put all these things together in a worked example - computing the success of a A/B test campaign.
+
+Let's assume we have a banner for which we want to make a change and we want to understand if the change brings more clicks and thus profit. Our null hypothesis is "no, the change does not impact the number of clicks".
+
+We split the clients in two cohorts (`A` and `B`). For cohort `A` we keep the old banner, for cohort `B` we have the banner changed. After `N(A)` views for banner `A` we have `n(A)` click-throughs and after `N(B)` views for banner `B` we have `n(B)` click-throughs. Let's assume `N(A) == 1000`, `N(B) == 1000`, `n(A) == 180`, `n(B) == 200`. Is `B` a better campaign?
+
+Obviously we have a binomial variable with two posible outcomes: click (1) or not click (0), with a probability to click of `p`. Thus, for one trial, we have:
+
+```
+mu = p #expected value
+sigma = sqrt(1/2 * ((0 - p)^2 + (1 - p)^2)) = sqrt(p * (1 - p))
+```
+
+For `N` trials we apply the central limit theorem which states:
+
+```
+mu_clt = 1/N * (x0 + x1 +... + xN) = 1/N * (1 + 0 + 0 + ... +1) = n/N = mu = p
+sigma_clt = sigma / sqrt(N) = sqrt(p * (1 - p)) / sqrt(N) = sqrt(p * (1 - p) / N)
+```
+
+Now we want to test that distribution for `A` is the same as distribution for `B`, that is `p(A) == p(B)` - null hypothesis.
+
+`p(A) == p(B)` means `p(A) - p(B) == 0` or, more precisely, has `mu == 0`. But `p(A) - p(B)` [is a normally distributed random variable](https://en.wikipedia.org/wiki/Normal_distribution#Operations_on_normal_deviates) with 
+
+```
+mu(p(A) - p(B)) = mu(A) - mu(B)
+sigma(p(A) - p(B)) = sqrt(sigma(A) ^ 2 + sigma(B) ^ 2)
+```
+
+If we are to [`z-score`](http://stattrek.com/statistics/dictionary.aspx?definition=Normal_random_variable) this distribution, we should obtain a distribution with `mu == 0` and `sigma == 1` - which is a mathematical expression of our null hypothesis. If our experimental `p(A) - p(B)` is within the constraints of this distribution, then `B` most likely does not provide any improvement (or worsening) over `A`. Now we can use our `two_sided_p_value` to test our hypothesis.
+
+The code:
+
+```python
+def abtest_estimated_params_trial(N, n):
+    mu = n / N
+    sigma = math.sqrt(mu * ( 1- mu) / N)
+    return (mu, sigma)
+
+def pA_minus_pB(Na, na, Nb, nb):
+    muA, sigmaA = abtest_estimated_params_trial(Na, na)
+    muB, sigmaB = abtest_estimated_params_trial(Nb, nb)
+    
+    # the following number should be normally distributed with mu = 0 and sigma == 1
+    return (muA - muB) / math.sqrt(sigmaA ** 2 + sigmaB ** 2)
+
+two_sided_p_value(pA_minus_pB(1000, 200, 1000, 150), 0, 1)
+```
+
+With the results:
+
+```python
+two_sided_p_value(pA_minus_pB(1000, 200, 1000, 250), 0, 1)
+Out[6]: 0.007313777221710671 # > 0.05, we can safely reject the null hypothesis
+
+two_sided_p_value(pA_minus_pB(1000, 200, 1000, 350), 0, 1)
+Out[7]: 2.531308496145357e-14 # > 0.5, we can safely reject the null hypothesis
+
+two_sided_p_value(pA_minus_pB(1000, 200, 1000, 210), 0, 1)
+Out[8]: 0.5796241923602059 # cannot reject the null
+
+two_sided_p_value(pA_minus_pB(1000, 200, 1000, 180), 0, 1)
+Out[9]: 0.25414197654223614 # cannot reject the null
+
+two_sided_p_value(pA_minus_pB(1000, 200, 1000, 170), 0, 1)
+Out[10]: 0.08382984264631776 # still cannot reject the null
+
+two_sided_p_value(pA_minus_pB(1000, 200, 1000, 150), 0, 1)
+Out[11]: 0.003189699706216853 # we can safely reject the null
+```
 
 ## Baesyan Inference
 
