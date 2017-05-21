@@ -4,7 +4,7 @@ title:  "P-Values And Hypothesis Testing"
 date:   2017-05-14 13:15:16 +0200
 categories: maths
 ---
-This post is about p-values and hypothesis testing. What they are, why they are needed, how to compute them and how to use them. The article follows quite closely a chapter from "Data Science from Scratch" by Joel Grus and it is annotated with my own research and observations.
+This post is about p-values and hypothesis testing. What they are, why they are needed, how to compute them and how to use them. It includes a worked example, how to validate that an A/B test indeed produces a significant outcome as well as a light intro intro Bayesian inference. The article follows quite closely a chapter from "Data Science from Scratch" by Joel Grus and it is annotated with my own research and observations.
 
 ## Definitions
 
@@ -300,5 +300,5 @@ two_sided_p_value(pA_minus_pB(1000, 200, 1000, 150), 0, 1)
 Out[11]: 0.003189699706216853 # we can safely reject the null
 ```
 
-## Baesyan Inference
+## Bayesian Inference
 
