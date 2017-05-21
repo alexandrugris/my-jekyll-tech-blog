@@ -4,7 +4,7 @@ title:  "P-Values And Hypothesis Testing"
 date:   2017-05-14 13:15:16 +0200
 categories: maths
 ---
-This post is about p-values and hypothesis testing. What they are, why they are needed, how to compute them and how to use them. It includes a worked example, how to validate that an A/B test indeed produces a significant outcome as well as a light intro intro Bayesian inference. The article follows quite closely a chapter from "Data Science from Scratch" by Joel Grus and it is annotated with my own research and observations.
+This post is about p-values and hypothesis testing. What they are, why they are needed, how to compute them and how to use them. It also includes a worked example, how to validate that an A/B test indeed produces a significant outcome. The article follows quite closely a chapter from "Data Science from Scratch" by Joel Grus and it is annotated with my own research and observations.
 
 ## Definitions
 
@@ -32,7 +32,11 @@ We are going to test if a coin is unfair (slightly biased towards the head, with
 
 Before that, here is some prerequisite code:
 
-Notes: coin toss is represented by a `Binomial(n, p)` distribution, where `n` is the number of trials and `p` the probability of hitting head.
+*Notes:* 
+
+- The coin toss is represented by a `Binomial(n, p)` distribution, where `n` is the number of trials and `p` the probability of hitting head.
+
+ - A common rule of thumb is that if both `n*p` and `n * (1 – p)` are greater than `5`, the binomial distribution may be approximated by the normal distribution. 
 
 ```python
 import math
@@ -41,7 +45,11 @@ import math
 #parameters n and p is the discrete probability distribution of the number of 
 #successes in a sequence of n independent experiments
 def normal_approximation_to_binomial(n, p):    
-    """finds mu and sigma corresponding to a Binomial(n, p)"""    
+    """finds mu and sigma corresponding to a Binomial(n, p)""" 
+
+    if n * p < 5 or n * (1 - p) < 5:
+        raise Exception("Cannot be approximated by a normal distribution")
+    
     mu = p * n    
     sigma = math.sqrt(p * (1 - p) * n)    
     return mu, sigma
@@ -229,7 +237,7 @@ Unfortunately we cannot dismiss the null hypothesis. Had we observed `531` tails
 
 ## Example - A/B testing
 
-Let's put all these things together in a worked example - computing the success of a A/B test campaign.
+Let's put all these things together in a worked example - computing the success of an A/B test campaign.
 
 Let's assume we have a banner for which we want to make a change and we want to understand if the change brings more clicks and thus profit. Our null hypothesis is "no, the change does not impact the number of clicks".
 
@@ -251,7 +259,7 @@ sigma_clt = sigma / sqrt(N) = sqrt(p * (1 - p)) / sqrt(N) = sqrt(p * (1 - p) / N
 
 Now we want to test that distribution for `A` is the same as distribution for `B`, that is `p(A) == p(B)` - null hypothesis.
 
-`p(A) == p(B)` means `p(A) - p(B) == 0` or, more precisely, has `mu == 0`. But `p(A) - p(B)` [is a normally distributed random variable](https://en.wikipedia.org/wiki/Normal_distribution#Operations_on_normal_deviates) with 
+`p(A) == p(B)` means `p(A) - p(B) == 0` or, more precisely, has `mu == 0`. But `p(A) - p(B)` [is a normally distributed random variable](https://en.wikipedia.org/wiki/Normal_distribution#Operations_on_normal_deviates), thus 
 
 ```
 mu(p(A) - p(B)) = mu(A) - mu(B)
@@ -299,6 +307,4 @@ Out[10]: 0.08382984264631776 # still cannot reject the null
 two_sided_p_value(pA_minus_pB(1000, 200, 1000, 150), 0, 1)
 Out[11]: 0.003189699706216853 # we can safely reject the null
 ```
-
-## Bayesian Inference
 

@@ -27,7 +27,7 @@ Columns:
 2. *Average* is the average of the data - single value, computed as a column to simplify charting.
 3. *Moving range* is the absolute delta of two consecutive measurements
 4. *Average moving range* is the average of all moving ranges - single value
-5. *Lower / upper natural system limits* are computed as `system average +/- 2.66 * moving range` - single values
+5. *Lower / upper natural system limits* are computed as `system average +/- 2.66 * moving range` - single values (these are about 3 sigma in one direction, so 6 sigma in total, meaning that 99.7% of all values should be between upper / lower natural system limits)
 
 Please note that you don't need a lot of measurements to compute meaningful system parameters and that, after an intervention is performed, new system parameters need to be computed again and behavior chart updated for future data. 
 
