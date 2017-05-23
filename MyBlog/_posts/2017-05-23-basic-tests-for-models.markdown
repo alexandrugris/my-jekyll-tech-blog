@@ -1,4 +1,6 @@
----
+`
+
+How a---
 layout: post
 title:  "Basic Tests For ML Models"
 date:   2017-05-23 13:15:16 +0200
@@ -28,11 +30,29 @@ For the rest of the article let's consider some numbers: tp = 10, fp = 100, fn =
 accuracy(10, 100, 1000, 10000)
 Out[1]: 0.900990099009901
 ```
-Very high, but obviously the test is crap, as we will see with the following three metrics.
+Very high, but obviously the test is crap, as we will see with the following three metrics. The results are completely biased by the true negatives. An example of such a crap test with high accuracy could be 'you are CEO if your name is Jack'. Obviously, there are a lot of Jacks who are not CEOs.
 
 ### Precision
 
+How accurate our positive predictions are.
+
+```python
+def precision(tp, fp, fn, tn):
+    return tp / (tp + fp)
+
+
+precision(10, 100, 1000, 10000)
+Out[2]: 0.09090909090909091
+```
+Obviously, accuracy is less than 1%. 
+
 ### Recall
+
+What fraction of positives the model identified.
+
+```python
+
+```
 
 ### F1 score
 
