@@ -1,6 +1,4 @@
-`
-
-How a---
+---
 layout: post
 title:  "Basic Tests For ML Models"
 date:   2017-05-23 13:15:16 +0200
@@ -51,9 +49,26 @@ Obviously, accuracy is less than 1%.
 What fraction of positives the model identified.
 
 ```python
+def recall(tp, fp, fn, tn):
+    return tp  / (tp + fn)
 
+
+recall (10, 100, 1000, 10000)
+Out[3]: 0.009900990099009901
 ```
 
+Again, not such a good score.
+
 ### F1 score
+
+The harmonic average between the recall and precision scores. The harmonic average is a good choice because it gets a score closer to the lowest result.
+
+```python
+def f1_score(tp, fp, fn, tn):
+    return 2 / (1/precision(tp, fp, fn, tn) + 1/recall(tp, fp, fn, tn))
+
+f1_score(10, 100, 1000, 10000)
+Out[5]: 0.017857142857142856
+```
 
 
