@@ -133,7 +133,7 @@ Here is an example on how to declare such a topology, with a dead letter exchang
  );
 ```
 
-In the code above, several parameters have been used to declare exchanges and queues. Here are their meaning:
+In the code above several parameters have been used to declare exchanges and queues. Here are their meaning:
 
  - *durable: false* : messages will not be persisted to disk. Even if set to true, each message should have the durable flag turn on for persistence
  - *exclusive: false* : if set to true, messages can only be consumed by this connection. Anyone can publish though. When set to true, this configuration is used in the RPC and scatter-gather usage patterns as reply queues.
