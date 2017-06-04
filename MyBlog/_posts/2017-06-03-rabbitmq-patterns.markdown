@@ -8,7 +8,7 @@ This post summmarizes my forray into RabbitMQ. The code which merges most of the
 
 ### How to run RabbitMQ
 
-By far the easiest and most portable way to run RabbitMQ is to use official docker container with the management console started: 
+By far the easiest and most portable way to run RabbitMQ is to use the official docker container with the management console started: 
 
 `docker run -d --rm --hostname my-rabbit -p 4369:4369 -p 15671-15672:15671-15672 -p 5672:5672 --name my_rabbit_mq rabbitmq:3-management` 
 
@@ -20,8 +20,25 @@ Each service (application) maintains one connection to the queue. Connections ar
 
 Within a connection, one or more channels can coexist to provide for concurrency. Rule of thumb: 1 channel / thread. Channels are not meant to be shared across threads. The connection object is. Inside RabbitMQ, each channel is served by an Erlang thread (lightweight actor pattern, Erlang can spawn huge amount of threads).
 
-Producers write to an exchange. Exchanges can communicate to queues or other exchanges through binding. Consumers read from queues. One service monitors one or more queues. Oldest message is consumed first.
-Only when the queue receives the ACK, the message is deleted from the queue. Producers write to exchanges using a routing key. The exchange will route the message to the corresponding queue based on the routing key and the exchange type. Exchanges can be of several types: Direct, Topic, Fanout, Headers. 
+Producers write to an exchange. Exchanges can communicate with queues or other with exchanges through binding. Consumers read from queues. One application can read from one or more queues. In a configurtion with exactly one producer and one consumer, the oldest message is consumed first. RabbitMQ provides strong guarantees for this.
+
+Only when the queue receives an ACK, the message is deleted from the queue. Producers write to exchanges and attach to each message a routing key. The exchange will route the message to the corresponding queue based on the routing key and the exchange type. Exchanges can be of several types: Direct, Topic, Fanout, Headers. Below is a summary of each exchange type and the associated routing behavior:
+
+*Direct Exchange*
+
+Messages are routed to the specified queue using the routing key.
+
+*Topic Exchange*
+
+Routing behaves very much like for the direct exchange. However, routing keys can have several terms separated by dots. E.g. `package.fast.international`. Queues listen to various keys by using wildcards. E.g. `package.*.international`. `*` is the wildcard for one word. `#` is the hashtag for multiple words.
+
+*Fanout Exchange*
+
+The routing key is ignored. Message is sent to all bound queues.
+
+*Headers Exchange*
+
+Routing is based on the message headers which are set through `IBasicProperties::Headers` property. Matching is done for all headers or for any.
 
 [More details here](https://www.rabbitmq.com/tutorials/amqp-concepts.html)
 
@@ -51,9 +68,9 @@ Beside the normal exchange types, two special exchanges stand out:
 
 - *Alternate Routing Exchange:* useful for routing messages which cannot be routed according to the predefined rules and otherwise would have been dropped.
 
-- *Dead Letter Exchange:* messages that have been rejected or for messages that have their TTL expired are routed here. The dead letter exhange can be used for scheduling messages at a specific time, by setting their TTL property.
+- *Dead Letter Exchange:*  messages that have been rejected or messages that have their TTL expired are routed here. The dead letter exhange can be used for scheduling messages at a specific time, by setting their TTL property.
 
-Here is an example on how to declare such a topology, with a dead letter exchange (DLX) and alternate routing exchange set to the same instance:
+Here is an example on how to declare such a topology, with a dead letter exchange (DLX) and alternate routing exchange set to the same exchange instance:
 
 ```csharp
  IModel chan = ...;
@@ -115,6 +132,13 @@ Here is an example on how to declare such a topology, with a dead letter exchang
      routingKey: ""
  );
 ```
+
+In the code above, several parameters have been used to declare exchanges and queues. Here are their meaning:
+
+ - *durable: false* : messages will not be persisted to disk. Even if set to true, each message should have the durable flag turn on for persistence
+ - *exclusive: false* : if set to true, messages can only be consumed by this connection. Anyone can publish though. When set to true, this configuration is used in the RPC and scatter-gather usage patterns as reply queues.
+ - *autoDelete: false* : if true, the queue is deleted when there are no more consumers. However, if there are no consumers ever on the queue, it is not deleted.
+
 ### Sending messages
 
 We may want confirmation that the message has been received by the queue:
@@ -135,12 +159,6 @@ chan.BasicPublish(Commons.Parameters.RabbitMQExchangeName, routingKey, msgProps,
 ### Receiving messages
 
 Inside the client, for receiving messages, one can set `prefetchCount` to load multiple messages. However, if the server crashes, these will all remain unacknowledged even if processed.
-
-For queue declaration we have the following parameters:
-
- - *durable: false* : messages will not be persisted to disk. Even if set to true, each message should have the durable flag turn on for persistence
- - *exclusive: false* : if set to true, messages can only be consumed by this connection. Anyone can publish though. 
- - *autoDelete: false* : if true, the queue is deleted when there are no more consumers. However, if there are no consumers ever on the queue, it is not deleted.
 
 ```csharp
 if (cthread != System.Threading.Thread.CurrentThread.ManagedThreadId)
@@ -164,6 +182,7 @@ class Consumer : DefaultBasicConsumer, IDisposable
    
    [...]
    
+    // callback for each received message
     public override void HandleBasicDeliver(string consumerTag, 
         ulong deliveryTag, 
         bool redelivered, 
@@ -177,25 +196,6 @@ class Consumer : DefaultBasicConsumer, IDisposable
 ```
 
 Another way to go is to use the `QueuingBasicConsumer(model)` and then `(BasicDeliveryEventArgs)consumer.Queue.Dequeue();` for extracting the message in a loop.
-
-### Routing
-
-*Direct Exchange*
-
-Messages are routed to the specified queue using the routing key.
-
-*Topic Exchange*
-
-Routing behaves very much like for the direct exchange. However, routing keys can have several terms separated by dots. E.g. `package.fast.international`. Queues listen to various keys by using wildcards. E.g. `package.*.international`. `*` is the wildcard for one word. `#` is the hashtag for multiple words.
-
-*Fanout Exchange*
-
-The routing key is ignored. Message is sent to all bound queues.
-
-*Headers Exchange*
-
-Routing is based on the message headers which are set through `IBasicProperties::Headers` property. Matching is done for all headers or for any.
-
 
 ### Reliability options
 
@@ -222,7 +222,7 @@ var cf = new RabbitMQ.Client.ConnectionFactory
 	AutomaticRecoveryEnabled = true,
 	TopologyRecoveryEnabled = true,
 	NetworkRecoveryInterval = TimeSpan.FromSeconds(5),
-	UseBackgroundThreadsForIO = false // this is related to Thread.IsBackground property; Foreground threads keep the app alive until finished
+	UseBackgroundThreadsForIO = false //Foreground threads keep the app alive until finished
 };
 
 conn = cf.CreateConnection();
@@ -244,6 +244,8 @@ conn = cf.CreateConnection();
 - Headers (Exchange type: headers. Message is sent to the queues which match the headers. Routing key should not be set. Match type should indicate if all or any header must match)
 - Scatter-gather (Exchange type: can be any, routing key is optional depending on the exchange type. The sender will start by creating and polling a response queue and then dispatch its request)
 
+These are covered extensively in the [RabbitMQ tutorials](http://www.rabbitmq.com/getstarted.html).
+
 ### Dealing with errors
 
 *Scenario 1: exception is caught in the consumer and `chan.BasicNack(resend: true)` is sent to the queue.*
@@ -252,7 +254,9 @@ The message is then immediately redispatched to a consumer with the flag `redeli
 
 *Scenario 2: exception is caught and the message is redelivered to the queue for a number of times.* 
 
-However, in this case, the message is posted back at the beginning of the queue, so the retry will happen only after all other messages have been consumed. A mixed strategy is implemented in the code below:
+The message is posted back at the beginning of the queue, so the retry will happen only after all other messages have been consumed. In order to keep track of the number of retries, a header is set in the properties which is decreased with each retry. After resubmitting the message back the the queue, the failed message is ACKed. When the resubmit count reaches 0, the message is rejected. If a dead letter queue is specified in the routing topology, the message is automatically directed by RabbitMQ to this queue. Otherwise it is silently dropped.
+
+A strategy that is mixing both approaches is implemented in the code below:
 
 ```csharp
 public override void HandleBasicDeliver(string consumerTag, 
@@ -319,15 +323,46 @@ private void Requeue(string consumerTag,
 }
 ```
 
-*Dead letter queue*
+In the code above there is no control over when the retry will occur. This is generally not a good strategy because the system might have not yet recovered from the conditions that led to the error in the first place. A better approach is to set the TTL to the message and then push it to another waiting queue for which there is no consumer, but has attached this queue to its dead letter exchange. When the TTL expires, RabbitMQ automatically moves the message to the dead letter exchange (and from here routed to our queue) from which we can consume it once again.
 
-*Routing error: alternative queue*
+Patterns to take into consideration:
 
-*Scheduled delivery / redelivery*
+- Dead letter exchange (DLX): RabbitMQ moves TTL-expired messages and rejected messages to this exchange. DLX can have any type and with various queues attached for custom routing. 
+
+- Routing error: alternative queue - a queue declared for messages that cannot be routed to any other queue and would otherwise be silently dropped
+
+- Scheduled delivery / redelivery: together with the DLX, the messages have a TTL after which they are moved to the DLX
+
+In my demo the producer creates the routing topology with:
+- One exchange of type direct (`alexandrugris.1st_exchange`)
+- One one alternate exchange which is also the dead letter exchange (`alexandrugris.1st_exchange_dead_letter_exchnage`)
+
+![Exchanges]({{site.url}}/assets/rabbitmq_3.png)
+
+And two queues:
+- One queue connected to the the `1st_exchange`
+- One connected to the dead letter exchange
+
+The producer dispatches roughly 99% of the messages to the right queue and 1% of the messages have a bogus routing key. Thus, if the producer is run without a consumer, we get the following:
+
+![Producer run without a consuming client]({{site.url}}/assets/rabbitmq_1.png)
+
+It is visible that some messages are sent to the alternate exchange queue due to failed routing.
+
+The producer also sets a TTL to all the messages that are sent. Thus, after roughly a minute, we get the following:
+
+![Some messages moved to the DLX, some messages deleted]({{site.url}}/assets/rabbitmq_2.png)
+
+Two things are worth noting:
+- The main bulk of the messages that were not consumed are moved to the dead letter queue
+- The messages that were already in the dead letter queue, when their TTL expires, are deleted as there is no other destination for them
+
+Because after the movement the TTL is reset for all messages, the situation remains stable until the server is reset.
+ 
 
 ### Message persistence and serialization
 
-Durability of a queue does not make messages that are routed to that queue durable. If a broker is taken down and then brought back up, a durable queue will be re-declared during broker startup, however, only persistent messages will be recovered. 
+Durability of a queue does not make messages that are routed to that queue automatically durable. If a broker is taken down and then brought back up, a durable queue will be re-declared during broker startup, however, only persistent messages will be recovered. 
 
 ```csharp
 var props = model.CreateBasicProperties();
@@ -390,7 +425,7 @@ chan.BasicPublish(Commons.Parameters.RabbitMQExchangeName, "", msgProps, Encodin
 *Serialization*
 
 1. Convert object to byte[] array
-2. Indicate the message `IBasicProperties::Type` (what kind of object is serialized, for instance "ro.alexandrigris.Person")
+2. Indicate the message `IBasicProperties::Type` (what kind of object is serialized, for instance `ro.alexandrugris.Person`)
 3. Indicate the format of serialization and encoding, using `IBasicProperties::ContentType` and `IBasicProperties::ContentEncoding`
 4. Send the message
 
@@ -405,7 +440,7 @@ Ideally the serialization should be application agnostic (for instance a fully q
 
 For binary messages, a potential encoding could be `Protocol Buffers` or `Apache Thrift` which support versioning as well as multiple language bindings.
 
-AMQP supports very large messages. However, if the application requires sending such messages it is better to use a separate, dedicated instance of the server in order not to impact the throughput of smaller, more frequent messages. 
+AMQP supports very large messages. However, if the application requires sending such messages it is better to use a separate, dedicated instance of the server in order not to impact the throughput of smaller, more frequent exchanges. 
 
 Approaches for sending large messages:
 
@@ -420,29 +455,31 @@ props.Headers.Add("FileName", fileName);
 props.Headers.Add("ChunkNumber", chunkNumber);
 props.Headers.Add("EOF", eof);
 ```
-Best, though, is better to avoid transferring large files.
+Best though is better to avoid transferring large files.
 
 ### Notes
 
 *Federation*
 
-[Federation](https://www.cloudamqp.com/blog/2015-03-24-rabbitmq-federation.html)
+RabbitMQ supports [Federation](https://www.cloudamqp.com/blog/2015-03-24-rabbitmq-federation.html) for scaling out to another cluster or datacenter.
 
 *How many queues?*
 
 Can rabbitmq be used as the infrastructure for a chat server in which each person is modelled as an actor? More precise, how many queues can a rabbitmq instance support?
 
-The answer is yes, as the limit is not in the number of queues but in the number of TCP connections supported in a machine. For many connections, it is better to have a rabbitmq cluster. 
+The answer is yes, as the limit is not in the number of queues but in the number of TCP connections supported on a machine. For many connections it is better to have a rabbitmq cluster. 
 
- - https://stackoverflow.com/questions/22989833/rabbitmq-how-many-queues-rabbitmq-can-handle-on-a-single-server
- - http://rabbitmq.1065348.n5.nabble.com/How-many-queues-can-one-broker-support-td21539.html
- - https://www.rabbitmq.com/distributed.html
+ - [How many queues on a single server](https://stackoverflow.com/questions/22989833/rabbitmq-how-many-queues-rabbitmq-can-handle-on-a-single-server)
+ - [How many queues on a single server](http://rabbitmq.1065348.n5.nabble.com/How-many-queues-can-one-broker-support-td21539.html)
+ - [Distributed RabbitMQ](https://www.rabbitmq.com/distributed.html)
 
 *Correlation ID and Microservices*
 
-As each microservice is persisting its data in ins own private database, with private indices, one needs a method for correlating various messages into a single logical entity. RabbitMQ provides a correlation ID property for the messange. A good value for it is a GUID. Correlation ID is also used for the RPC pattern in the response to the client.
+As each microservice is persisting its data in its own private database, with private indices, one needs a method for correlating various messages into a single logical entity. RabbitMQ provides a correlation ID property for messanges. A good value for it can be GUID. 
 
- - http://jeftek.com/178/what-is-a-correlation-id-and-why-do-you-need-one/
- - https://stackoverflow.com/questions/20184755/practical-examples-of-how-correlation-id-is-used-in-messaging 
- - RPC-like calls: http://www.rabbitmq.com/tutorials/tutorial-six-dotnet.html
+Correlation ID is also used in the RPC pattern so that the caller can track for which request each answer came.
+
+ - [Correlation ID](http://jeftek.com/178/what-is-a-correlation-id-and-why-do-you-need-one/)
+ - [Practical examples for correlation IDs](https://stackoverflow.com/questions/20184755/practical-examples-of-how-correlation-id-is-used-in-messaging)
+ - [RPC-like calls](http://www.rabbitmq.com/tutorials/tutorial-six-dotnet.html)
 
