@@ -162,6 +162,14 @@ c:>docker volume create --name=agris_data
 c:>docker-compose up -d
 ```
 
+If we want to scale one service, we can simply add:
+
+```
+c:>docker-compose scale service_name=2
+```
+
+In this case, `service_name` would receive another instance. Of course, services scaled like this cannot have ports exposed to host.
+
 ### Networks:
 
 ```
@@ -173,8 +181,8 @@ c:>docker network inspect cppplaylinux_default
 
 And we see:
 
-- we have a new network created by `docker-compose`, in this case `cppplaylinux_default`
-- we have one host  connected to this network, in this case `cppplaylinux_mysql_agris_1`, which is precisely the container created by the `docker-compose` and visible through `docker ps -a`
+- we have a new network created automatically by `docker-compose`, in this case `cppplaylinux_default`
+- we have one host  connected to this network, in this case `cppplaylinux_mysql_agris_1`, which is precisely the container created by the `docker-compose` and visible through `docker ps -a`. Actually all containers spawned by `docker-compose` are attached to the same network, unless specified otherwise.
 
 Beside using `docker-compose` to create networks of containers, `docker network` command offers the options to:
 
