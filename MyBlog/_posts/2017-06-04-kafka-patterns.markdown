@@ -219,6 +219,9 @@ services:
       HOSTNAME_COMMAND: "route -n | awk '/UG[ \t]/{print $$2}'"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
+      # create a topic on start
+      KAFKA_CREATE_TOPICS: "alexandrugris.my_topic:5:2:compact" # 5 partitions, 2 replicas
+
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
@@ -238,3 +241,77 @@ And some screenshots:
 *Produced messages in the queue*
 ![Messages]({{site.url}}/assets/kafka_7.png)
 
+*New topic created, ballanced, with 5 partitions and 2 replicas*
+
+![Messages]({{site.url}}/assets/kafka_8.png)
+
+### Partitioning
+
+Kafka has a simple yet powerful method for selecting to which partition the message is routed at the time of producing. The algorithm is as follows:
+
+1. If the partition is directly specifiedand it is a valid partition, then the message is routed directly to it.
+2. Else, if the key has been specified, then if a custom partitioner is present, specified at the creation of the Producer instance through `partitioner.class` property, then this custom partitioner is used.
+3. If the key has been specified but there is no custom partitioner instantiated, then the default paritioner will hash the key and will perform a modulo operation to assign the designated partition.
+
+The following snippet is the producer code initialized with a by-first-letter partitioner:
+
+```java
+public BasicKafkaProducer(Properties props){
+    props.setProperty("partitioner.class", "ro.alexandrugris.ByDestinationPartitioner");
+    myProducer = new KafkaProducer<String, MyMessage>(
+            props,
+            new org.apache.kafka.common.serialization.StringSerializer(),
+            new ro.alexandrugris.ObjectSerializer<MyMessage>()
+            );
+}
+public static void main(String[] args) {
+    try (BasicKafkaProducer me = new BasicKafkaProducer(System.getProperties())) {
+        me.send(Arrays.asList(
+                new MyMessage("alexandru.gris", "Hello World"),
+                new MyMessage("olga.muravska", "Hello World"),
+                new MyMessage("olga.muravska", "Hello World"),
+                new MyMessage("alexandru.gris", "Hello World"),
+                new MyMessage("alexandru.gris", "Hello World"),
+                new MyMessage("gris.laurian", "Hello World"),
+                new MyMessage("gris.laurian", "Hello World")
+        ));
+    }
+    catch(Exception exx){
+        System.out.println(exx.toString());
+    }
+}
+private void send(List<MyMessage> msgs) {
+    Object lock      = new Object();
+    class Counter {
+        int cnt = msgs.size();
+        int decrement(){ return --cnt; }
+    } // to avoid the fact that java still does not have true closures :((
+    Counter cnt = new Counter();
+    for(MyMessage msg : msgs) {
+        myProducer.send(new ProducerRecord<String, MyMessage>(TOPIC_NAME, msg.destination(), msg), (RecordMetadata metadata, Exception exception) -> {
+                if (exception != null) {
+                    System.out.println(exception.toString());
+                } else {
+                    System.out.println(metadata.toString());
+                }
+                synchronized (lock) {
+                    if (cnt.decrement() == 0) lock.notify();
+                }
+        });
+    }
+    synchronized (lock) {
+        try { lock.wait(); } catch(Exception exx){}
+    }
+}
+```
+
+The producer is thread safe and should generally be shared among all threads for best performance. 
+The producer manages a single background thread that does I/O as well as a TCP connection to each of the brokers it needs to communicate with. Failure to close the producer after use will leak these resources. 
+
+The result of the per-first-letter partitioner when run:
+
+```
+$>/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic alexandrugris.my_topic --partition 0 --from-beginning
+```
+
+![Messages]({{site.url}}/assets/kafka_9.png)
