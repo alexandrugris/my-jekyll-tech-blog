@@ -4,7 +4,7 @@ title:  "RabbitMQ Patterns and Considerations"
 date:   2017-06-03 13:15:16 +0200
 categories: distributed systems
 ---
-This post summmarizes my forray into RabbitMQ. The code which merges most of the concepts from this article can be found [here](https://github.com/alexandrugris/RabbitMQ_Play).
+A short intro into RabbitMQ and its C# client. The code which merges most of the concepts from this article can be found [here](https://github.com/alexandrugris/RabbitMQ_Play).
 
 ### How to run RabbitMQ
 
