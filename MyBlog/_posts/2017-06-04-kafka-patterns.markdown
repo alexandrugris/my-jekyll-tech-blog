@@ -10,6 +10,8 @@ Playing around with Apache Kafka. The article covers running a Kafka cluster on 
 
 The simplest way: `docker-compose up` with the following `docker-compose.yml`
 
+*To run a single instance of Kafka on the localhost, with ports exposed to localhost:*
+
 ```yml
 version: '3'
 
@@ -38,7 +40,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-Another option, if we want to scale the Kafka cluster is to run:
+*Another option, if we want to scale the Kafka cluster is to run:*
 
 ```
 docker-compose up -d
@@ -70,9 +72,10 @@ services:
       - "9092" # we do not publish these ports anymore to host
       
     environment:
+      # we remove the KAFKA_ADVERTISED_HOST_NAME property
       HOSTNAME_COMMAND: "route -n | awk '/UG[ \t]/{print $$2}'"
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      # we dropped completely the JMX part
+      # we drop completely the JMX part
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -339,3 +342,86 @@ $>/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic
 
 ### Consuming messages
 
+*Basic notions:*
+
+- There is one thread per Kafka consumer
+- Polling is a single threaded operation
+
+*Properties:*
+
+ - `enable.auto.commit=true` - allow Kafka to manage when last committed offset is incremented
+ - `auto.commit.interval=5000` - together with `enable.auto.commit` enables Kafka consumer to autocommit every XXX milliseconds.
+ - `auto.offset.reset="latest" or "earliest"` - from where to start reading the messages from a partition - latest / earliest refers to known committed offset.
+
+ Kafka keeps track of consumer offsets in a Kafka topic named `__consumer_offsets`, which is partitioned across 50 partitions. 
+ 
+  ```
+ bash-4.3# /opt/kafka/bin/kafka-topics.sh --describe --zookeeper zookeeper:2181 --topic __consumer_offsets
+ ```
+ 
+ The `KafkaConsumer` API has functions to manually retreive and / or reset the position in the stream on a per topic/partition basis. This allows true manual cursor movement, very similar to working with a file. It has also options to pause / resume a subscribed topic when there are higher priority messages to consider. 
+
+ *Manual offset API*:
+  - `seek()`
+  - `seekToBeginning()`
+  - `seekToEnd()`
+  - `position()`
+
+*Flow control API:*
+ -  `pause` partition
+ -   `resume` partition
+
+*Rebalance listeners:*
+
+```java
+// subscribe to all partitions in a topic
+consumer.subscribe(topicPatterns.stream().map(TopicPattern::getTopic).collect(Collectors.toSet()), new ConsumerRebalanceListener() {
+    @Override
+    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+        // do something here
+        // https://kafka.apache.org/0101/javadoc/org/apache/kafka/clients/consumer/ConsumerRebalanceListener.html
+        // for instance, save restore offset from an external store
+    }
+    @Override
+    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        // do something here
+    }
+});
+```
+
+If we set the `enable.auto.commit=false` we need to use one of the two API functions `commitSync()` or `commitAsync()` to advance the last known committed offset. `commitSync` retries in case of failure. The retry is controlled by the
+`retries.backoff.ms` setting. In case of unrecoverable error, a `CommitFailedException` is thrown.  `commitAsync` receives a callback as parameter for the calling application to know when the commit has occured. It does not automatically retry.
+
+[How to start everytime from beginning in Kafka](https://stackoverflow.com/questions/28561147/how-to-read-data-using-kafka-consumer-api-from-beginning)
+
+*Scaling out - consumer groups:*
+
+By sharing the `group.id` property, a group of processes can consume messages together in parallel, advancing the offset in a collaborative way, thus distributig the burden of message processing to several cores / machines.
+
+The `Group Coordinator` is monitoring and taking care of work distribution and group membership. It controls availability of consumer nodes through two parameters:
+ - `heartbeat.interval.ms=3000` - how often consumers send heartbeats to Kafka
+ - `session.timeout.ms=30000` - how long before the consumer is considered down and removed from group membership
+
+*Partition allocation in consumer groups:*
+
+ If the number of consumers == the number of partitions, the group coordinator will allocate to each consumer a partition in a 1:1 setup.
+
+ If the number of consumers > the number of partitions, there will be idle consumers until more partitions become available.
+
+ Otherswise, partitions will be allocated to consumers so that each consumer consumes full partitions.
+
+ *Very important:*
+
+ Partition allocation in consumer groups work as described below IF the consumer subscribes to the full topic. Otherwise, if subscribed directly to partitions, all data will be distributed to all consumers independent of the consumer group allocation. This is because all consumers read from the same last committed offset on, since the commit message (`consumer.commitSync()`) arrives to the queue too late, when the messages have already been read.
+
+ This means we need to change the client as follows:
+
+```java
+ // subscribe to all partitions in a topic -> uncomment the line below if part of a consumer group
+consumer.subscribe(topicPatterns.stream().map(TopicPattern::getTopic).collect(Collectors.toSet()));
+
+// subscribe to specific partitions -> comment the line below if part of a consumer group
+// consumer.assign(topicPatterns.stream().map( TopicPattern::getPartition).collect(Collectors.toList()));
+```
+
+![With subscribe not assign]({{site.url}}/assets/kafka_10.png)
