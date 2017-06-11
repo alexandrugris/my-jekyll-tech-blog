@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Apache Kafka"
-date:   2017-06-04 13:15:16 +0200
+date:   2017-06-11 13:15:16 +0200
 categories: distributed systems
 ---
 This article covers running a Kafka cluster on a development machine using a pre-made Docker image, playing around with the command line tools distributed with Apache Kafka and writing basic producers and consumers. 
