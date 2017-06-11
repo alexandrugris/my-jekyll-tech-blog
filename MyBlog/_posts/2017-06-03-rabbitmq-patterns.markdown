@@ -10,7 +10,10 @@ This post summmarizes my forray into RabbitMQ. The code which merges most of the
 
 By far the easiest and most portable way to run RabbitMQ is to use the official docker container with the management console started: 
 
-`docker run -d --rm --hostname my-rabbit -p 4369:4369 -p 15671-15672:15671-15672 -p 5672:5672 --name my_rabbit_mq rabbitmq:3-management` 
+```
+docker run -d --rm --hostname my-rabbit -p 4369:4369 -p 15671-15672:15671-15672 -p 5672:5672 \
+    --name my_rabbit_mq rabbitmq:3-management
+```
 
 The corresponding connetion string is `"amqp://guest:guest@localhost:5672"` and the management URL: `http://localhost:15672/#/ `
 

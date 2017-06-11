@@ -11,9 +11,9 @@ Playing around with Apache Kafka. The article covers running a Kafka cluster on 
 The simplest way: `docker-compose up` with the following `docker-compose.yml`
 
 ```yml
-version: '2'
+version: '3'
 
-# based on this https://github.com/wurstmeister/kafka-docker
+# based on https://github.com/wurstmeister/kafka-docker
 
 services:
   zookeeper:
@@ -50,12 +50,12 @@ and then
 docker-compose scale kafka=2
 ```
 
-However, in order for this to run, we need to make some changes to the docker-compose file:
+However, in order for this to run, we need to make some changes to our docker-compose file:
 
 ```yml
 version: '3'
 
-# based on this: https://github.com/wurstmeister/kafka-docker
+# based on https://github.com/wurstmeister/kafka-docker
 
 services:
   zookeeper:
@@ -92,7 +92,7 @@ docker exec -it testkafka_kafka_2 bash
 
 ![Kafka Connection]({{site.url}}/assets/kafka_1.png)
 
-However, if JMX is specified, the `JMX_PORT` is already set and in use by the Kafka daemon so in order to run commands to Kafka we need to make a little hack:
+However, if JMX is still specified, the `JMX_PORT` is already set and in use by the Kafka daemon, so in order to run commands to Kafka we need to make a little hack:
 
 ```
 $>JMX_PORT=1100
@@ -119,7 +119,7 @@ bash-4.3# ./kafka-console-consumer.sh --topic my_topic --zookeeper zookeeper:218
 
 Apache Kafka is a high-throughput distributed pub-sub messaging system, with on-disk persistence. In essence, it can be viewed as a distributed immutable ordered (by time) sequence of messages. Each consumer has a private read-only cursor, which it can reset at any time. This way of storing messages / events makes Kafka appropriate as a distributed store for event sourcing architectural pattern.
 
-*Vocabulary:*
+*Concepts:*
 
 - A Kafka cluster is a grouping of multiple Kafka brokers (could be hundreds).
 - Topics can span over a multitude of brokers.
@@ -178,9 +178,9 @@ Retention is regardless of whether any consumer has read any message. Default re
 
 ### Debugging Kafka Clients
 
-There are two basic ways to debug Kafka clients when you want to run everything on your machine. The simplest way is to run a single kafka instance and map its port to localhost. Thus, in the client application, there will be only one Kafka broker to connect to, that is `localhost`. 
+There are two basic ways to debug Kafka clients when you want to run everything on your machine. The simplest way is to run a single kafka instance and map its port to localhost. Thus, in the client application, there will be only one Kafka broker to connect to, that is to `localhost`. 
 
-However, there is another one, slightly more complex but  more rewarding as one can scale as many brokers as he/she wishes. This requires the creation of another service in the docker compose file which runs the Java application to debug, because it is needed that this app runs in the same docker network as the rest of the cluster. It also requires remote debugging enabled and mapping of the project directory in a volume in the docker container that runs the app. Here is the updated `docker-compose.yml` as it is configured on my machine.
+However, there is another one, slightly more complex but more rewarding as one can scale as many brokers as he/she wishes. This requires the creation of another service in the docker compose file which runs the Java application to debug, because it is needed that this app runs in the same docker network as the rest of the cluster. It also requires remote debugging enabled and mapping of the project directory in a volume in the docker container that runs the app. Here is the updated `docker-compose.yml` as it is configured on my machine.
 
 ```yml
 version: '3'
@@ -247,7 +247,7 @@ And some screenshots:
 
 ### Partitioning and producing messages
 
-Kafka has a simple yet powerful method for selecting to which partition the message is routed at the time of producing. The topic with its associated partitions is created either automatically when the producer is first run, like it is the case in our demo, or using the admin tool. This behavior is configured through a setting in the `config.settings` when the queue is started.
+Kafka has a simple yet powerful method for selecting to which partition the message is routed at the time of producing. The topic with its associated partitions is created either automatically when the producer is first run, like it is the case in our demo, or using the `kafka-topics.sh` tool. This behavior is configured through a setting in the `config.settings` file when the queue is started.
 
 The algorithm for routing to partitions goes as follows:
 
@@ -336,4 +336,6 @@ $>/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic
 ```
 
 ![Messages]({{site.url}}/assets/kafka_9.png)
+
+### Consuming messages
 
