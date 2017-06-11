@@ -4,7 +4,8 @@ title:  "Apache Kafka"
 date:   2017-06-04 13:15:16 +0200
 categories: distributed systems
 ---
-Playing around with Apache Kafka. The article covers running a Kafka cluster on a development machine using a pre-made Docker image, playing around with the command line tools distributed with Apache Kafka and writing producers and consumers.
+This article covers running a Kafka cluster on a development machine using a pre-made Docker image, playing around with the command line tools distributed with Apache Kafka and writing basic producers and consumers. 
+The source code associated with this article can be found [here](https://github.com/alexandrugris/Play_With_Kafka)
 
 ### How to run Apache Kafka
 
@@ -425,3 +426,21 @@ consumer.subscribe(topicPatterns.stream().map(TopicPattern::getTopic).collect(Co
 ```
 
 ![With subscribe not assign]({{site.url}}/assets/kafka_10.png)
+
+### Topics not covered:
+
+*Kafka Schema Registry:* - Avro schema registry and serializers
+ - [https://www.confluent.io/blog/schema-registry-kafka-stream-processing-yes-virginia-you-really-need-one/](https://www.confluent.io/blog/schema-registry-kafka-stream-processing-yes-virginia-you-really-need-one/)
+ - [Example Producer](https://github.com/confluentinc/examples/blob/3.2.x/kafka-clients/specific-avro-producer/src/main/java/io/confluent/examples/producer/AvroClicksProducer.java)
+
+*Apache Kafka Connect:* - standardized integration pipeline with Kafka in the middle. [http://docs.confluent.io/current/connect/index.html](http://docs.confluent.io/current/connect/index.html)
+
+> Connect makes it simple to use existing connector implementations for common data sources and sinks to move data into and out of Kafka. Kafka Connect’s applications are wide ranging. 
+> A source connector can ingest entire databases and stream table updates to Kafka topics or even collect metrics from all of your application servers into Kafka topics, making the data available for stream processing with low latency.
+> A sink connector can deliver data from Kafka topics into secondary indexes like Elasticsearch or into batch systems such as Hadoop for offline analysis.
+
+*Kafka Streams:* - [Stream processing with kafka](https://www.confluent.io/blog/introducing-kafka-streams-stream-processing-made-simple/)
+
+*Compaction:* [http://kafka.apache.org/documentation.html#compaction](http://kafka.apache.org/documentation.html#compaction) - keeping only the last updated value for a key
+
+Best source: [http://kafka.apache.org/documentation/](http://kafka.apache.org/documentation/)
