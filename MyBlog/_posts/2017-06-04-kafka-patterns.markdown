@@ -245,9 +245,11 @@ And some screenshots:
 
 ![Messages]({{site.url}}/assets/kafka_8.png)
 
-### Partitioning
+### Partitioning and producing messages
 
-Kafka has a simple yet powerful method for selecting to which partition the message is routed at the time of producing. The algorithm is as follows:
+Kafka has a simple yet powerful method for selecting to which partition the message is routed at the time of producing. The topic with its associated partitions is created either automatically when the producer is first run, like it is the case in our demo, or using the admin tool. This behavior is configured through a setting in the `config.settings` when the queue is started.
+
+The algorithm for routing to partitions goes as follows:
 
 1. If the partition is directly specifiedand it is a valid partition, then the message is routed directly to it.
 2. Else, if the key has been specified, then if a custom partitioner is present, specified at the creation of the Producer instance through `partitioner.class` property, then this custom partitioner is used.
@@ -285,7 +287,7 @@ private void send(List<MyMessage> msgs) {
     class Counter {
         int cnt = msgs.size();
         int decrement(){ return --cnt; }
-    } // to avoid the fact that java still does not have true closures :((
+    } 
     Counter cnt = new Counter();
     for(MyMessage msg : msgs) {
         myProducer.send(new ProducerRecord<String, MyMessage>(TOPIC_NAME, msg.destination(), msg), (RecordMetadata metadata, Exception exception) -> {
@@ -306,7 +308,26 @@ private void send(List<MyMessage> msgs) {
 ```
 
 The producer is thread safe and should generally be shared among all threads for best performance. 
-The producer manages a single background thread that does I/O as well as a TCP connection to each of the brokers it needs to communicate with. Failure to close the producer after use will leak these resources. 
+The producer manages a single background thread that does I/O as well as a TCP connection to each of the brokers it needs to communicate with. Failure to close the producer after use will leak these resources. Apache kafka is optimized for high throughput and, therefore, uses microbatching in its producer and consumer clients (`RecordAccumulator` low level class). For each topic-partition combination, internally a `RecordBatch` keeps track of these messages.
+
+*Batch options:*
+
+- `batch.size`: size of each `RecordBatch`
+- `linger.ms`: how many milliseconds a buffer waits for new messages if not full
+- `batch.memory`: memory size for all `RecordBatches`
+- `max.block.ms`: how many milliseconds the send method will be blocked for - used for creating back pressure on the producer to generate and send more messages to the buffer
+
+On return from send, the queue sends back a `RecordMetadata` with the result of the successfull or unsuccesfull transmission.
+
+*Delivery guarantees properties:*
+
+- `acks`: (0: fire and forget. 1: leader acknowledgement - only receives from the leader that the message has been stored, not from all the partitions. 2: quorum acknowledgement - all in sync replicas confirm the receipt )
+- `retries`: how many times the producer will retry sending the message
+- `retry.backoff.ms`: backoff time between each retry
+
+Message order is preserved only within a given partition. Retries and backoff destroy this quarantee. If we still want this guarantee enforced, we need to set `max.in.flight.request.per.connection=1`, but this dramatically affects performance.
+
+All producer configuration options are defined as static strings in the `ProducerConfig` class.
 
 The result of the per-first-letter partitioner when run:
 
@@ -315,3 +336,4 @@ $>/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic
 ```
 
 ![Messages]({{site.url}}/assets/kafka_9.png)
+
