@@ -16,7 +16,7 @@ Hazelcast is:
 
 Hazelcast is an in-memory data grid, which allows to scale our applications dynamically, by simply adding new nodes to the cluster. On top of that, it has the ability to run embedded in our Java applications. There are two editions: the open source and the enterprise. The enterprise adds new security features, WAN replication (between clusters, possibily located in different datacentres) and Tomcat session clustering.
 
-## The first application
+## First application
 
 Create a simple java console application, with Hazelcast library added to it:
 
@@ -97,7 +97,7 @@ The `IMap` interface inherits directly from `java.util.Map`. However, it is opti
 
 The following are synonims within the Hazelcast world: 1 Hazelcast instance == 1 storage node == 1 cluster member. If the Hazelcast servers are shutdown properly, they will rebalance the cluster to the extent of available memory. However, if they are killed, data is lost if all replicas are affected.
 
-### The types stored in the distributed map
+### Types stored in the distributed map must implement `Serializable`
 
 ```java
 
@@ -128,6 +128,9 @@ In the snippet below I add a batch of data to Hazelcast and then perform two bas
 - Get the keys of the elements
 - Get a list of elements based on a criteria different from the primary key
 
+
+We can add additional indexing on the fields that do not make up primary keys so that queries will run faster. For each `put` though, additional overhead will incur. Indexing on non-keys is not mandatory for queries, but can speed up processing for frequent operations.
+
 ```java
 
     // IMap implements the java.util.Map inferface
@@ -142,7 +145,8 @@ In the snippet below I add a batch of data to Hazelcast and then perform two bas
                 new AddressBookEntry("GA", "a@a.ro", "Otopeni")
         ).stream().collect(Collectors.toMap(AddressBookEntry::getKey, a -> a));
 
-        // adding a map in one shot is more efficient, as each 'put' call is treated as a separate transaction
+        // adding a map in one shot is more efficient, 
+        // as each 'put' call is treated as a separate transaction
         addressBook.putAll(map); 
     }
 
@@ -153,14 +157,12 @@ In the snippet below I add a batch of data to Hazelcast and then perform two bas
         // get the map and make operations on it
         addressBook = hi.getMap(AddressBookEntry.MAP_NAME);
 
-        // We can add additional indexing on the fields that do not make up primary keys so that queries will run faster
-        // for each 'put' though, additional overhead will incur. This step is not mandatory for queries
-
         /*
 
-        // because later we will do a query based on the email address, let's add an index to it        
-        // http://docs.hazelcast.org/docs/3.3-EA2/manual/html-single/hazelcast-documentation.html#indexing
-        // "true" below means it allows range queries - uses a tree instead of a hashmap for the index
+        // because later we will do a query based on the email address, 
+        // let's add an index to it (this step is not mandatory)
+        // "true" below means it allows range queries by
+        // using a tree instead of a hashmap for the index
 
         addressBook.addIndex("emailAddress", true);
 
@@ -176,8 +178,9 @@ In the snippet below I add a batch of data to Hazelcast and then perform two bas
         // TEST 2: use predicates to query the data on something else beside the primary key
         // emailAddress is a field in our class
         addressBook.values(Predicates.or(
-                    Predicates.equal("emailAddress", "a@a.ro"), // emailAddress is a field (or getter) in AddressBookEntry
-                    Predicates.equal("emailAddress", "o@o.ro")) // emailAddress is a field (or getter) in AddressBookEntry
+                    // emailAddress is a field (or getter) in AddressBookEntry
+                    Predicates.equal("emailAddress", "a@a.ro"), 
+                    Predicates.equal("emailAddress", "o@o.ro")) 
             ).stream().forEach( v -> System.out.println(v.name + ": " + v.emailAddress));
 
         
@@ -290,7 +293,14 @@ If we want to add indexing on a different field except the primary key, a better
 
 ```
 
+Link to docs [here](http://docs.hazelcast.org/docs/3.3-EA2/manual/html-single/hazelcast-documentation.html#indexing).
+
 ### Concurrency with locks
+
+Works, but it is not the fastest:
+- Creates synchronization points
+- Forces two serialization operations over the network: `map.get(key)` and `map.put(key)`, even when we aim to update only a small part of the data.
+- A better way is to use entry processors (next chapter)
 
 ```java
     public static<K, V>  boolean updateWithLock(IMap<K, V> map, K k, Function<V, V> func){
@@ -312,6 +322,121 @@ If we want to add indexing on a different field except the primary key, a better
         finally {
             map.unlock(k);
         }
-    }
-    
+    }    
 ```
+
+### Entry processors
+
+Data is updated directly in the storage node. Especially for small updates, it reduces the amount of serialized data that is transmitted across the network. Entry processors are thread safe because are executed in Hazelcast in a serial manner per key, thus avoiding synchronization in client code. Hazelcast achieves this by keeping a list of entry processors per key on the storage node and executing them one after the other.
+
+A great link to an [article explaining the `EntryProcessor` and `BackupEntryProcessor`](https://wimdeblauwe.wordpress.com/2015/09/29/entryprocessors-and-entrybackupprocessors-with-hazelcast/)
+
+`AbstractEntryProcessor` updates both the master key and the backup key. If we just want to read a key with no locking or update only on the master copy,
+we can implement `EntryProcessor` directly (no need to read the backup) or simply pass `false` to the constructror of `AbstractEntryProcessor`.
+
+The method `EntryProcessor::process` returns an `Object` to the caller. This can be the anything, thus `EntryProcessors` can be used to read data without need to modify it.
+
+The method `Map.Entry::setValue` must be called for the updated value to be persisted in Hazelcast.
+
+Below is the code:
+
+```java
+    interface SerializedConsumer<T> extends Consumer<T>, Serializable{ }
+
+    public static<K, V> boolean updateWithEntryProcessor(IMap<K, V> map, K k, SerializedConsumer<V> func){
+
+        EntryProcessor<K, V> ep = new AbstractEntryProcessor<K, V>(true) { // true: applyOnBackup
+            @Override
+            // because we have the same EntryProcessor and BackupEntryProcessor functions, 
+            // this method will be invoked on each replica
+            public Object process(Map.Entry<K, V> entry) {
+
+                V addrBookEntry = entry.getValue(); // does a local (on-node) serialization
+
+                if(addrBookEntry != null){
+                    func.accept(addrBookEntry);
+                    entry.setValue(addrBookEntry); // must set, or the value will not be stored!
+
+                    // success, but can be anything -> 
+                    //this value will be serialized and returned to the client
+                    return true; 
+                }
+
+                return false;
+            }
+        };
+
+        return (boolean)map.executeOnKey(k, ep); // can be used with several keys
+    }
+```
+
+Invoked as:
+
+```java
+ if(!updateWithEntryProcessor(addressBook, "OM",  v -> v.emailAddress = "om@om.ro")){
+    System.out.println("Could not modify with EntryProcessor");
+}
+```
+
+As said before, the invocation happens on the client, while the breakpoint set in `EntryProcessor::process` is hit on the storage node:
+
+*Client Node*
+
+![Config]({{site.url}}/assets/hazelcast_2.png)
+
+*Storage Node*
+
+![Config]({{site.url}}/assets/hazelcast_3.png)
+
+I am using here the `IMap::executeOnKey` method to run the `EntryProcessor` on a specific key. However, there are other useful methods to run `EP's`:
+- `IMap::executeOnEntries` which has an optional `Predicate` parameter to select the desired keys
+- `IMap::executeOnKeys` to run the predicate against a specific set of keys
+
+An important point on accessing data from other structures in Hazelcast: [https://stackoverflow.com/questions/30898557/accessing-imap-from-entryprocessor](https://stackoverflow.com/questions/30898557/accessing-imap-from-entryprocessor)
+
+### Aggregators
+
+Aggregators are applied over the whole map and are run on the storage node. There are two functions needed for aggregation:
+- Getting the aggregated-by value from the `Map.Entry` -> must extend the `Supplier<Key, Value, Result>` class
+- Summarizing by that value and returning a single result -> must extend the `Aggregation<Key, SupplierResult, AggregationResult>` class
+
+Here is an example usage:
+
+```java
+    public interface SupplierFunc<K, V, R> extends Serializable{
+        R apply(K k, V v);
+    }
+
+    public static <K, V, R> R processAllEntriesWithAggregators(IMap<K, V> map,
+                                                               SupplierFunc<K, V, R> func,
+                                                               Aggregation<K, R, R> aggregation){
+
+        return map.aggregate(new Supplier<K, V, R>() {
+            @Override
+            public R apply(Map.Entry<K, V> entry) {
+                return func.apply(entry.getKey(), entry.getValue());
+            }
+        }, aggregation);
+
+    }
+```
+
+being called as:
+
+```java
+// a basic aggregator which counts all letters from the email address (dummy, just for tests)
+long countOfAllLettersInEmailAddresses =
+
+    processAllEntriesWithAggregators(
+        addressBook, 
+        (k, v)-> (v.emailAddress == null)? null : (long)v.emailAddress.length(), 
+        Aggregations.longSum());
+
+System.out.println("All email addresses added letters amount to: " + countOfAllLettersInEmailAddresses);
+```
+
+We used here:
+- A supplier in the form of a lambda expression - must implement a `Serializable` functional interface
+- A provided aggregator: `Aggregations.longSum()`
+
+If in the supplier we want to exclude an item (like is the case above for where `emailAddress == null`), we simply return `null` from the `Supplier::apply` function.
