@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Hazelcast Intro"
+title:  "Hazelcast Intro [WIP]"
 date:   2017-06-11 13:15:16 +0200
 categories: distributed systems
 ---
@@ -440,3 +440,54 @@ We used here:
 - A provided aggregator: `Aggregations.longSum()`
 
 If in the supplier we want to exclude an item (like is the case above for where `emailAddress == null`), we simply return `null` from the `Supplier::apply` function.
+
+### Data Affinity
+
+Hazelcast always puts two identical keys in the same partition. To make sure an operation (join) occurs on the same partition, one needs to implement, beside `Serializable`, the `PartitionAware<>` interface with the method `getPartitionKey`, on the mapped data.
+
+This is not enough, however. We also need to create an `EntryProcessor` and, additionally, implement  the `HazelcastInstanceAware` interface. This interface will set the Hazelcast instance when the entry processor is run so that we can query the instance for other local maps.
+
+```java
+
+public class JoinLikeEntryProcessor implements 
+        Serializable, 
+        EntryProcessor<Long, Customer>,
+        HazelcastInstanceAware {
+
+            private transient HazelcastInstace hi = null; // not serialized
+
+            @Override
+            public Object process(Map.Entry<> processedEntry) {
+
+                // [...]
+                IMap<> map = hi.getMap("<map of related data>"); 
+                // get only the related keys stored locally on the node
+                Set<> keys = map.localKeyset(new SqlPredicate("join_key =" + processedEntry.key)); 
+                // [...]
+            }
+
+            @Override
+            public void setHazelcastInstance(HazelcastInstance _hi){
+                hi = _hi;
+            }
+        } 
+```
+
+### Notes On Other Data Structures
+
+*Set* and *List*: data must fit on a single machine, with replicas on other machines. Therefore, one cannot store unlimited amount of data in a single set. Iterating through a set by using an iterator will bring all data to the local machine, no batching, thus must be used with care.
+
+*Queues*: allow persistence.
+
+*Topics*: publish / subscribe pattern, do not allow persistence.
+
+*MultiMap*: similar to map, but stores a collection inside the value. By default, the values are backed by sets and do not allow identical elements to be stored. Can be changed through config to other data structure. MultiMaps do not support persistence.
+
+*Locks*: Hazelcast implementation of distributed synchronization primitives.
+
+### Events and Listeners
+
+
+
+
+
