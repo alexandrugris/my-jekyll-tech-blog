@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Hazelcast Intro [WIP]"
-date:   2017-06-11 13:15:16 +0200
+date:   2017-08-11 13:15:16 +0200
 categories: distributed systems
 ---
 A short introduction to Hazelcast: what it is, what scenarios is can be used for, how to run a test environment.
@@ -486,6 +486,25 @@ public class JoinLikeEntryProcessor implements
 *Locks*: Hazelcast implementation of distributed synchronization primitives.
 
 ### Events and Listeners
+
+*EntryListeners*: 
+
+Work on maps and multimaps by permiting notifications for when an element has been added or removed from the map. Example usage: a new customer is added to our map. In our entry listener we acknowledge the change and then publish his email to queue of emails to be sent out to new cusomters. This pattern is very useful for distributed applications where you want to separate logic of adding a customer, for instance, to various potential actions that should be triggered by such an event. They permit access to the `oldValue` of the key.
+
+If we start several clients which register the entry listener, all will be invoked for all data that is added to that map. If we want to listen only to the local data, we have `LocalEntryListeners`.
+
+*Continuous queries*:
+
+Setup just like EntryListeners, but with a filtering predicate. 
+
+*ItemListeners*:
+
+Used for queues, lists and sets.
+
+*Partition lost listeners*:
+
+Used for alerting for when a data partition is lost.
+
 
 
 
