@@ -161,7 +161,9 @@ set_payout = payout([home_odds, draw_odds, away_odds])
 
 We get a payout of around `95%`
 
-### Our code and results
+### The code and explanations
+
+Please read the code. Much of the explanation for how this works is directly embedded in comments.
 
 To keep the results understandable, I used a test bed composed of 3 types of bet placing strategies:
 
@@ -309,21 +311,21 @@ plt.plot(range(0, len(h)), a, color="green")
 plt.show()
 ```
 
-*Some results: *
+### The results
 
 ![Results]({{site.url}}/assets/bayes_2.png)
 
-*The scenario above: *
+*The scenario above:*
 - We start with an offering of `[2.5, 3.5, 2.8]`
 - We place 1000 bets
-- We place bet with a preference for the first outcome, according to `normalize([0.5, 0.3, 0.3])` (like, for instance, would happen in Bucharest if Steaua would be playing home)
-- One third of the players will aim just for the highest odds, hoping to get some more money.
+- We place bet with a preference for the first outcome, according to `normalize([0.5, 0.3, 0.3])` (like, for instance, would happen in Bucharest if Steaua plays at home)
+- One third of the players aim just for the highest odds, playing just for money.
 - We place bets between 0 and 100 EURs
 
 *How to interpret the results:*
-- Because the inital risk was just 1000 EUR and we kept the `confidence_factor=1`, we see some significant odds variations in the beginning (attention in markets only just a few bets are placed)
-- After the initial chaos, the odds stabilize: due to our preference for first market, the odds there are lower and due to the fact that we have also a preference for the highest payout, the odds for the other two markets are roughly equal.
+- Because the inital risk was just 1000 EUR and we kept the `confidence_factor=1`, we see some significant odds variations in the beginning (attention to markets where only just a few bets are placed, e.g. Afganistan second division)
+- After the initial chaos, the odds stabilize. Due to our preference for the first market, the odds there are lower there and, due to the fact that we have also a preference for the highest payout, the odds for the other two markets are roughly equal.
 - Despite the high payout (95%), our exposure is `-30536`, meaning that, no matter what the end result is, the house wins at least `-30536` from `1000` bets.
 - We are sometimes in the minus, meaning that the house might lose money on this market if there are not enough bets.
 
-If we run several simulations we notice that, unless the initial offering is completely off-mark and the number of bets are not that small, the house wins nice money in most of the cases. The results are consistent. 
+If we run several simulations we notice that, unless the initial offering is completely off-mark and the number of bets are is small, the house wins nice money in most of the cases. The results are consistent. 
