@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Risk-based Odds Adjustment Using Bayesian Inference"
-date:   2017-06-11 13:15:16 +0200
+date:   2017-10-29 13:15:16 +0200
 categories: statistics
 ---
 This blog introduces the basics of Bayesian inference and attempts to sketch a solution to a problem a bookmaker might have: starting from a predefined set of odds, how do we adjust them so that the risk to the bookmaker is minimized, by taking into consideration the financial stakes the bettors have placed on a game. We will only look at a 1x2 market (home-draw-away) to keep the code clean. 
@@ -21,28 +21,29 @@ In simple terms, Bayesian Inference tries to solve problems which revolve around
 
 - Archaeological dating based on the types of objects found on the site [wikipedia](https://en.wikipedia.org/wiki/Bayesian_inference#Making_a_prediction)
 
-*Bayes Theorem*
+*Bayes' Theorem*
 
 Vocabulary:
 
- - Posterior probability P(hypothesis | evidence): what we want to know, the probability of a hypothesis given the observed evidence.
- - Prior probability P(hypothesis): the estimate of the probability before the evidence appears
- - Probability of observing the evidence given the hypothesis P(evidence | hypothesis)
- - Probability of the event to happen: P(E)
+ - Posterior probability `P(hypothesis | evidence)`: what we want to know, the probability of a hypothesis given the observed evidence.
+ - Prior probability `P(hypothesis)`: the estimate of the probability before the evidence appears
+ - Probability of observing the evidence given the hypothesis `P(evidence | hypothesis)`
+ - Probability of the event to happen: `P(E)`
 
 ```
 P(H | E) = P(E | H) * P(H) / P(E)
 ```
 
-Worked examples: 
+*Worked examples:*
 
 1. Given that a medical test offers 99% accuracy in detecting a desease and given that the desease appears in 1 in 100 individuals, if you score positive on the test, what is the probability of you actually having the disease?
-90% accuracy means that 99% of the people tested and have the disease will test positive, while 1% of the people that don't have the disease will also test positive. We will also consider the opposite to be true: if the test gives a negative result, 99% probability you don't have the disease.
 
- - P(have the disease given if you scored positive on the test) = P(hypothesis | evidence)
- - P(you have the disease from the whole population) = P(hypothesis) = 1/100
- - P(scored positive on the test if you had the disease) = P(evidence | hypothesis) = 99/100
- - P(event) = P(scored positive on the test) = P(have the disease and scored positive) + P(don't have the disease and scored positive) = (99/100) * (1/100) + (1/100) * (99/100) 
+90% accuracy means that 99% of the people tested and have the disease test positive, while 1% of the people that don't have the disease also test positive. We also consider the opposite to be true: if the test gives a negative result, 99% probability you don't have the disease.
+
+ - `P(have the disease given if you scored positive on the test) = P(hypothesis | evidence)`
+ - `P(you have the disease from the whole population) = P(hypothesis) = 1/100`
+ - `P(scored positive on the test if you had the disease) = P(evidence | hypothesis) = 99/100`
+ - `P(event) = P(scored positive on the test) = P(have the disease and scored positive) + P(don't have the disease and scored positive) = (99/100) * (1/100) + (1/100) * (99/100)`
 
 ```
 P(H|E) = (P(E|H) * P(H)) / P(E)
@@ -51,7 +52,7 @@ P(H|E) = ((99/100) * (1/100)) / ((99/100) * (1/100) + (1/100) * (99/100) = 1/2 =
 
 2. A family has two children. The first born is a boy. What is the probability that the second one is a boy?
 
-Obviously, two independent events, the answer is 1/2.
+Obviously, two independent events, the answer is `1/2`.
 
 3. A family has two children. One of them is a boy. What is the probability that the family has two boys?
 
@@ -103,15 +104,15 @@ plt.plot(x, y, color="green")
 
 ![Beta Distribution]({{site.url}}/assets/bayes_1.png)
 
-The larger alpha and beta are, the “tighter” the distribution is. For example, if alpha and beta are both 1, it’s just the uniform distribution (centered at 0.5, very dispersed). 
+The larger alpha and beta are, the narrower the distribution is. For example, if alpha and beta are both 1, it’s just the uniform distribution (centered at 0.5, very dispersed). 
 If alpha is much larger than beta, most of the weight is near 1.
 
 So let’s say we assume a coin toss experiment, with a probability of `p` for heads to appear. If we don’t want to take a stand on whether the coin is fair, we choose alpha and beta to both equal 1. Or maybe we have a strong belief that it lands heads 55% of the time, and we choose alpha equals 55, beta equals 45. The higher the numbers for alpha and beta are, the tighter the distribution is and a stronger belief we express. 
-Then we flip our coin a several times and see `h` heads and `t` tails. Bayes’s Theorem tells us that the posterior distribution for `p` is again a Beta distribution but with parameters `alpha + h` and `beta + t`.
+When we flip our coin a several times and see `h` heads and `t` tails, Bayes’s theorem and additional mathemathics tell us that the posterior distribution for `p` is again a Beta distribution, with adjusted parameters `alpha + h` and `beta + t`. We will use this result when we will compute the odds adjustments later in this post, based on the possible returns of a series of bets.
 
 ### Sports Betting Vocabulary
 
- - Odds in the European format (the one we use further in the article): odds of 3 means that if we place a 100 EUR bet on an outcome and that outcome materializes, I receive back 300 EUR.
+ - Odds in the European format (the one we use further in the article): odds of 3 means that if we place a 100 EUR bet on an outcome and that outcome materializes, we receive back 300 EUR.
  - Market: where you place a bet on specific outcomes. Popular betting markets include winner (home, draw, away), over/under, Asian handicaps, correct score, first goalscorer, half-time result and many more.
  - Payout: how much of the total stakes are returned back to players
  - Probability of an outcome to happen, assuming 0 payout, is 1/odds
@@ -162,7 +163,7 @@ We get a payout of around `95%`
 
 ### Our code and results
 
-To keep the results understandable, I used a test bed of 3 types of place bet strategies:
+To keep the results understandable, I used a test bed composed of 3 types of bet placing strategies:
 
 ```python
 def place_bet_random():
@@ -174,7 +175,7 @@ def place_bet_random():
         money = random.random() * 100
         bet = [0, 0, 0]
 
-        # bet according to local preferences
+        # bet according to probabilities above
         f = random.random()
 
         if f < bet_probabilities[0]:
@@ -203,7 +204,7 @@ def place_bet_diverse():
         return place_bet_random()
 ```
 
-To run the tests, we considered several initial odds, with a high payout, so that we emulate a real operator risk management as closely as possible. And see if we go bankrupt.
+To run the tests, we considered several initial odds, with a high payout, so that we emulate a real operator risk management as closely as possible and checked if we go bankrupt and how much money do we make.
 
 ```python
 total_market_risk = 1000  # monetary units; how much we are willing to lose, as the house.
@@ -278,7 +279,9 @@ for bet in place_bet_random():
     returns = accept_bet_risk(bet, probabilities)
 
     # updates alpha and beta for each possible outcome using the financial information
-    # like binomial (coin-toss) alpha + returns (odds * stake), beta + max(returns) - returns: the opposing probability.
+    # like binomial (coin-toss), alpha + r, beta + max(returns) - r
+    # where returns = odds * stake (a list of 3 in case of 1x2) and 
+    # r is the return on the specific outcome (can be 0 or max(returns))
     # basically each EUR won is transformed in a "heads" event, the max(returns) = the sum of tosses
     alpha_beta = [(alpha + r, beta + max(returns) - r) for (alpha, beta), r in zip(alpha_beta, returns)]
 
