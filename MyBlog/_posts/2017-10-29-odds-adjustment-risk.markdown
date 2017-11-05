@@ -341,14 +341,14 @@ plt.show()
 
 ```python
 for bet in place_bet_diverse(lambda: min((total_market_risk + total_deposits) * 1 / 100, 100)):
-[....]```
+[....]
+```
 
 - After the initial chaos, the odds stabilize. Due to our preference for the first market, the odds there are lower there and, due to the fact that we have also a preference for the highest payout, the odds for the other two markets are roughly equal.
 - Despite the high payout (95%), the house wins at least `1.85%` from `1000` bets in this run.
 - We are sometimes in the minus, meaning that the house might lose money on this market if there are not enough bets.
 
-If we run several simulations we notice that, unless the initial offering is completely off-mark and the number of bets are is small, the house wins money on most of the matches. T
-he results are consistent across several runs of the algorithm. Below are the gains for 100 runs, which give:
+If we run several simulations we notice that, unless the initial offering is completely off-mark and the number of bets are is small, the house wins money on most of the matches. The results are consistent across several runs of the algorithm. Below are the gains for 100 runs, which give:
 
 ```
 Worst case profit: : mean: 675.39, stddev: 705.46
