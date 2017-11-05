@@ -168,16 +168,18 @@ Please read the code. Much of the explanation for how this works is directly emb
 To keep the results understandable, I used a test bed composed of 3 types of bet placing strategies:
 
 ```python
-def place_bet_random():
-    """Places a random bet, with probabilities of placing the bet for each outcome 
+#### place bet functions
+def place_bet_random(max_bet):
+    """Places a random bet, with probabilities of placing the bet for each outcome
     hardcoded in the first line of the function"""
+
     bet_probabilities = normalize([0.5, 0.3, 0.3])
 
-    for i in range(0, 1000):
-        money = random.random() * 100
+    for i in range(0, number_of_bets):
+        money = random.random() * max_bet()
         bet = [0, 0, 0]
 
-        # bet according to probabilities above
+        # bet according to local preferences
         f = random.random()
 
         if f < bet_probabilities[0]:
@@ -188,22 +190,29 @@ def place_bet_random():
             yield [0, 0, money]
 
 
-def place_bet_max_stake():
+def place_bet_max_stake(max_bet):
     """Places a bet on the highest stake"""
-    for i in range(0, 1000):
-        money = 100
+
+    for i in range(0, number_of_bets):
         bet = [0, 0, 0]
         ix = odds_evolution[-1].index(max(odds_evolution[-1]))
-        bet[ix] = money
+        bet[ix] = max_bet()
         yield bet
 
 
-def place_bet_diverse():
-    """ A combination of the strategies above, with a probability of 1/3 to place bet on the max stake"""
-    if random.randint(0, 3) == 0:
-        return place_bet_max_stake()
-    else:
-        return place_bet_random()
+def place_bet_diverse(max_bet  = lambda: 100.0):
+    """ A combination of the strategies above, with a probability of 1/20 to place bet on the max stake"""
+
+    pbms = place_bet_max_stake(max_bet)
+    pbr = place_bet_random(max_bet)
+
+    for i in range(0, number_of_bets):
+
+        if random.randint(0, 20) == 0:
+            yield pbms.__next__()
+        else:
+            yield pbr.__next__()
+
 ```
 
 To run the tests, we considered several initial odds, with a high payout, so that we emulate a real operator risk management as closely as possible and checked if we go bankrupt and how much money do we make.
@@ -227,12 +236,13 @@ initial_probabilities = prob_1x2(home_odds, draw_odds, away_odds)
 # simulation
 payments_per_outcome = [0, 0, 0]
 probabilities = initial_probabilities
+total_deposits = 0
 
 # our initial alpha and beta probabilities 
 # in short, for each outcome (1, x, 2) we assign a beta distribution of probabilities for that outcome to occur
 # just like the coin: p of winning and 1-p of losing, weighted by the confidence_factor * total_market_risk
-alpha_beta = [(p * confidence_factor, confidence_factor * (total_market_risk - p)) for p in
-              [i * total_market_risk for i in initial_probabilities]]
+alpha_beta = [(p, (total_market_risk * confidence_factor - p)) for p in
+              [i * total_market_risk * confidence_factor for i in initial_probabilities]]
 
 # an array we use forward to save the odds in order to chart the graphs
 odds_evolution = []
@@ -247,25 +257,28 @@ def accept_bet_risk(bet, probabilities):
     The risk computation is simple:
         - We have X buckets for X mutually exclusive outcomes - (for 1x2, 3 buckets: home-draw-away)
         - We add the payments to be made in case of winning the bet to the right bucket. payment = odds x stake
-        - We compute the exposure by substracting from the maximum bucket the sum of the other two.
+        - We compute the exposure by substracting from the maximum bucket the sum of all the placed bets so far.
         - If the exposure is higher than the maximum market exposure, we don't acccept the bet"""
 
     global payments_per_outcome
     global alpha_beta
+    global total_deposits
 
     assert (0.999 < sum(probabilities) < 1.001)
+    assert (sum(bet) == max(bet) and min(bet) == 0) # just one is > 0
+
+    total_deposits += max(bet)
 
     payment_per_bet = [pto * b for pto, b in zip(probabilities_to_odds(probabilities, set_payout), bet)]
     total_payment_per_outcome = [ppo + ppb for ppo, ppb in zip(payments_per_outcome, payment_per_bet)]
 
     # because we talk about mutually exclusive events:
-    s = sum(total_payment_per_outcome)
-    exposure = max([2 * ppo - s for ppo in total_payment_per_outcome])
+    exposure = total_market_risk + total_deposits - max(total_payment_per_outcome)
 
     # somehow contradictory: while we do not accept the bet if the exposure is too high,
     # we do allow the bet to shift the odds -> can be a trigger for fraud, so additional care
     # should be taken in a real-life implementation
-    if (exposure > total_market_risk):
+    if (exposure < -total_market_risk):
         print("Bet Not Accepted" + str(bet))
         return payment_per_bet  # do not update the payments
     elif (exposure > 0):
@@ -277,17 +290,16 @@ def accept_bet_risk(bet, probabilities):
 
 # main service
 odds_evolution.append(probabilities_to_odds(probabilities, set_payout))
-for bet in place_bet_random():
+for bet in place_bet_diverse():
     returns = accept_bet_risk(bet, probabilities)
 
     # updates alpha and beta for each possible outcome using the financial information
-    # like binomial (coin-toss), alpha + r, beta + max(returns) - r
-    # where returns = odds * stake (a list of 3 in case of 1x2) and 
-    # r is the return on the specific outcome (can be 0 or max(returns))
-    # basically each EUR won is transformed in a "heads" event, the max(returns) = the sum of tosses
-    alpha_beta = [(alpha + r, beta + max(returns) - r) for (alpha, beta), r in zip(alpha_beta, returns)]
-
+    # like binomial (coin-toss), alpha + r, beta + max(bet) - r
+    # basically each EUR waged is transformed in a "heads" event, the max(bet) = the sum of tosses
+    
+    alpha_beta = [(alpha + r, beta + max(bet) - r) for (alpha, beta), r in zip(alpha_beta, bet)]
     probabilities = normalize([center(alpha, beta) for alpha, beta in alpha_beta])
+    
     odds_evolution.append(probabilities_to_odds(probabilities, set_payout))
 
 ```
@@ -296,9 +308,10 @@ The results are then displayed as a chart, like this:
 
 ```python
 print("Total exposure: ")
-s = sum(payments_per_outcome)
-print(max([2 * ppo - s for ppo in payments_per_outcome]))
-print("Done")
+print("Worst case scenario profit: {0:.1f}".format(total_deposits - max(payments_per_outcome)))
+print("Profit per each outcome: " + str([total_deposits - x for x in payments_per_outcome]))
+print("Odds: " + str(odds_evolution[-1]))
+print("Done.")
 
 h = [x[0] for x in odds_evolution]
 d = [x[1] for x in odds_evolution]
@@ -319,13 +332,33 @@ plt.show()
 - We start with an offering of `[2.5, 3.5, 2.8]`
 - We place 1000 bets
 - We place bet with a preference for the first outcome, according to `normalize([0.5, 0.3, 0.3])` (like, for instance, would happen in Bucharest if Steaua plays at home)
-- One third of the players aim just for the highest odds, playing just for money.
+- One in 20 players aim just for the highest odds, playing just for money.
 - We place bets between 0 and 100 EURs
 
 *How to interpret the results:*
 - Because the inital risk was just 1000 EUR and we kept the `confidence_factor=1`, we see some significant odds variations in the beginning (attention to markets where only just a few bets are placed, e.g. Afganistan second division)
+- Another option to limit initial variations would be to limit the first stakes to a percentage of the total risk + total_deposits, like below:
+
+```python
+for bet in place_bet_diverse(lambda: min((total_market_risk + total_deposits) * 1 / 100, 100)):
+[....]```
+
 - After the initial chaos, the odds stabilize. Due to our preference for the first market, the odds there are lower there and, due to the fact that we have also a preference for the highest payout, the odds for the other two markets are roughly equal.
-- Despite the high payout (95%), our exposure is `-30536`, meaning that, no matter what the end result is, the house wins at least `-30536` from `1000` bets.
+- Despite the high payout (95%), the house wins at least `1.85%` from `1000` bets in this run.
 - We are sometimes in the minus, meaning that the house might lose money on this market if there are not enough bets.
 
-If we run several simulations we notice that, unless the initial offering is completely off-mark and the number of bets are is small, the house wins nice money in most of the cases. The results are consistent. 
+If we run several simulations we notice that, unless the initial offering is completely off-mark and the number of bets are is small, the house wins money on most of the matches. T
+he results are consistent across several runs of the algorithm. Below are the gains for 100 runs, which give:
+
+```
+Worst case profit: : mean: 675.39, stddev: 705.46
+Min profit % of total stakes 1.29: 
+```
+
+![Results]({{site.url}}/assets/bayes_3.png)
+
+If we consider 10000 bets per match, the results are much more stable and the profit much better even in the worst case:
+
+![Results]({{site.url}}/assets/bayes_4.png)
+
+
