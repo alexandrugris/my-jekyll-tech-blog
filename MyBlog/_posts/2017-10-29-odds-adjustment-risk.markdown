@@ -361,4 +361,6 @@ If we consider 10000 bets per match, the results are much more stable and the pr
 
 ![Results]({{site.url}}/assets/bayes_4.png)
 
+[Full source code](https://github.com/alexandrugris/RiskWithPython/blob/master/risk.py)
+
 
