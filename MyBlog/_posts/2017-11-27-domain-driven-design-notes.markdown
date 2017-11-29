@@ -273,8 +273,20 @@ However, the `Product` abstraction has a life of its own, outside the SnackMachi
 class Product extends AggregateRoot<UUID> {} 
 ```
 
+### Repositories
 
+The idea is to encapsulate the persistence and allow the client code to access the data as if it were stored in memory. The general rule is that it should be a single repository per each aggregate, which makes sense given the fact all entities within an aggregate should be accessible only through the aggregate root.
 
+In its simplest form, a repository base class has only three responsibilities:
+- Get an aggregate root by its ID
+- Get a list of all instances of the aggregate root
+- Commit the aggregate root changes to the database in a single transaction together, with all its dependent entities.
+
+Although clean and simple, keeping the repository too basic will lead to highly inefficient database access (either too many queries or too much data is transferred from the database). Thus, in most practical cases, they contain dedicated methods for queries performed against the database, so that just the right amount of data is fetched.
+
+### Bounded Contexts
+
+Bounded contexts can be viewed as namespaces for the ubiquitous language. The same term will usually have different meanings in two separate bounded contexts. They touch all layers of the onion architecture - their terminology will be reflected in UI, database model, domain model entities and application services. The relationship between bounded contexts is explicited in the context map.
 
 
 
