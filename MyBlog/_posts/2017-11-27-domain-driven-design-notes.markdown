@@ -288,6 +288,27 @@ Although clean and simple, keeping the repository too basic will lead to highly 
 
 Bounded contexts can be viewed as namespaces for the ubiquitous language. The same term will usually have different meanings in two separate bounded contexts. They touch all layers of the onion architecture - their terminology will be reflected in UI, database model, domain model entities and application services. The relationship between bounded contexts is explicited in the context map.
 
+Subdomains and bounded contexts are best related to each other as 1:1. There is a distinction though: the subdomain is part of the problem space, while the bounded context is part of the solution space. The 1:1 requirement is not always possible. Imagine a situation in which we have the "Sales" subdomain composed of a legacy application and we need to add new functionality to it in terms of a totally new module. In this case we have a single subdomain but we can opt to structure our solution as two bounded contexts separated by an anticorruption layer. Other cases in which one can opt for more bounded context for a single sub-domain:
+- Team size > 6 - 8 developers
+- Code size (code should "fit your head"; one developer shouldn't have any trouble understanding it all)
+- There shouldn't be a situation where two teams work on a single bounded context
+
+It is recommended that bounded contexts have:
+- separate namespaces (or separate binaries, or processes)
+- separate database schemas (or separated databases)
+
+The greater the isolation is, the easier it is to maintain proper bounderies. However, higher isolation comes at the price of higer development cost and solution complexity.
+
+### Shared Kernel
+
+Assuming that we want to introduce a new bounded context, the `ATM`, to our application, it is obvious that they share set of common core objects, while the rest of the business logic is completely different. The common core, the `Money` and the `MoneyCollection` objects, can be extracted as a shared kernel in a separate component. This, however, implies that the new component will affect two different domains, so changes to it must be very well controlled. Extracting the shared kernel also implies some refactoring as, if we look in the `MoneyCollection` code above, some business functionality from the `SnackMachine` leaks into it. Therefore, we need to make `MoneyCollection` business-agnostic, a true value object.
+
+However, when deciding what to put in a shared kernel, keep in mind the following:
+- Business logic should not be reused in most cases as it alwasy evolves on separate trajectories. E.g. the sales perspective of what a product is is different from the perspective of customer support.
+- Infrastructure / utility code could be reused, but should be duplicated if the changes from a team impact negatively the performance of another team.
+
+Overall, try to avoid reusing code between bounded contexts as much as possible.
+
 
 
 
