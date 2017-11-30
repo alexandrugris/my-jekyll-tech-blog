@@ -382,8 +382,8 @@ public class DomainEvents {
     public static <U extends DomainEvent, T extends IHandler<U>> 
     void  registerWeakReference(T instance, Class<U> eventType){
 
-        // Holding the weak reference is a design decision
-        // while not convenient from a code perspective (cannot reliably hold lambdas),
+        // Holding the weak reference is a design decision.
+        // While not convenient from a code perspective (cannot reliably hold lambdas),
         // I am not excited to keep in a global object strong references to anything,
         // to avoid memory leaks.
         // A better approach is not to make this object static for long running applications and
@@ -423,7 +423,7 @@ public class DomainEvents {
 }
 ```
 
-And, of course, an example usage
+And, of course, an example usage:
 
 ```java
 import domain.DomainEvent;
@@ -459,6 +459,24 @@ public class DDDInJavaMain {
 }
 ```
 
+*The Unit Of Work Problem*
+
+This simple pattern for sending and handling events when they occur has a major architectural issue - it breaks the Unit Of Work pattern. For instance, what happens in the case we need to do a rollback before the Unit Of Work transaction is committed? Or, for some reason, the commit fails? As events have aready been submitted, it is impossible to roll them back as their processing causes ripples inside our Bounded Domain but also others, causing the system to enter an invalid state. 
+
+A better way exits to preserve intact the Unit Of Work: split the event pipeline in *creation* (when the event occurs) and *dispatch* (after the UoW is committed successfully to the database). In the meantime, hold the events in an temporary list, on a per-unit-of-work instance or, if all commits are done through the aggregate roots, as it should be, on a per-aggregate root instance. If we take the aggregate root path, a good place to store the logic for queuing the events and dispatching them when the save transaction succeeds is the `AggregateRoot` base class.
+
+
+### Other topics
+
+- Prefer the "always valid" approach, that is to always maintain entities in a consistent state. This is preferable to the opposite approach where one checks the validity of the mode just before serialization. 
+
+- Do not skip validations; perform them at all boundaries.
+
+- Prefer the static factory method pattern (or, even better, dedicated factories) to constructors. Creating entities can be a heavyweight operation and exceptions might be thrown. Also, the construction of an entity has little to do with exploiting it afterwards. Factories should create whole aggregates, not just specific entities. On the other hand, factories create complexity and if the creation logic is simple, one can postpone the creation of additional factory until it is actually needed.
+
+- Keep domain services stateless
+
+-
 
 
 
