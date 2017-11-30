@@ -309,6 +309,10 @@ However, when deciding what to put in a shared kernel, keep in mind the followin
 
 Overall, try to avoid reusing code between bounded contexts as much as possible.
 
+### Domain Events
+
+
+
 
 
 
