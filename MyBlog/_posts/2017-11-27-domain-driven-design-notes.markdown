@@ -6,6 +6,19 @@ categories: architecture
 ---
 A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application we are building has complex business functionality. It will not help with Big Data, performance or hardware specific optimisations. 
 
+### Note
+
+The content is build based on several Pluralsight classes from the ASP.NET track, but the example code I wrote in Java. The post is infused with my interpretation and comments, so I recommend going directly to the source for the original content:
+
+- [Domain-Driven Design Fundamentals](https://app.pluralsight.com/library/courses/domain-driven-design-fundamentals/table-of-contents)
+
+- [Domain-Driven Design in Practice](https://app.pluralsight.com/library/courses/domain-driven-design-in-practice/table-of-contents)
+
+- [Clean Architecture, Patterns And Principles](https://app.pluralsight.com/library/courses/clean-architecture-patterns-practices-principles/table-of-contents)
+
+- [Modern Software Architecture: Domain Models, CQRS, and Event Sourcing](https://app.pluralsight.com/library/courses/modern-software-architecture-domain-models-cqrs-event-sourcing/table-of-contents)
+
+
 ### Glossary
 
 - *Problem Domain:* the specific problem the software is trying to solve
@@ -249,11 +262,11 @@ class Product{
 }
 
 class Slot {
-    IList<Product> productList;
+    List<Product> productList;
 }
 
 class SnackMachine extends Entity<UUID>{
-    IList<Slot> slots;
+    List<Slot> slots;
 }
 ```
 
@@ -277,12 +290,39 @@ class Product extends AggregateRoot<UUID> {}
 
 The idea is to encapsulate the persistence and allow the client code to access the data as if it were stored in memory. The general rule is that it should be a single repository per each aggregate, which makes sense given the fact all entities within an aggregate should be accessible only through the aggregate root.
 
-In its simplest form, a repository base class has only three responsibilities:
+In its simplest form, a repository base class has only two responsibilities:
 - Get an aggregate root by its ID
-- Get a list of all instances of the aggregate root
 - Commit the aggregate root changes to the database in a single transaction together, with all its dependent entities.
 
 Although clean and simple, keeping the repository too basic will lead to highly inefficient database access (either too many queries or too much data is transferred from the database). Thus, in most practical cases, they contain dedicated methods for queries performed against the database, so that just the right amount of data is fetched.
+
+Do not return partially initialized entities from the repository, because this would break the invariants and are a good source of bugs. A better approach, for methods that do not require full data, is to create separate DTOs. An example below:
+
+```java
+public abstract class Repository<K, T extends AggregateRoot<K>> {
+    public abstract T getByID(K key);
+    public abstract void save(T obj) throws PersistenceException;
+}
+
+public abstract class AggregateRoot<ID> extends Entity<ID> {}
+
+public class MoneyInSnackMachineDTO {
+    MoneyCollection mc;
+}
+
+public class SnackMachineRepository extends Repository<UUID, SnackMachine>{
+
+    // returns fully initialized SnackMachine aggregate root instances
+    public List<SnackMachine> getEmptySnackMachines() {} 
+
+    // return only the money data
+    public List<MoneyInSnackMachineDTO> getMoneyInEmptySnackMachines() {} 
+
+    // return only the IDs
+    public List<UUID> getEmptySnackMachinesIDs() {} 
+
+}
+```
 
 ### Bounded Contexts
 
@@ -466,7 +506,7 @@ This simple pattern for sending and handling events when they occur has a major 
 A better way exits to preserve intact the Unit Of Work: split the event pipeline in *creation* (when the event occurs) and *dispatch* (after the UoW is committed successfully to the database). In the meantime, hold the events in an temporary list, on a per-unit-of-work instance or, if all commits are done through the aggregate roots, as it should be, on a per-aggregate root instance. If we take the aggregate root path, a good place to store the logic for queuing the events and dispatching them when the save transaction succeeds is the `AggregateRoot` base class.
 
 
-### Other topics
+### And the end
 
 - Prefer the "always valid" approach, that is to always maintain entities in a consistent state. This is preferable to the opposite approach where one checks the validity of the mode just before serialization. 
 
@@ -476,7 +516,11 @@ A better way exits to preserve intact the Unit Of Work: split the event pipeline
 
 - Keep domain services stateless
 
--
+- Do not add domain logic to application services. Application services are designed for orchestration with the outside world
+
+Domain Driven Design is an approach, but not a mechanical recipe. It is helping the architect understand the model and provide guidance on how to structure the code, but blind application will only lead to unnecessary complexity. Good rules of thumb are YAGNI and KISS, just like for any other software development approach.
+
+
 
 
 
