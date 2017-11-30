@@ -382,6 +382,13 @@ public class DomainEvents {
     public static <U extends DomainEvent, T extends IHandler<U>> 
     void  registerWeakReference(T instance, Class<U> eventType){
 
+        // Holding the weak reference is a design decision
+        // while not convenient from a code perspective (cannot reliably hold lambdas),
+        // I am not excited to keep in a global object strong references to anything,
+        // to avoid memory leaks.
+        // A better approach is not to make this object static for long running applications and
+        // just keep it as a per-session or per request variable.
+
         WeakReference<T> ref = new WeakReference<> (instance);
 
         LinkedList<WeakReference<?>> lst = eventHandlers.getOrDefault (eventType, new LinkedList<> ());
@@ -391,7 +398,6 @@ public class DomainEvents {
         }
 
         eventHandlers.put (eventType, lst);
-
     }
 
     public static <U extends DomainEvent> void raiseEvent(U event){
