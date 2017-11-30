@@ -311,7 +311,147 @@ Overall, try to avoid reusing code between bounded contexts as much as possible.
 
 ### Domain Events
 
+A domain event is an event that is significant for the domain. Their job is to:
+- Decouple bounded contexts
+- Facilitates communication between bounded contexts
+- Can also be used for collaboration between entities within a single bounded context
 
+Naming suggestion - as specific as possble: Subject (who) + Past Tense Verb (the action that occured) + Event. For instance `MoneyDepositedEvent`. 
+
+What to include in a domain event? The anwser, as little information as possible, preferably serializable and immutable, and independent of the domain model classes. This is because events may, at one point, pass the process boundaries when the application is distributed and because we don't want the order in which the event is handled to matter; we don't want to give the receivers, as much as possible, the option to modify the event. A good guideline is to only represent data in domain events with primitive types.
+
+*A bad example*
+
+```java
+class Person : Entity<long>{
+    long ID;
+    String name;
+    String surname;
+    Date birthdate;
+}
+
+class PersonChangedEvent { // Not specific: what exactly has changed?
+    Person person; // Introduces a dependecy on this bounded context. 
+}
+```
+
+*A better example*
+
+```java
+class Person : Entity<long> {} 
+
+// specific
+// pass only the relevat information
+// immutable in the sense that one cannot easily alter the person if receives this event
+class BirthdayChangedEvent { 
+    private long ID; 
+    private Date oldBirthday; 
+    private Data newBirthday;
+
+    long getPersonID() { return ID; }
+    Date getOldBirthday() { return oldBirthday; }
+    Date getNewBirthday() { return newBirthday; }
+}
+```
+
+Including the `ID` is debatable: can the `Person` be reteived by its ID by the downstream consumer? Is this event intended for the local bounded context or for consumption in another bounded context? If the answer is the latter, we may want to include additional identification information in the event.
+
+*Event Transport*
+
+Events can be transported through in-memory data structures or through service busses if the destination is outside the boundaries of the current process. No matter what the transport is, it is good to think the events as a mechanism for decoupling components and thus always ask yourself the question: what if the transport changes?
+
+*Implementation - simple, in memory, transport*
+
+```java
+// marker interface
+public abstract class DomainEvent{}
+
+// event handler
+public interface IHandler<T extends DomainEvent>{
+    public void handleEvent(T event);
+}
+
+// a generic domain events class which is the global dispatcher
+// or all domain events
+// do not use in production -> not properly tested
+public class DomainEvents {
+
+    private static 
+    ConcurrentHashMap<Class<?>,LinkedList<WeakReference<?>>> eventHandlers = new ConcurrentHashMap<> ();
+
+    public static <U extends DomainEvent, T extends IHandler<U>> 
+    void  registerWeakReference(T instance, Class<U> eventType){
+
+        WeakReference<T> ref = new WeakReference<> (instance);
+
+        LinkedList<WeakReference<?>> lst = eventHandlers.getOrDefault (eventType, new LinkedList<> ());
+
+        synchronized (lst) {
+            lst.add (ref);
+        }
+
+        eventHandlers.put (eventType, lst);
+
+    }
+
+    public static <U extends DomainEvent> void raiseEvent(U event){
+
+        LinkedList<WeakReference<?>> lst = eventHandlers.getOrDefault (
+            event.getClass (), 
+            new LinkedList<> ());
+
+        List<?> refList = null;
+
+        // so that we don't hold the lock while all handlers execute
+        synchronized (lst){
+            refList = lst.stream ()
+                    .map (wr-> wr.get ())
+                    .filter (r -> r != null)
+                    .collect (Collectors.toList());
+
+            lst.removeIf ( wr -> wr.get () == null ); // clean up a little bit
+        }
+
+        refList.forEach (t -> ((IHandler<U>)t).handleEvent (event));
+    }
+}
+```
+
+And, of course, an example usage
+
+```java
+import domain.DomainEvent;
+import domain.DomainEvents;
+import domain.IHandler;
+
+/**
+ * Created by alexandrugris on 11/29/17.
+ */
+public class DDDInJavaMain {
+
+    static class PersonNameChangedEvent extends DomainEvent {}
+    static class PersonBirthdayChangedEvent extends DomainEvent {}
+
+    static class PersonNameChangedEventHandler implements IHandler<PersonNameChangedEvent>{
+
+        public PersonNameChangedEventHandler(){
+            DomainEvents.registerWeakReference (this, PersonNameChangedEvent.class);
+        }
+
+        @Override
+        public void handleEvent(PersonNameChangedEvent event) {
+            System.out.println ("Event handled");
+        }
+    }
+
+    public static void main(String... args){
+
+        PersonNameChangedEventHandler handler = new PersonNameChangedEventHandler ();
+        DomainEvents.raiseEvent(new PersonNameChangedEvent ());
+
+    }
+}
+```
 
 
 
