@@ -6,9 +6,9 @@ categories: architecture
 ---
 A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application we are building has complex business functionality. It will not help with Big Data, performance or hardware specific optimisations. 
 
-### Note
+### Notes
 
-The content is build based on several Pluralsight classes from the ASP.NET track, but the example code I wrote in Java. The post is infused with my interpretation and comments, so I recommend going directly to the source for the original content:
+The content in this article is based on several Pluralsight classes from the ASP.NET track, but I kept the code in Java. The post is infused with my interpretation and comments, so I recommend going directly to the source for the original content:
 
 - [Domain-Driven Design Fundamentals](https://app.pluralsight.com/library/courses/domain-driven-design-fundamentals/table-of-contents)
 
@@ -18,6 +18,14 @@ The content is build based on several Pluralsight classes from the ASP.NET track
 
 - [Modern Software Architecture: Domain Models, CQRS, and Event Sourcing](https://app.pluralsight.com/library/courses/modern-software-architecture-domain-models-cqrs-event-sourcing/table-of-contents)
 
+Probably the most important note when managing a project, no matter what the methodology, is not to try to design it all upfront. A comprehensive domain model will most likely prove either expensive to develop or useless and rigid in face of changing business requirements. Even more, as developers usually develop what they understand from the domain and business is usually not able to validate in depth the abstractions of the model, a comprehensive design up-front is usually proven wrong after a few iterations. 
+
+Dino Esposito has a great slogan, "Stop Modeling, Start Mirroring", meaning that instead of trying to build a comprehensive model of the whole domain, start mirroring the most important use cases and develop from there. 
+
+Before proceeding forward is worth noting that every action in a business system is either a command (which alters the state of the system) or a query (which does not alter the state of the system). This leads to the obvious question: why not separate the two? This pattern is called CQRS ([command-query responsibily segregation](https://martinfowler.com/bliki/CQRS.html)). If we take the CQRS course, we basically split the domain model in two distinct parts:
+- The command model - rich in business functionality
+- The read model - mostly DTOs, suitable for presentation
+As Martin Flowler notes in his wiki, CQRS complicates the  architecture and code and its price may not pay off for a large range of applications. This article is not focused on CQRS, although it might touch the topic from time to time.
 
 ### Glossary
 
@@ -227,7 +235,7 @@ public class MoneyCollection{
 }
 ```
 
-At first look, the `MoneyCollection` object does not seem at all immutable which violates the core characteristic of a value object. However, if you look at its methods they can be expressed as:
+At first look, the `MoneyCollection` object does not seem at all immutable, which violates the core characteristic of a value object. However, if you look at its methods they can be expressed as:
 
 ```
 MoneyCollection a, b, c;
@@ -238,7 +246,7 @@ a = a + d; // MoneyCollection::addMoney
 a = a - d; // MoneyCollection::substract
 ```
 
-In such cases, a decision must be taken: do we refactor to keep the value object immutability characteristic, in this case paying the price of a small array allocation and copy, or do we hide the dirty details behind a clean facade? Beside the (small) perfomance hit, here is also visible a certain mismatch between a theoretical concept and the comfort with which it can be expressed in our programming language.
+In such cases, a decision must be taken: do we refactor to keep the value object immutable, in this case paying the price of a small array allocation and copy, or do we hide the dirty details behind a clean facade? Beside the (small) perfomance hit, here is also visible a certain mismatch between a theoretical concept and the comfort with which it can be expressed in our programming language.
 
 *ID generation and serialization*
 
@@ -328,6 +336,28 @@ public class SnackMachineRepository extends Repository<UUID, SnackMachine>{
 }
 ```
 
+In a CQRS application, there would be two repositories. One for handling commands (changes to the state of the system) and one for handling reads (read-only). These two repositories might reference two different undelying databases, each modelled so that it does its job best (updates vs reads).
+
+Below you can see the splitted repository:
+
+```java
+public class SnackMachineCommandsRepository extends Repository<UUID, SnackMachine>{
+
+    // returns read / write entities, suitable for handing commands
+    public List<SnackMachine> getEmptySnackMachines() {} 
+
+}
+
+public class SnackMachineReadRepository {
+
+   // Returns read-only DTOs.
+   // These could be used directly as view models
+    public List<MoneyInSnackMachineDTO> getMoneyInEmptySnackMachines() {} 
+
+}
+````
+
+
 ### Bounded Contexts
 
 Bounded contexts can be viewed as namespaces for the ubiquitous language. The same term will usually have different meanings in two separate bounded contexts. They touch all layers of the onion architecture as their terminology will be reflected in UI, database model, domain model entities and application services. The relationship between bounded contexts is explicited in the context map.
@@ -367,7 +397,7 @@ Try to include as little information as possible in an event, preferably seriali
 *A bad example*
 
 ```java
-class Person : Entity<long>{
+public class Person extends Entity<long>{
     long ID;
     String name;
     String surname;
@@ -382,7 +412,7 @@ class PersonChangedEvent { // Not specific: what exactly has changed?
 *A better example*
 
 ```java
-class Person : Entity<long> {} 
+class Person extends Entity<long> {} 
 
 // specific
 // passes only the relevat information
@@ -509,17 +539,41 @@ This simple pattern for sending and handling events when they occur has a *major
 
 A better way exits to preserve intact the Unit Of Work: split the event pipeline in *creation* (when the event occurs) and *dispatch* (after the UoW is committed successfully to the database). In the meantime, hold the events in an temporary list, on a per-unit-of-work instance or, if all commits are done through the aggregate roots, as it should be, on a per-aggregate root instance. If we take the aggregate root path, a good place to store the logic for queuing the events and dispatching them when the save transaction succeeds is the `AggregateRoot` base class.
 
-### And The End
+*Events vs Commands*
+
+- Commands: something you want do happen. Might not happen.
+- Events: something that already happend. 
+
+Commands are best named with present tense, imperative form, like `AddNewBookToLibraryCmd` or `ExtractMoneyCmd`. These can be refused. You don't need to store commands although it is a good practice to log them for the purpose of debugging. 
+
+In case Event Sourcing is implemented, events are the single source of truth and they must be persisted. Not the commands, but the event, because it is the events that build up to the current state of the system.
+
+### DDD Notes
 
 Prefer the "always valid" approach, that is to always maintain entities in a consistent state. This is preferable to the opposite approach where one checks the validity of the model just before serialization. 
 
 Do not skip validations; perform them at all boundaries.
 
-Prefer the static factory method pattern (or, even better, dedicated factories) to constructors. Creating entities can be a heavyweight operation and exceptions might be thrown. Also, the construction of an entity has little to do with exploiting it afterwards. Factories should create whole aggregates, not just specific entities. On the other hand, factories create complexity and if the creation logic is simple, one can postpone the creation of an additional factory until it is actually needed.
+Prefer the static factory method pattern (or, even better, dedicated factories) to constructors. Creating entities can be a heavyweight operation and exceptions might be thrown. Construction of an entity often has little to do with exploiting it afterwards, so separating construction from the entity itself usualy is a good application of the Single Responsibility Principle. Factories should create whole aggregates, not just specific entities. On the other hand, factories create complexity and if the creation logic is simple, one can postpone the creation of an additional factory until it is actually needed.
 
 Keep domain services stateless.
 
 Do not add domain logic to application services. Application services are designed for orchestration with the outside world
 
 Domain Driven Design is an approach, not a mechanical recipe. It helps the architect understand the model and provide guidance on how to structure the code, but blind application will only lead to unnecessary complexity. Good rules of thumb are YAGNI and KISS, just like for any other software development approach.
+
+### UX Driven Design
+
+UXDD is a process for software design which starts from the user screens to build the model. The assumption behind it is that users are more likely to give effective feedback to the developers if presented with a concrete visual model of how they will interact with the application. 
+
+Instead of long written documents, the main tools for collaboration are the wireframes which depict the User Experience.
+
+Screens depict all the data that goes in and out of the system for each usecase. Therefore, the first important task for the architect is to iterate with the users until the screens are just right. Not talking about graphics, but about workflows and usability.
+
+By putting the requirements in the concrete form of an (interactive) user interface, UXDD mitigates the following problems:
+- Requirements are usually mostly guesses
+- Communication is slow and painful
+- Because of the two above, lots of development is done by assumption
+
+
 
