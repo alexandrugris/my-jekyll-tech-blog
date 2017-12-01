@@ -546,7 +546,7 @@ A better way exits to preserve intact the Unit Of Work: split the event pipeline
 
 Commands are best named with present tense, imperative form, like `AddNewBookToLibraryCmd` or `ExtractMoneyCmd`. These can be refused. You don't need to store commands although it is a good practice to log them for the purpose of debugging. 
 
-In case Event Sourcing is implemented, events are the single source of truth and they must be persisted. Not the commands, but the event, because it is the events that build up to the current state of the system.
+In case Event Sourcing is implemented, events are the single source of truth and they must be persisted and stored virtually forever. Not the commands, but the events, because it is the events that build up to the current state of the system.
 
 ### DDD Notes
 
