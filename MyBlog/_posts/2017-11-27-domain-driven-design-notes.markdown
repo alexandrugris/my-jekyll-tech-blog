@@ -4,7 +4,7 @@ title:  "Domain Driven Design Notes"
 date:   2017-11-27 13:15:16 +0200
 categories: architecture
 ---
-A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application we are building has complex business functionality. It will not help with big data, performance or hardware specific optimisations. 
+A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application has complex business functionality. It will not help with big data, performance or hardware specific optimisations. 
 
 ### Notes
 
