@@ -535,10 +535,10 @@ A better way exits to preserve intact the Unit Of Work: split the event pipeline
 
 ## Events vs Commands
 
-- Commands: something you want do happen. Might not happen.
-- Events: something that already happend. 
+- *Commands*: something you want do happen but might not happen.
+- *Events:* something that already happend. 
 
-Commands are best named with present tense, imperative form, like `AddNewBookToLibraryCmd` or `ExtractMoneyCmd`. These can be refused. You don't need to store commands although it is a good practice to log them for the purpose of debugging. 
+Commands are best named with present tense, imperative form, like `AddNewBookToLibraryCmd` or `ExtractMoneyCmd`. A command might not complete successfully. You don't need to store commands, although it is a good practice to log them for the purpose of debugging. 
 
 In case Event Sourcing is implemented, events are the single source of truth and they must be persisted and stored virtually forever. Not the commands, but the events, because it is the events that build up to the current state of the system.
 
@@ -552,7 +552,7 @@ Prefer the static factory method pattern (or, even better, dedicated factories) 
 
 Keep domain services stateless.
 
-Do not add domain logic to application services. Application services are designed for orchestration with the outside world
+Do not add domain logic to application services. Application services are designed for orchestration with the outside world.
 
 Domain Driven Design is an approach, not a mechanical recipe. It helps the architect understand the model and provide guidance on how to structure the code, but blind application will only lead to unnecessary complexity. Good rules of thumb are YAGNI and KISS, just like for any other software development approach.
 
