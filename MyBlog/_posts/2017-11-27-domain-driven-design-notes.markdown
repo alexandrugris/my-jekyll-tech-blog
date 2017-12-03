@@ -4,11 +4,11 @@ title:  "Domain Driven Design Notes"
 date:   2017-11-27 13:15:16 +0200
 categories: architecture
 ---
-A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application we are building has complex business functionality. It will not help with Big Data, performance or hardware specific optimisations. 
+A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application we are building has complex business functionality. It will not help with big data, performance or hardware specific optimisations. 
 
 ### Notes
 
-The content in this article is based on several Pluralsight classes from the ASP.NET track, but I kept the code in Java. The post is infused with my interpretation and comments, so I recommend going directly to the source for the original content:
+The content in this article is based on several Pluralsight classes from the ASP.NET track. The examples I wrote in Java The post is infused with my interpretation and comments, so I recommend going directly to the source for the original content:
 
 - [Domain-Driven Design Fundamentals](https://app.pluralsight.com/library/courses/domain-driven-design-fundamentals/table-of-contents)
 
@@ -18,7 +18,9 @@ The content in this article is based on several Pluralsight classes from the ASP
 
 - [Modern Software Architecture: Domain Models, CQRS, and Event Sourcing](https://app.pluralsight.com/library/courses/modern-software-architecture-domain-models-cqrs-event-sourcing/table-of-contents)
 
-Probably the most important note when managing a project, no matter what the methodology, is not to try to design it all upfront. A comprehensive domain model will most likely prove either expensive to develop or useless and rigid in face of changing business requirements. Even more, as developers usually develop what they understand from the domain and business is usually not able to validate in depth the abstractions of the model, a comprehensive design up-front is usually proven wrong after a few iterations. 
+- [UX-driven Software Design](https://www.pluralsight.com/courses/ux-driven-software-design)
+
+Probably the most important thing to remember when starting a new a project is not to try to design it all upfront. A comprehensive domain model will most likely prove either expensive to develop or useless and rigid in face of changing business requirements. Even more, as developers usually develop what they understand from the domain and since business is usually not able to validate in depth the abstractions of the model, a comprehensive design up-front is usually proven wrong after a few iterations. 
 
 Dino Esposito has a great slogan, "Stop Modeling, Start Mirroring", meaning that instead of trying to build a comprehensive model of the whole domain, start mirroring the most important use cases and develop from there. 
 
@@ -53,11 +55,9 @@ As Martin Flowler notes in his wiki, CQRS complicates the  architecture and code
 
 - *Services:* a collection of behaviours (functionality) that does not belown elsewhere in the domain
 
-- *Aggregate:* a cluster of associated objects that we treat as a unit for purposes of data changes (e.g. a Product which is assembled from a set of Parts). In DDD, we forbit direct access to parts of the aggregate and we only allow access through the *Aggregate Root*. A good case for one specific class to be the aggregate root is to check if on delete it generates a cascade. If so, it might be a good candidate for being the aggregate root of the cascaded object tree. Another critical criteria for choosing the right *Aggregate Root* is for it to naturally enforce invariants. In other words:
+- *Aggregate:* a cluster of associated objects that we treat as a unit for purposes of data changes (e.g. a Product which is assembled from a set of Parts). In DDD, we forbit direct access to parts of the aggregate and we only allow access through the *Aggregate Root*. A good case for one specific class to be the aggregate root is to check if on delete it generates a cascade. If so, it might be a good candidate for being the aggregate root of the cascaded object tree. Another critical criteria for choosing the right *Aggregate Root* is for it to naturally enforce invariants. In other words, the *Aggregate* is a transactional graph of objects while the *Aggregate Root* is the entry point to the graph, with the role of assuring its integrit.
 
-*Aggregate:* a transactional graph of objects
-*Aggregate Root:* the entry point to the graph that assures the integrity of the entire graph
-*Invariant:* a condition that must be true for the system to be in a valid / consistent state
+- *Invariant:* a condition that must be true for the system to be in a valid / consistent state
 
 - *Repository:* persistent storage pattern. Only the aggregate roots should be available for querying directly from the repository. Repositories are a collection of objects of a certain type, with more ellaborate querying capabilities. For simple CRUD repositories, one can create a generic implementation for the pattern but, for more complex business rules, it is recommended to have a dedicated repository for each *Aggregate Root*
 
@@ -72,24 +72,24 @@ Steps:
  - Start with the core domain.
  - Don't introduce several bounded contexts upfront. Start with only one.
  - Look for hidden abstractions; refactor.
- - Prefer value objects to entities. Try to put most of the business logic in value objects. Entities act like wrappers upon them.
+ - Prefer value objects to entities. Try to put as much as possible of the business logic in value objects. 
  - Extend to other bounded contexts.
+
+ ### Testing the domain
+
+ When experimenting with the model, it might be feasible not to write tests at first. A lot of refactoring goes on in the beginning and TDD would only make refarctoring harder. However, once the code becomes pretty stable and we ar happy with our abstractions, we can add remaining tests and switch back to TDD. 
 
  ### Entities and Value Objects
 
- *Entities* have identifier identity, meaning that two entities with the same identifier are equal. IDs are mandatory for entities. 
+*Entities* have identifier identity, meaning that two entities with the same identifier are equal. IDs are mandatory for entities. 
  
- *Value objects* have structural identity. Equality means that all their fields have equal values. They don't have IDs. 
+*Value objects* have structural identity. Equality means that all their fields have equal values. They don't have IDs. 
  
- It makes sense to have a base class for entities and a base class for value objects. 
+It makes sense to have a base class for entities and a base class for value objects. 
 
 Because the Value Objects do not have a lifetime different from that of the Entity that holds them (and they don't have an ID), they should be serialized in the same table as the Entity itself. A good analogy is with an integer; we would not create a separate table to store integers. 
 
-Examples below are from a DDD SnackMachine application implementation. Please look at the code and note the type of code each class contains. Low level algorthms in Value Objects and higher level orchestration in the Entity.
-
-*Entities and Value Objects*
-
-This is an Entity. It can be uniquely identified and restored from the database. It has business functionality but, in most of the cases, orchestrates the value objects inside it. A lot of logic is stored inside Value Objects like, for instance, the management of banknotes and coins inside the machine.
+The example below is from a hypothetical DDD snack machine application implementation. Please note the type of code each class contains. Low level algorthms in Value Objects and higher level orchestration in the Entity. Entities can be uniquely identified and restored from the database. A lot of logic is stored inside Value Objects like, for instance, the management of banknotes and coins inside the machine.
 
 ```java
 public class SnackMachine extends Entity<UUID> {
@@ -142,7 +142,7 @@ public class SnackMachine extends Entity<UUID> {
 }
 ```
 
-This is a simple type - a value object, immutable. It is a part of the intrinsic types of the system, so it does not make sense to persit it in its own table. 
+A simple type, a value object, immutable. It is a part of the intrinsic types of the system, so it does not make sense to persit it in its own table:
 
 ```java
 public enum Money{
@@ -252,11 +252,7 @@ In such cases, a decision must be taken: do we refactor to keep the value object
 
 If we are to take a purist approach, the IDs should be independent of the database or, at least, not come from an autoincrement column. IDs can be GUIDs (like in the example above) or come from other ID generation service that is independent of the storage layer. The problem with using autoincrement columns is twofold: once it allows the repository abstraction to leak in and, second, it violates the Unit Of Work pattern, which states that all changes should be committed to the database in one single short transaction. 
 
-A clean design does not allow ORM-specific code to pollute the domain objects. This might create additional work for mapping between the DDD entity fields and the persisted entity fields (attention, wording overload), but the hope is that this separation will keep the architecture clean and independent of various underlying technologies. This would allow, for instance, to have a dedicated team working on the business logic, specialized in business processes, and another one on persistence, with specialists in optimized caching, DB queries, various ORMs. 
-
-### Testing the domain
-
- When experimenting with the model, it might be feasible not to write tests at first. A lot of refactoring goes on in the beginning and TDD would only make refarctoring harder. However, once the code becomes pretty stable and we ar happy with our abstractions, we can add remaining tests and switch back to TDD. 
+A clean design does not allow ORM-specific code to pollute the domain objects. This might create additional work for mapping between the DDD entity fields and the persisted entity fields (attention, wording overload), but the hope is that this separation will keep the architecture clean and independent of various underlying technologies. This would allow, for instance, to have a dedicated team working on the business logic, specialized in business processes, and another one on persistence, with specialists in optimized caching, databases and various ORMs. 
 
 ### Aggregates
 
@@ -338,7 +334,7 @@ public class SnackMachineRepository extends Repository<UUID, SnackMachine>{
 
 In a CQRS application, there would be two repositories. One for handling commands (changes to the state of the system) and one for handling reads (read-only). These two repositories might reference two different undelying databases, each modelled so that it does its job best (updates vs reads).
 
-Below you can see the splitted repository:
+Below you can see an example of a splitted repository:
 
 ```java
 public class SnackMachineCommandsRepository extends Repository<UUID, SnackMachine>{
@@ -353,16 +349,14 @@ public class SnackMachineReadRepository {
    // Returns read-only DTOs.
    // These could be used directly as view models
     public List<MoneyInSnackMachineDTO> getMoneyInEmptySnackMachines() {} 
-
 }
-````
-
+```
 
 ### Bounded Contexts
 
 Bounded contexts can be viewed as namespaces for the ubiquitous language. The same term will usually have different meanings in two separate bounded contexts. They touch all layers of the onion architecture as their terminology will be reflected in UI, database model, domain model entities and application services. The relationship between bounded contexts is explicited in the context map.
 
-Subdomains and bounded contexts are best related to each other as 1:1. There is a distinction though; the subdomain is part of the problem space, while the bounded context is part of the solution space. The 1:1 requirement is not always possible. Imagine a situation in which we have the "Sales" subdomain composed of a legacy application and we need to add new functionality to it in terms of a totally new module. In this case we have a single subdomain but can opt to structure our solution as two bounded contexts separated by an anticorruption layer. Here are other rules of thumb for separating the bounded contexts:
+Subdomains and bounded contexts are best related to each other as 1:1. There is a distinction though; the subdomain is part of the problem space, while the bounded context is part of the solution space. The 1:1 requirement is not always possible. Imagine a situation in which we have the "Sales" subdomain composed of a legacy application and we need to add a new functionality to it in terms of a totally new module. In this case we have a single subdomain but can opt to structure our solution as two bounded contexts separated by an anticorruption layer. Here are some rules of thumb for separating the bounded contexts, independent of the subdomain:
 - Team size: 6 - 8 developers per bounded context max
 - Code size: code should "fit your head"; one developer shouldn't have any trouble understanding it all
 - There shouldn't be a situation where two teams work on a single bounded context
@@ -394,7 +388,7 @@ Naming suggestion: as specific as possble: Subject (who) + Past Tense Verb (the 
 
 Try to include as little information as possible in an event, preferably serializable and immutable, and independent of the domain model classes. This is because events may, at one point, pass the process boundaries when the application is distributed and because we don't want the order in which the event is handled to matter. We don't want to give the receivers the option to mutate the event. A good guideline is to only use primitive types when declaring a domain event.
 
-*A bad example*
+A bad example:
 
 ```java
 public class Person extends Entity<long>{
@@ -409,7 +403,7 @@ class PersonChangedEvent { // Not specific: what exactly has changed?
 }
 ```
 
-*A better example*
+A better example:
 
 ```java
 class Person extends Entity<long> {} 
@@ -430,11 +424,11 @@ class BirthdayChangedEvent {
 
 Including the `ID` is debatable: can the `Person` be reteived by its ID by the downstream consumer? Is this event intended for the local bounded context or for consumption in another bounded context? If the answer is the latter, we may want to include different identification information in the event.
 
-*Event Transport*
+### Event Transport
 
-Events can be transported through in-memory data structures or through service busses if the destination is outside the boundaries of the current process. No matter what the transport is, it is good to think of the events as a mechanism for decoupling components and thus always ask yourself the question: what if the transport changes?
+Events can be transported through in-memory data structures or through service busses, if the destination is outside the boundaries of the current process. No matter what the transport is, it is good to think of  events as a mechanism for decoupling components and thus always ask yourself the question: what if the transport changes?
 
-*Implementation - simple, in memory, transport*
+Implementation, a simple, in memory, transport:
 
 ```java
 // marker interface
@@ -533,13 +527,13 @@ public class DDDInJavaMain {
 }
 ```
 
-*The Unit Of Work Problem*
+### The Unit Of Work Problem
 
 This simple pattern for sending and handling events when they occur has a *major architectural issue* - it breaks the Unit Of Work pattern. For instance, what happens when we need to do a rollback before the Unit Of Work transaction is committed? Or, for some reason, the commit fails? As events have aready been submitted, it is impossible to roll them back as their processing causes ripples inside our Bounded Domain but also inside others, causing the system as a whole to enter an invalid state. 
 
 A better way exits to preserve intact the Unit Of Work: split the event pipeline in *creation* (when the event occurs) and *dispatch* (after the UoW is committed successfully to the database). In the meantime, hold the events in an temporary list, on a per-unit-of-work instance or, if all commits are done through the aggregate roots, as it should be, on a per-aggregate root instance. If we take the aggregate root path, a good place to store the logic for queuing the events and dispatching them when the save transaction succeeds is the `AggregateRoot` base class.
 
-*Events vs Commands*
+## Events vs Commands
 
 - Commands: something you want do happen. Might not happen.
 - Events: something that already happend. 
