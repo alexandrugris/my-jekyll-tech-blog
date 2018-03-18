@@ -565,9 +565,7 @@ Instead of long written documents, the main tools for collaboration are the wire
 Screens depict all the data that goes in and out of the system for each usecase. Therefore, the first important task for the architect is to iterate with the users until the screens are just right. Not talking about graphics, but about workflows and usability.
 
 By putting the requirements in the concrete form of an (interactive) user interface, UXDD mitigates the following problems:
+
 - Requirements are usually mostly guesses
 - Communication is slow and painful
 - Because of the two above, lots of development is done by assumption
-
-
-
