@@ -186,3 +186,21 @@ Answer: `pmf(x) = C(R, x) * C(N-R, n-x) / C(N, n)` where:
 - `n` is the number of draws
 - `x` is the number of observed successes, in this case we would replace it with `k`
 - `N` is the population size
+
+Assuming a a box with `N` newly built CPUs. We know that 1 in `X` is defective. We are invited to pick `K`. What is the probability of none being defective?
+
+Answer: `P(none defective) = C(N - N/X, K) * C(N/X, 0) / C(N, K)` with `R = N - N/X`, `x = K` and `n = K` if we are to use the terminology from the formula above.
+
+6. Continuous distributions are those distributions for which `P(X = x) = 0` thus it would only make sense to talk about `P(a <= X <= b)`. For continuous distributions we define the *cummulative distribution function*, `cdf`, as `cdf(x) = P(X <= x)` and *probability density function*, `pdf`, as `pdf(x) = cdf(x)dx / dx = cdf'(x)` with `integral(-infinty, infinity)(pdf(x)) = 1`. Looping back to computing the `P(a <= X <= b )`, `P(a <= x <= b) = integral(a, b)(pdf(x))`.
+
+7. *Standard normal distribution* has the expected value `miu = 0` and standard deviation `sigma = 1`. One can transform any normal distribution of a given `miu` and `sigma` to the standard by applying `z=(x-miu)/sigma` as in the following example: assuming that the scores for an exam are centered around 75%, with a standard deviation of 10%, what fraction of the scores lie between 80% and 90%? 
+
+Answer:
+
+`z1 = (80-75)/10 = 0.5`
+`z2 = (90-75)/10 = 1.5`
+`answer = cdf_normal(1.5) - cdf_normal(0.5)`
+
+8. *Gamma distribution*, link [here](https://en.wikipedia.org/wiki/Gamma_distribution), is a two-parameter family of continuous probability distributions. The exponential distribution, Erlang distribution, and chi-squared distribution are special cases of the gamma distribution.  
+
+9. *Beta distribution*, link [here](https://en.wikipedia.org/wiki/Beta_distribution), used in Bayesian inference to solve problems which follow a pattern similar to the following: "given our belief of the world at a certain point of time, if new evidence becomes available, how do these affect our beliefs?". A good example is spam filtering.

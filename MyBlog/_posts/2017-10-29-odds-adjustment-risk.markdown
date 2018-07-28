@@ -4,7 +4,9 @@ title:  "Risk-based Odds Adjustment Using Bayesian Inference"
 date:   2017-10-29 13:15:16 +0200
 categories: statistics
 ---
-This blog introduces the basics of Bayesian inference and attempts to sketch a solution to a problem a bookmaker might have: starting from a predefined set of odds, how do we adjust them so that the risk for the bookmaker is minimized? We take into consideration the financial stakes the bettors have in the game, the total financial risk the house is willing to take and will only analyse the 1x2 market (home-draw-away), to keep the code clean. 
+This post attempts to sketch a solution to a problem a bookmaker might have: starting from a predefined set of odds, how do we adjust them so that the risk for the bookmaker is minimized? We take into consideration the financial stakes the bettors have in the game, the total financial risk the house is willing to take and will only analyse the 1x2 market (home-draw-away), to keep the code clean. 
+
+We can express the problem in the following bayesian terms: assuming that bettors place bets according to their assessment of the market and that the money they stake is proportional to the confidence they have in a specific outcome, given that a bettor places a specific amount of money on an outcome (event occured), how does this knowledge influence our assessment of the real odds?
 
 ### Bayesian Inference Basics
 
