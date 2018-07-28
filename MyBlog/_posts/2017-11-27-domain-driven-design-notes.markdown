@@ -4,7 +4,7 @@ title:  "Domain Driven Design Notes"
 date:   2017-11-27 13:15:16 +0200
 categories: architecture
 ---
-A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application has complex business functionality. It will not help with big data, performance or hardware specific optimisations. 
+A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application has complex business functionality. It will not help with big data, performance or hardware specific optimisations.
 
 ### Notes
 
@@ -69,17 +69,17 @@ As Martin Flowler notes in his wiki, CQRS complicates the  architecture and code
 
 Steps:
 
- - Start with the core domain.
- - Don't introduce several bounded contexts upfront. Start with only one.
- - Look for hidden abstractions; refactor.
- - Prefer value objects to entities. Try to put as much as possible of the business logic in value objects. 
- - Extend to other bounded contexts.
+- Start with the core domain.
+- Don't introduce several bounded contexts upfront. Start with only one.
+- Look for hidden abstractions; refactor.
+- Prefer value objects to entities. Try to put as much as possible of the business logic in value objects. 
+- Extend to other bounded contexts.
 
- ### Testing the domain
+### Testing the domain
 
  When experimenting with the model, it might be feasible not to write tests at first. A lot of refactoring goes on in the beginning and TDD would only make refarctoring harder. However, once the code becomes pretty stable and we ar happy with our abstractions, we can add remaining tests and switch back to TDD. 
 
- ### Entities and Value Objects
+### Entities and Value Objects
 
 *Entities* have identifier identity, meaning that two entities with the same identifier are equal. IDs are mandatory for entities. 
  
@@ -257,6 +257,7 @@ A clean design does not allow ORM-specific code to pollute the domain objects. T
 ### Aggregates
 
 Aggregates are a design pattern that helps us simplify the domain model by gathering several entities under a single abstraction:
+
 - Classes outside the aggregate cannot access the entities within the aggegate except through its root.
 - An aggregate is a conhesive whole. It represents a cohesive notion of the domain model.
 - Every aggregate has a set of invariants that it maintains during its lifetime. These invariants guarantee the aggregate is always in a consistent state.
@@ -299,6 +300,7 @@ class Product extends AggregateRoot<UUID> {}
 The idea behind the Repository pattern is to encapsulate the persistence and allow the client code to access the data as if it were stored in memory. The general rule is that it should be a single repository per each aggregate, which makes sense given the fact all entities within an aggregate should be accessible only through the aggregate root.
 
 In its simplest form, a repository base class has only two responsibilities:
+
 - Get an aggregate root by its ID
 - Commit the aggregate root changes to the database in a single transaction together, with all its dependent entities.
 
@@ -357,11 +359,13 @@ public class SnackMachineReadRepository {
 Bounded contexts can be viewed as namespaces for the ubiquitous language. The same term will usually have different meanings in two separate bounded contexts. They touch all layers of the onion architecture as their terminology will be reflected in UI, database model, domain model entities and application services. The relationship between bounded contexts is explicited in the context map.
 
 Subdomains and bounded contexts are best related to each other as 1:1. There is a distinction though; the subdomain is part of the problem space, while the bounded context is part of the solution space. The 1:1 requirement is not always possible. Imagine a situation in which we have the "Sales" subdomain composed of a legacy application and we need to add a new functionality to it in terms of a totally new module. In this case we have a single subdomain but can opt to structure our solution as two bounded contexts separated by an anticorruption layer. Here are some rules of thumb for separating the bounded contexts, independent of the subdomain:
+
 - Team size: 6 - 8 developers per bounded context max
 - Code size: code should "fit your head"; one developer shouldn't have any trouble understanding it all
 - There shouldn't be a situation where two teams work on a single bounded context
 
 It is recommended that bounded contexts have:
+
 - separate namespaces (or separate deployment units or processes)
 - separate database schemas or separated databases
 
@@ -372,6 +376,7 @@ The greater the isolation is, the easier it is to maintain proper bounderies. Ho
 Assuming that we want to introduce a new bounded context, the `ATM`, to our application, it is obvious that it shares a set of common core objects with our `SnackMachine`, while the rest of the business logic is completely different. The common core, the `Money` and the `MoneyCollection` objects, can be extracted as a shared kernel in a separate component. This, however, implies that the new component will affect two different domains, so changes to it must be very well controlled. Extracting the shared kernel also implies some refactoring as, if we look in the `MoneyCollection` code above, some business functionality from the `SnackMachine` leaks into it. Therefore, we need to make `MoneyCollection` business-agnostic, a true value object.
 
 When deciding what to put in a shared kernel, keep in mind the following:
+
 - Business logic should not be reused in most cases as it alwasy evolves on separate trajectories. E.g. the sales perspective of what a product is is different from the perspective of customer support.
 - Infrastructure / utility code could be reused, but should be duplicated if the changes from a team impact negatively the performance of another team.
 
@@ -380,6 +385,7 @@ Overall, try to avoid reusing code between bounded contexts as much as possible.
 ### Domain Events
 
 A domain event is an event that is significant for the domain. Its job is to:
+
 - Decouple bounded contexts
 - Facilitates communication between bounded contexts
 - Can also be used for collaboration between entities within a single bounded context
