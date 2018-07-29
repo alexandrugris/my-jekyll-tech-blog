@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Hazelcast Intro [WIP]"
+title:  "Hazelcast Intro"
 date:   2017-08-11 13:15:16 +0200
 categories: distributed systems
 ---

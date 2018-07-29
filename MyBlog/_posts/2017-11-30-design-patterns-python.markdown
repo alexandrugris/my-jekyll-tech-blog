@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "The Common Design Patters Implemented In Python"
+title:  "The Common Design Patters Implemented In Python [WIP]"
 date:   2017-12-3 13:15:16 +0200
 categories: architecture
 ---
-I find myself writing Python very often due to its clear and concise syntax. 
+An unfinished post aiming to cover the implementation in Python of the most commonly used design patterns.
 
 ### SOLID Principles
 
