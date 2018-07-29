@@ -204,3 +204,55 @@ Answer:
 8. *Gamma distribution*, link [here](https://en.wikipedia.org/wiki/Gamma_distribution), is a two-parameter family of continuous probability distributions. The exponential distribution, Erlang distribution, and chi-squared distribution are special cases of the gamma distribution.  
 
 9. *Beta distribution*, link [here](https://en.wikipedia.org/wiki/Beta_distribution), used in Bayesian inference to solve problems which follow a pattern similar to the following: "given our belief of the world at a certain point of time, if new evidence becomes available, how do these affect our beliefs?". A good example is spam filtering.
+
+### Expectation
+
+Expected value is defined as `E[V] = sum(p1*v1 + p2*v2+ ... pn*vn)` where `pi` is the probability for `vi` to occur. It is called also mean or average. E.g.: the expectation for a binomial distribution with the probability `p` for `1`  and `1-p` for `0` is `E[X] = (1-p)*0 + 1*p = p`. 
+
+For continuous distributions, the `E[X] = integral(-inf, +inf, dx)(x * pdf(x))`.
+
+Example:
+
+Considering a part that has the fail probability density function `pdf = 2*x, for 0<=x<=1 and 0 otherwise`, the expected time to fail is `E[X] = integral(0, 1, dx)(2 * x^2) = 2/3 * x^3 for x = 1 - 2/3 * x^3 for x = 0 = 2/3`. Note: `2*x` is a valid pdf, with `cdf=x^2`, monotonically increasing, and `integral(0,1)(pdf) = cdf(1) - cdf(0) = 1`. It can be explained as the probability of defect as it reaches the end-of-life increases squarely.
+
+[Law of the unconscious statistician](https://en.wikipedia.org/wiki/Law_of_the_unconscious_statistician) helps calculate the expected value of a function g(X) of a random variable X when one knows the probability distribution of X but one does not explicitly know the distribution of g(X). 
+
+For the discrete case, the formula is:
+
+`E[g[X]] = sum(g(x) * f_X(x))`
+
+for the continuous case: 
+
+`E[g[X]] = integral(-inf, inf, dx)(g(x) * f_X(x))`
+
+*Variance* is a measure of how spread out the values are spread around the mean. We define the variance for a random variable as `V[X] = E[(x - mean)^2]`. We define also the standard deviation as `sigma[X] = sqrt(V[X])`.
+
+For a binomial distribution, with `p=0.5`:
+
+`mean = E[X] = 0 * 0.5 + 1 * 0.5 = 0.5
+V[X] = E[(X-mean)^2] = 0.5 * (0-0.5)^2 + 0.5 * (1-0.5)^2 = 0.5 * 0.25 + 0.5 * 0.25 = 0.25
+sigma = sqrt(0.25) = 0.5`
+
+Another way to computing the variance is:
+
+`V[X] = E[(X-mean)^2] = E[X^2 - 2*X*mean + mean^2] = E[X^2] - 2 * E[X] * mean + mean^2 = E[X^2] - mean^2`
+
+A nice property of variance is that `V[a1X1 + a2X2 + ... +b] = a1^2 * V[X1] + ... + an^2 * V[Xn]`.
+
+*The joint probability mass function for two random variables X and Y* is defined as `P_XY(x,y) = P(X=x, Y=y)` with `sum(P_XY(x, y)) = 1`
+
+To compute the measure of two variables varying together, we introduce the notion of covariance, which standardizes to correlation (covariance is dependend of the values of the two variables).
+
+`cov(X, Y) = sigma(x, y) = E[(X-mean(X)) * (Y - mean(Y))]`
+
+and
+
+`corr(X, Y) = cov(X, X) / (stddev(X) * stddev(Y))`
+
+Correlation is constrained to the interval (-1, 1), with 0 meaning that X and Y are uncorrelated. A value over 0.6 would mean strongly correlated, 0.2 weakly correlated or almost uncorrelated. One point to note is that correlation only measures linear relationships.
+
+
+
+
+
+
