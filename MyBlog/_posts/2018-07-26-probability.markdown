@@ -241,7 +241,7 @@ A nice property of variance is that `V[a1X1 + a2X2 + ... +b] = a1^2 * V[X1] + ..
 
 *The joint probability mass function for two random variables X and Y* is defined as `P_XY(x,y) = P(X=x, Y=y)` with `sum(P_XY(x, y)) = 1`
 
-To compute the measure of two variables varying together, we introduce the notion of covariance, which standardizes to correlation (covariance is dependend of the values of the two variables).
+To compute the measure of two variables varying together, we introduce the notion of *covariance*, which standardizes to *correlation* (covariance is dependend of the values of the two variables).
 
 `cov(X, Y) = sigma(x, y) = E[(X-mean(X)) * (Y - mean(Y))]`
 
@@ -249,7 +249,15 @@ and
 
 `corr(X, Y) = cov(X, X) / (stddev(X) * stddev(Y))`
 
-Correlation is constrained to the interval (-1, 1), with 0 meaning that X and Y are uncorrelated. A value over 0.6 would mean strongly correlated, 0.2 weakly correlated or almost uncorrelated. One point to note is that correlation only measures linear relationships.
+Correlation is constrained to the interval (-1, 1), with 0 meaning that X and Y are totally uncorrelated. A value over 0.6 means strongly correlated, 0.2 weakly correlated or almost uncorrelated. One point to note is that correlation only measures linear relationships. Thus a relationship like `(X, X^2)` would score very low on the correlation spectrum.
+
+### Other interesting distributions
+
+*Poisson distribution* models the number of occurences of an event within a given period of time. E.g. goals per match.
+
+*Lognormal distribution* has very interesting applications, described [here](https://en.wikipedia.org/wiki/Log-normal_distribution#Occurrence_and_applications). For instance, In reliability analysis, the lognormal distribution is often used to model times to repair a maintainable system.
+The lognormal distribution is a distribution of a random variable `X` whose `log(X)` is normally distributed.  
+
 
 
 
