@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "The Common Design Patters Implemented In Python [WIP]"
+title:  "Common Design Patters Implemented In Python [WIP]"
 date:   2017-12-3 13:15:16 +0200
 categories: architecture
 ---
