@@ -4,7 +4,9 @@ title:  "Risk"
 date:   2018-07-26 13:15:16 +0200
 categories: statistics
 ---
-A not-so-short discussion about finanical risk, starting from computing risk for a portfolio of stocks and discussing which ideas can be applied in modelling risk for a sportsbook. These ideas are, in some of the cases, simply leads and have not been tested in production or on real datasets. In the end, a sportsbook can be seen as a portfolio of bets on a set of markets, each with an expected positive return. But things can turn south and losses do occur. The idea is to limit such losses so that the sportsbook remains profitable on the long run. However, simply summing up the worst case loss on each market may sound too restrictive since some of the outcomes are strongly-correlated (more on this later) and since there are tens of thousands of events happening every month, but the same tens of thousands of events mean that extreme situations do occur. If the total risk is seen as too extreme and too improbable, the traders might be incetivised to simply ignore it and to increase the risk limits blindly, thus opening the gates to unquantified losses. Similarly, if we stick to risk limits that are too restrictive, we miss the oportunity to make profit in otherwise highly profitable markets.
+A not-so-short discussion about finanical risk, starting from computing risk for a portfolio of stocks and discussing which ideas can be applied in modelling risk for a sportsbook. Many ideas presented here have not been tested in production or on real datasets. 
+
+A sportsbook can be seen as a portfolio of bets on a set of markets, each with an expected positive return for the bookmaker. But things can turn south and losses do occur. We need to limit such losses so that the sportsbook remains profitable on the long run. However, simply summing up the worst case loss on each market may sound too restrictive since some of the outcomes are strongly-correlated (more on this later). Also, since there are tens of thousands of events happening every month, the probability of an extreme loss is tiny, but the same tens of thousands of events mean that extreme situations do occur. If the total risk is seen as too extreme and too improbable, the traders might be incetivised to simply ignore it and to increase the risk limits blindly, thus opening the gates to unquantified losses. Similarly, if we stick to risk limits that are too restrictive, we might miss the oportunity to make profit in otherwise highly profitable markets.
 
 ### Risk
 
@@ -26,18 +28,64 @@ We can define a portfolio as a set of assets that vary their prices based on two
 
 ### Risk in a portfolio of stocks
 
-The principles behind assessing risk in a portfolio of stocks for our simple model are:
+What we want to do is to be able to issue statements like: *the probability to lose `X` mount of money or more in the following `T` period is `p%`*. This amount of money, `X` is called *value at risk*.
+
+The important thing to notice is that a portfolio can be modelled as a sum of random variables. Unlike the sportsbook portfolio where the outcome of each sport event is a discrete random variable, with a finite set of possibilities, stock movement can be thought as a continuous random variable. However, given the sheer number of sport events and their continuous flux, my intuition tells me there are parallels to be made between studying financial risk models and sportsbook risk models. We will assume the distribution of stock movement to be normal, although its use is questionable, as it seems that extreme events in this space are more frequent than what it predicts.
+
+In this case, `VaR(p%) = X = Amount-Of-Money-Invested * Zscore(p%) * sigma`, where `Zscore(p%)` is the amount of standard deviations corresponding to the probability `p`. Thus, the only thing we need to compute is `sigma = sqrt(Var(P))`. In the case of the sportsbook, we have a large discrete set of possible losses and wins, each with a probability that can be numerically computed. However, computing this set is not computationally effective as the tree of possibilities is huge. For instance, in the small case of a portfolio of only 10 binomial independent events, the cardinality of the set of possible outcomes is 2^10 = 1024. Thus, we need to seek alternative means of computing the `VaR`. A simple model to be tested in practice would be to compute the risk for the worst possible scenario (sum of all maximum losses), compute its probability (product of all probabilities of the worst possible outcomes) and given this probability compute its Zscore and thus distribute risks accordingly. However, such a model might prove to hide too much error due to the extreme values and simplistic assumptions baked into it. Another option might be to sample the distribution of returns, let's say to compute 1000 random returns / losses for 1000 events, assume them equiprobable, and compute the variance based on these (divide by n-1, to incorporate Bessel's correction). These would also give us a hint at the shape of the real distribution, so we might have the option not consider the normal distribution afterall.
+
+But until then, let's return to our stock risk model as the results are pretty interesting.
+
+The principles behind assessing the risk in a portfolio of stocks for our simple model are:
 - Learn from history (identify relationships) but do not count on it repeating
 - Identify underlying risk factors
 - Stress-test each risk factor 
 
-The important thing to notice is that a portfolio can be modelled as a sum of random variables.
+*Theorem:*
+
+Given a random variable `Y` expressed as a sum of `Xi` random variables, `Y = X1 + X2 + ... Xn`, `Variance(Y) = Covariance(X1, X1) + Covariance(X1, X2) + ... + Covariance(Xn, Xn)`, in total `n^2` terms. If `X1...Xn` are fully independent, `Covariance(Xi, Xj) = 0 with i=1..n and j=1..n and i!=j`. In this case, the result can be written as `Variance(Y) = Variance(X1) + Variance(X2) + .... Variance(Xn)` since `Covariance(Xi, Xi) = Variance(Xi)`.
+
+If `Y = w1 * X1 + w2 * X2 + ...+ wn * Xn`, `Variance(Y) = sum(wi * wj * Covariance(Xi, Xj) for i = 1..n, j = 1..n)` or, in matrix terms,  `Variance(Y) = W * COV_MTX(X) * WT` where `W = [w1 ... wn]`, `X = [x1 ... Xn]`, `COV_MTX` is the covariance matrix and `WT` is `W` transposed.
+
+
+*The Model*:
+
+We consider two systemic risks, the overal "market sentiment", as captured by S&P500, and the overall level of interest rates in the economy, as captured by FVX. If the whole market goes up (S&P500 goes up), it is a reasonable expectation that our stock portfolio will also go up. If the interest rates go up, interest in stocks tends to decrease while interest in bonds tends to increase. These two factors are not independent of each other.
+
+We aim to express the returns of each of our stocks as a linear regression based on the risks identified above, as follows (`Yi` is the return of stock `i` in our portfolio). The return value of our portfolio over a period of time is `P = w1 * Y1 + w2 * Y2 + ...` where `wi` is the amount of money invested in that particular stock, with `sum(wi) = W`, our invested sum and `Yi` the variation expressed in percentages of that particular stock. Thus, the end value of our portfolio would be `S(t + dt) = W + P`, with `W = S(t)`.
+
+We consider a multiple linear regression model:
+
+- `Yi = Ai + Bi1*F1 + Bi2*F2 + e_i`, `A` being called the `Alpha`, meaning the stock specific performance, `B` being called `Beta`, meaning the market performance as a whole, and `e` a residual stock-specific factor, derived from its idiosyncratic risks. Discussion about multiple regression, including the residual factor, [here](https://alexandrugris.github.io/machine/learning/2017/03/25/MachineLearning-Notebook-2.html). 
+
+- `Var(Yi) = Var(Ai + Bi1*F1 + Bi2*F2) + Var(e_i)`, with `Ai` a constant, and `e_i` the idiosyncratic factor,  with `TotalVariance(Y) = SystemicVariance(Y) + IdiosyncraticVariance(Y)`. We can write like this since we assume the idiosyncratic and the systemic risks are fully independent.
+
+- Since the idiosyncratic risk is individual (independent) for each stock type, we can compute its variance as `Var( sum(e_i, i=1..n) ) = IdiosyncraticVariance(Y) = sum(wi^2 * Var(e_i), i=1..n)`.
+
+- `Var(Ai + Bi1*F1 + Bi2*F2) = SystemicVariance(Y) = Var(Ai) + Var(Bi1*F1 + Bi2*F2) = 0 + Var(Bi1*F1 + Bi2*F2)`, since `Ai` is a constant.
+
+For our value at risk calculation, we will assume the portfolio returns to be normally distributed and centered around 0 - no loss, no gain. In the case of a sportsbook, we can also consider the returns to be centered around the Expected Value of the portfolio, which should be above 0. This choice (0 or EV) is detabatable and should be tested both through simulation and with real data.
+
+### Sportsbook risk
+
+The goal of a sportsbook is to secure a long-term profit by adding a small margin to each betting market while not running out of business due to losses on any single day. The main cycle is:
+
+1. Select a match and a market and compute a set of probabilities for each possible outcome to occur.
+2. Compute the odds by artificially increasing the probability to secure long term profit (e.g., for a fair coin toss, instead of offering odds at 2.0, a sportsbook might decide to offer odds at 1.9, securing a long-term 10 cent profit for each game)
+3. Accept bets
+
+However, the sportsbook might not accurately determine the real odds odds or the market might have a strong preference towards a specific outcome. Like, for instance, in the example above, the coin might not be fair or the population might have a bias towards head due to some unknown factor. In these conditions, on a specific game, the sportsbook might lose money. In order to limit the risk of going bankrupt, the sportsbook has two strategies: decrease the odds for the preferred outcome thus incetivising people to bet on the other, as well and stop accepting bets when a risk threshold is reached.
+
+The role of the risk model is to prevent the sportsbook from going bankrupt and, in general, has two components: a) limit the stakes placed on each bet so that the risk budget is not in danger of being exceeded and b) when the risk is reached on a specific market, suspend betting on the culprit outcome. The risk model is dynamic, it is updated with each incoming bet and with each settled bet. Since the amount of calculation can be pretty intensive, these might be delayed until a certain threshold is reached (a batch of bets being placed), but this is an implementation detail and does not impact the actual model behind.
 
 ### Sportsbook data model
 
+
+If the total risk is seen as too improbable, the behavior of traders might be to simply be to ignore it and blindly increase the risk budget. 
+
 incl. odds calculation, payout and overround()
 
-If the total risk is seen as too improbable, the behavior of traders will simply be to ignore it and blindly increase the risk budget. 
+
 
 ### Risk at market level
 
