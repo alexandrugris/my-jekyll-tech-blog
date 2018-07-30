@@ -37,7 +37,7 @@ In this case, `VaR(p%) = X = Amount-Of-Money-Invested * Zscore(p%) * sigma`, whe
 But until then, let's return to our stock risk model as the results are pretty interesting.
 
 The principles behind assessing the risk in a portfolio of stocks for our simple model are:
-- Learn from history (identify relationships) but do not count on it repeating
+- Learn from history (identify relationships) but do not count on it repeating. Historical based VaR often underestimates the worst case. 
 - Identify underlying risk factors
 - Stress-test each risk factor 
 
