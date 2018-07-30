@@ -227,6 +227,21 @@ V[X] = E[(X-mean)^2] = E[X^2 - 2*X*mean + mean^2] = E[X^2] - 2 * E[X] * mean + m
 
 A nice property of variance is that `V[a1X1 + a2X2 + ... +b] = a1^2 * V[X1] + ... + an^2 * V[Xn]`.
 
+```python
+def expected_values(events):
+    """ Events is a collection of (probability, value) pairs, independent of each other, 
+    covering the whole spectrum of possible values (sum(pi) == 1) """
+
+    assert(abs(sum((p for p, _ in events)) - 1) < 1e-10)
+
+    ev = sum(( p*v for p, v in events))
+    variance =  sum( (p * (v-ev)**2  for p, v in events) )
+
+    return (ev, variance)
+```
+
+If we are to assess the variance of a population based on a sample of that population, consider using Bessel's correction formula: [Bessel's correction](https://en.wikipedia.org/wiki/Bessel%27s_correction)
+
 *The joint probability mass function for two random variables X and Y* is defined as `P_XY(x,y) = P(X=x, Y=y)` with `sum(P_XY(x, y)) = 1`
 
 To compute the measure of two variables varying together, we introduce the notion of *covariance*, which standardizes to *correlation* (covariance is dependend of the values of the two variables).

@@ -1,0 +1,68 @@
+---
+layout: post
+title:  "Risk"
+date:   2018-07-26 13:15:16 +0200
+categories: statistics
+---
+A not-so-short discussion about finanical risk, starting from computing risk for a portfolio of stocks and discussing which ideas can be applied in modelling risk for a sportsbook. These ideas are, in some of the cases, simply leads and have not been tested in production or on real datasets. In the end, a sportsbook can be seen as a portfolio of bets on a set of markets, each with an expected positive return. But things can turn south and losses do occur. The idea is to limit such losses so that the sportsbook remains profitable on the long run. However, simply summing up the worst case loss on each market may sound too restrictive since some of the outcomes are strongly-correlated (more on this later) and since there are tens of thousands of events happening every month, but the same tens of thousands of events mean that extreme situations do occur. If the total risk is seen as too extreme and too improbable, the traders might be incetivised to simply ignore it and to increase the risk limits blindly, thus opening the gates to unquantified losses. Similarly, if we stick to risk limits that are too restrictive, we miss the oportunity to make profit in otherwise highly profitable markets.
+
+### Risk
+
+Risk is a way to quantify the uncertainty in a set of possible outcomes. A common way to quantify risk is by using the standard deviation. However, a poorly constructed risk model can lead to spectacular financial failures. Risks is derived from uncertainty. Whenever there is an uncertainty regarding an outcome, there is a risk associated with it. Risk is estimated based on a probabilistic model and it is expressed as probabilities and consequences of a specific set of outcomes.
+
+Several values come to mind when speaking of the set of possible outcomes:
+
+- Worst case (maximul loss, if worst case < 0)
+- Best case (maximum win, if best case > 0)
+- Expected case (the probability-weighted average of all possible outcomes)
+- Range, the best case - worst case, but highly affected by outliers
+- Variance and stardard deviation are better measures, but they tend to hide extreme risks, like the low but still possible risk of getting bankrupt. Verify if it makes sense to use [Bessel's correction](https://en.wikipedia.org/wiki/Bessel%27s_correction) when computing the variance. Yes, if we assess the risk based on a subset of a larger population, no if the population is fixed and we cover the whole set of possible outcomes.
+
+We can define a portfolio as a set of assets that vary their prices based on two large categories of factors - indiosyncratic (specific to the asset at hand) and systemic (not-specific). As an example, we can consider the team form as an example of idiosyncratic factor and a certain market preference for a specific team as a systemic factor for the finanical risks associated with a portfolio of bets.
+
+*Note:* we have a natural bias for identifying fake cause-effect relationships attributed solely to idiosyncratic factors, e.g. "X failed because of his own behavior", whereas in most cases the systemic factors far outweight the individual factors. However, it seems it is very hard for us, as humans, to have a good grasp of the properties of the system as a whole, as these cannot be attributed solely to obsevable individuals, but rather to the invisible relationships between individuals. When I say "individuals", they can be humans if we talk about social systems, computers or software in IT systems or any other uniquely identifiable element in a configuration that can be bounded (which we like) or unbounded (which we don't like and which usually is the case as systems don't exist in a vacuum, but rather are part of a larger connection of systems).
+
+*Note 2:* it is a bad idea to bet with borrowed money that tomorrow will look like yesterday.
+
+### Risk in a portfolio of stocks
+
+The principles behind assessing risk in a portfolio of stocks for our simple model are:
+- Learn from history (identify relationships) but do not count on it repeating
+- Identify underlying risk factors
+- Stress-test each risk factor 
+
+The important thing to notice is that a portfolio can be modelled as a sum of random variables.
+
+### Sportsbook data model
+
+incl. odds calculation, payout and overround()
+
+If the total risk is seen as too improbable, the behavior of traders will simply be to ignore it and blindly increase the risk budget. 
+
+### Risk at market level
+
+- how risk is calculated for a 1x2 market
+
+- other types of markets, like over-under, correct score
+
+- multiples
+
+### Risk at match level
+
+- relationships between markets
+
+### Risk at league / discipline level
+
+### Total risk
+
+
+### Odds generation
+
+### Simulation:
+
+poisson: goals per match, leading to various outcomes
+
+
+
+
+
