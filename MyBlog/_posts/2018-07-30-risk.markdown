@@ -26,15 +26,134 @@ We can define a portfolio as a set of assets that vary their prices based on two
 
 *Note 2:* it is a bad idea to bet with borrowed money that tomorrow will look like yesterday.
 
-### Risk in a portfolio of stocks
+### Risk in a portfolio of stocks as compared to the sportsbook risk
 
 What we want to do is to be able to issue statements like: *the probability to lose `X` mount of money or more in the following `T` period is `p%`*. This amount of money, `X` is called *value at risk*.
 
 The important thing to notice is that a portfolio can be modelled as a sum of random variables. Unlike the sportsbook portfolio where the outcome of each sport event is a discrete random variable, with a finite set of possibilities, stock movement can be thought as a continuous random variable. However, given the sheer number of sport events and their continuous flux, my intuition tells me there are parallels to be made between studying financial risk models and sportsbook risk models. We will assume the distribution of stock movement to be normal, although its use is questionable, as it seems that extreme events in this space are more frequent than what it predicts.
 
-In this case, `VaR(p%) = X = Amount-Of-Money-Invested * Zscore(p%) * sigma`, where `Zscore(p%)` is the amount of standard deviations corresponding to the probability `p`. Thus, the only thing we need to compute is `sigma = sqrt(Var(P))`. In the case of the sportsbook, we have a large discrete set of possible losses and wins, each with a probability that can be numerically computed. However, computing this set is not computationally effective as the tree of possibilities is huge. For instance, in the small case of a portfolio of only 10 binomial independent events, the cardinality of the set of possible outcomes is 2^10 = 1024. Thus, we need to seek alternative means of computing the `VaR`. A simple model to be tested in practice would be to compute the risk for the worst possible scenario (sum of all maximum losses), compute its probability (product of all probabilities of the worst possible outcomes) and given this probability compute its Zscore and thus distribute risks accordingly. However, such a model might prove to hide too much error due to the extreme values and simplistic assumptions baked into it. Another option might be to sample the distribution of returns, let's say to compute 1000 random returns / losses for 1000 events, assume them equiprobable, and compute the variance based on these (divide by n-1, to incorporate Bessel's correction). These would also give us a hint at the shape of the real distribution, so we might have the option not consider the normal distribution afterall.
+In this case, `VaR(p%) = X = Amount-Of-Money-Invested * Zscore(p%) * sigma`, where `Zscore(p%)` is the amount of standard deviations corresponding to the probability `p`. Thus, the only thing we need to compute is `sigma = sqrt(Var(P))`. 
+
+In the case of the sportsbook, we have a large discrete set of possible losses and wins, each with a probability that can be numerically computed. However, computing this set is not computationally effective as the tree of possibilities is huge. For instance, in the small case of a portfolio of only 10 binomial independent events, the cardinality of the set of possible outcomes is 2^10 = 1024. Thus, we need to seek alternative means of computing the `VaR`. A simple model to be tested in practice would be to compute the risk for the worst possible scenario (sum of all maximum losses), compute its probability (product of all probabilities of the worst possible outcomes) and given this probability compute its Zscore and thus distribute risks accordingly. However, such a model might prove to hide too much error due to the extreme values and simplistic assumptions baked into it. Another option might be to sample the distribution of returns, let's say to compute 1000 random returns / losses for 1000 events, assume them equiprobable, and compute the variance based on these (divide by n-1, to incorporate Bessel's correction). These would also give us a hint at the shape of the real distribution, so we might have the option to not consider the normal distribution. We can push this model even further, selectively pick the most extreme cases (wins / loses), leading to a lobed distribution, with inflated tails.
+
+However, the two options above are mostly invalidated by practice. Below is a run for a simulation of 4 sets of different matches (win-lose), each described by the tuple `(prob_loss, loss_value, prob_win = 1- prob_loss, win_value)`. The rows (series) are as follows:
+1. small number of 8 matches, prob of loss small and the possible loss value large, which leads to `2^8=256 outcomes`
+2. small set of 12 matches, prob of loss and prob of win distributed evenly, thus also the win / loss values are similarly matched. In total, `2^12=4096 possible outcomes`
+3. small set of 12 matches, prob of loss limited to 0.5% per match. In total, `2^12=4096 possible outcomes`
+3. small set of 12 matches, prob of loss limited to 0.2% match (unprobable high losses, paired by probable smaller wins). In total, `2^12=4096 possible outcomes`.
+
+Code below:
+
+```python
+
+"""
+The following code assumes a series of independent matches, each modeled as a tuple (p_loss, loss, won), with p_won assumed to be 1-p_loss. Each event is a Bernoulli trial.
+"""
+from functools import reduce
+from random import random
+from matplotlib import pyplot as plt
+import statistics as stats
+
+
+def prob_tree(risks: list):
+    """ element in risks is (prob_loss, value_loss, value_won) """
+
+    if len(risks) == 0:
+        raise Exception("cannot handle")
+
+    pl, vl, w = risks[0]
+
+    if len(risks) == 1:        
+        yield [(pl, vl)]
+        yield [(1-pl, w)]
+    else:
+        for remaining in prob_tree(risks[1:]):
+            yield [(pl, vl)] + remaining # event happened (event == loss)
+            yield [(1-pl, w)] + remaining # event did not happen
+    
+def gen_disjoint_events(risks: list):
+    """ element in risks is (prob_loss, value_loss, value_won) """
+
+    for r in prob_tree(risks):        
+        p = reduce(lambda a, b: a * b, (p_ for p_, _ in r))
+        v = sum(v_ for _, v_ in r)
+
+        yield (p, v)
+
+
+def display_cases(rows: list):
+    """ Shows the nice charts """
+
+    row_cnt = len(rows)
+
+    fig, ax = plt.subplots(row_cnt, 3)
+
+    for i in range (0, row_cnt):
+
+        list_of_wins = rows[i][0]
+        list_of_probs = rows[i][1]
+        list_of_expected = rows[i][2]
+
+        print("Mean: {}, Stddev: {}".format(stats.mean(list_of_expected), stats.stdev(list_of_expected)))
+        
+        p = ax[i][0]
+        if i == 0: p.set_title("List of wins - absolute values")
+        p.hist(list_of_wins, 10 if len(list_of_wins) < 1000 else 100)
+
+        p = ax[i][1]
+        if i == 0: p.set_title("Probabilities")
+        p.hist(list_of_probs, 100)
+    
+        p = ax[i][2]
+        if i == 0: p.set_title("Expected wins")
+        p.hist(list_of_expected, 100)       
+        
+    
+    plt.show()
+        
+def gen_statistics(matches: list):
+    disjoin_events = [x for x in gen_disjoint_events(matches)]    
+    return ([v for p, v in disjoin_events], [p for p, v in disjoin_events], [p*v for p, v in disjoin_events])
+
+def gen_matches(cnt, max_loss_prob):
+
+    ret = []
+
+    for i in range(0, cnt):
+        p_loss = random() * max_loss_prob
+        loss = -random() * 10000
+        win = -loss * p_loss / (1-p_loss)
+        ret.append((p_loss, loss, win))
+
+    return ret
+
+
+if __name__ == "__main__":
+
+    # small number of matches
+    matches = [
+       [(0.2, -750, 300), (0.3, -200, 300), (0.3, -220, 100), (0.6, -80, 110), (0.1, -1050, 300), (0.2, -550, 300), (0.31, -520, 100), (0.5, -120, 110)],
+       gen_matches(12, 1),
+       gen_matches(12, 0.5),
+       gen_matches(12, 0.2)
+       ]
+
+    plots = []
+
+    for match in matches:
+        plots.append(gen_statistics(match))
+
+    display_cases(plots)
+
+    print("Done")
+
+```
+
+![Risk simulation]({{site.url}}/assets/risk_1.png)
 
 But until then, let's return to our stock risk model as the results are pretty interesting.
+
+### Risk in a portfolio of stocks
 
 The principles behind assessing the risk in a portfolio of stocks for our simple model are:
 - Learn from history (identify relationships) but do not count on it repeating. Historical based VaR often underestimates the worst case. 
@@ -50,13 +169,13 @@ If `Y = w1 * X1 + w2 * X2 + ...+ wn * Xn`, `Variance(Y) = sum(wi * wj * Covarian
 
 *The Model*:
 
-We consider two systemic risks, the overal "market sentiment", as captured by S&P500, and the overall level of interest rates in the economy, as captured by FVX. If the whole market goes up (S&P500 goes up), it is a reasonable expectation that our stock portfolio will also go up. If the interest rates go up, interest in stocks tends to decrease while interest in bonds tends to increase. These two factors are not independent of each other.
+We consider two systemic risks, the overal "market sentiment", as captured by S&P500, and the overall level of interest rates in the economy, as captured by FVX. If the whole market goes up (S&P500 goes up), it is a reasonable expectation that our stock portfolio will also go up. If the interest rates go up, interest in stocks tends to decrease while interest in bonds tends to increase. 
 
-We aim to express the returns of each of our stocks as a linear regression based on the risks identified above, as follows (`Yi` is the return of stock `i` in our portfolio). The return value of our portfolio over a period of time is `P = w1 * Y1 + w2 * Y2 + ...` where `wi` is the amount of money invested in that particular stock, with `sum(wi) = W`, our invested sum and `Yi` the variation expressed in percentages of that particular stock. Thus, the end value of our portfolio would be `S(t + dt) = W + P`, with `W = S(t)`.
+We aim to express the returns of each of our stocks as a linear regression based on the factors identified above, as follows (`Yi` is the return of stock `i` in our portfolio). The return value of our portfolio over a period of time is `P = w1 * Y1 + w2 * Y2 + ...` where `wi` is the amount of money invested in that particular stock, with `sum(wi) = W`, our invested sum and `Yi` the variation expressed in percentages of that particular stock. Thus, the end value of our portfolio would be `S(t + dt) = W + P`, with `W = S(t)`.
 
 We consider a multiple linear regression model:
 
-- `Yi = Ai + Bi1*F1 + Bi2*F2 + e_i`, `A` being called the `Alpha`, meaning the stock specific performance, `B` being called `Beta`, meaning the market performance as a whole, and `e` a residual stock-specific factor, derived from its idiosyncratic risks. Discussion about multiple regression, including the residual factor, [here](https://alexandrugris.github.io/machine/learning/2017/03/25/MachineLearning-Notebook-2.html). 
+- `Yi = Ai + Bi1*F1 + Bi2*F2 + e_i`, `A` being called the `Alpha`, meaning the stock specific performance, `B` being called `Beta`, meaning the market performance as a whole, and `e` a residual stock-specific factor, derived from its idiosyncratic risks. Discussion about multiple regression [here](https://alexandrugris.github.io/machine/learning/2017/03/25/MachineLearning-Notebook-2.html). 
 
 - `Var(Yi) = Var(Ai + Bi1*F1 + Bi2*F2) + Var(e_i)`, with `Ai` a constant, and `e_i` the idiosyncratic factor,  with `TotalVariance(Y) = SystemicVariance(Y) + IdiosyncraticVariance(Y)`. We can write like this since we assume the idiosyncratic and the systemic risks are fully independent.
 
@@ -65,6 +184,156 @@ We consider a multiple linear regression model:
 - `Var(Ai + Bi1*F1 + Bi2*F2) = SystemicVariance(Y) = Var(Ai) + Var(Bi1*F1 + Bi2*F2) = 0 + Var(Bi1*F1 + Bi2*F2)`, since `Ai` is a constant.
 
 For our value at risk calculation, we will assume the portfolio returns to be normally distributed and centered around 0 - no loss, no gain. In the case of a sportsbook, we can also consider the returns to be centered around the Expected Value of the portfolio, which should be above 0. This choice (0 or EV) is detabatable and should be tested both through simulation and with real data.
+
+*Steps taken:*
+
+- *Aquire data and transform from non-stationary data to stationary*. Usually one cannot use timeseries data directly for mathematical models such as regression because data from one point to the next is not independent. However, converting to returns, with `return=(new_data - old_data) / old_data`, yields a much higher level of independence from one point to the next. E.g. temperature at moment `t+dt` is clearly dependent on temperature at moment `t`, whereas temperature gains / loss are not. Data is downloaded from Yahoo finance.
+
+![Stock prices]({{site.url}}/assets/risk_2.png)
+
+- *Model historical relationships:* we have seen that `Variance(Y) = W * COV_MTX(X) * WT`, so we can assign the `W` vector to the weights we have in our porfolio (a good exercise is to determine these weights so that we maximize the return and minimize the risk) and compute the `COV_MTX(X)`. Now we can compute our `Var(Y)` which is our historical portfolio variance. This can be done in a simpler way by `dot`-ing (sum-product) the weight for each stock with the yield of each stock on a monthly basis to compute the monthly yield, and then computing the variation for the yields series. In such case, the covariance matrix formula might seem an overkill. However, if we are to do the reverse analysis, to compute the weights to optimize for risk or yield, the advantage of the cov-matrix approach quickly become apparent, considering the case in which the number of data points is much larger than the number of stocks in our portfolio. In the covariance matrix scenario, the complex calculation which involves the whole time series is performed only once, in the beginning. Then, for each change in weights, we would simply do 3 matrix multiplications. Simple approach, below. Numbers downloaded from Yahoo! Finance. Excel file [here](({{site.url}}/assets/stock-indices.xlxs))
+
+![Simple approach of computing historical portfolio variance based on monthly yields]({{site.url}}/assets/risk_3.png)
+
+And the python code:
+
+```python
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv('stock-indices.csv')
+
+columns = list(df)
+
+date = columns[0]
+stocks = columns[1:-2]
+indices = columns[-2:]
+
+# convert first column to date by default it is dtype('O'), python object and make sure the set is sorted
+df[date] = pd.to_datetime(df[date], format="%m/%d/%Y")
+df = df.sort_values([date], ascending=[True])
+
+# compute the returns for each stock
+prev = df[stocks+indices]
+current = df[stocks+indices].shift(-1) # reindex the data, because data is added index-wise
+returns = ((current - prev) / prev)[:-1] #last one is nan
+
+# to simplify, we set weights to the same numbers as in excel so we can verify our calculations
+weights = pd.Series([0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 0.1], index=["MSFT", "GOOGL", "CVX", "IBM", "SBUX", "MCD", "AAPL"])
+
+cov = returns[stocks].cov()
+
+# for computing the covariance matrix I have another blog post
+variance = (weights.dot(cov).dot(weights.T))*100
+print("Historical variance: {}%".format(variance)) # similar to excel
+```
+
+- *Create a systemic factor model based on S&P500 and FVX*:
+
+```python
+# we do the factor analysis for  F1 = S&P and F2 = FXV
+# Yi = A + B1 * F1 + B2 * F2, with Y = return of stock Yi
+# returns[stocks] = A + returns["^S&P500"] + returns["^FVX"]
+
+def idiosyncratic_variance(Y, As, Bs, Fs, W):
+
+    Y = Y.values.T
+    Fs = Fs.values.T
+    Bs = Bs.values
+    W = W.values.T
+
+    As = np.repeat(As.values, Y.shape[1], axis = 1)    
+    residuals = np.var(Y - As - np.dot(Bs, Fs), axis=1)
+
+    ret = W * residuals * W
+    return np.sum(ret)
+
+
+def cov(_x, _y):
+
+    x = _x.flatten()
+    y = _y.flatten()
+
+    if x.size != y.size:
+        raise Exception("x and y should have the same size")
+
+    mean_x = np.mean(x)
+    mean_y = np.mean(y)
+
+    N = x.size
+
+    return (1 / N) * np.sum((x - mean_x) * (y - mean_y))
+
+def cov_mtx(X, Y):
+    return np.array([[cov(x, y) for y in Y] for x in X])
+
+def lin_regress_mtx(Y, Fs):
+
+    # Multiple regression: Y = As + sum(i, Bi * Fi)
+    # Bs = cov(Y, F) * cov (F, F)^(-1)
+    # As = mean_Y - sum(bi * mean_xi)
+
+    # convert to numpy array
+    Y = Y.values.T
+    Fs = Fs.values.T
+
+    Cxx = cov_mtx(Fs, Fs)
+    Cyx = cov_mtx(Y, Fs)
+
+    Bs = Cyx.dot(np.linalg.inv(Cxx))
+
+    mean_Fs = np.mean(Fs, axis=1)
+    As = np.array([[np.mean(y) - np.dot(bs, mean_Fs)] for y, bs in zip(Y, Bs)])
+
+    return pd.DataFrame(np.hstack((As, Bs)))    
+   
+
+coef_matrix = lin_regress_mtx(returns[stocks], returns[indices])
+
+# compute the variance
+
+Bs = coef_matrix[[1,2]]
+As = coef_matrix[[0]]
+
+reconstructedCovariance = np.dot(np.dot(Bs, returns[indices].cov()), Bs.T)
+
+systemic_var = (weights.dot(reconstructedCovariance).dot(weights.T)) * 100
+idiosync_var = idiosyncratic_variance(returns[stocks], As , Bs, returns[indices], weights) * 100
+
+f_based_variance =  systemic_var + idiosync_var
+
+print("Factor based variance: {}%".format(f_based_variance)) # rather similar to historic risk
+```
+
+ - *Compute a stress test based portfolio variance*. The process is described below:
+
+ 1. Find the minimum for the `S&P` and  the minimum for the `FVX`.
+ 2. Find the maximul for the `S&P` and the maximum for the `FVX`.
+ 3. Divide each interval in, let's say, `30` increments and obtain `30*30` pairs.
+ 4. Apply our factor model (`As` and `Bs` obtained in the previous step) for each of these values and compute the returns for each stock. We will simply discard the idiosyncratic factor, as we don't have information about it and should be small anyway.
+ 5. Use the steps from computing the historic variance to compute the new portfolio variance.
+ 6. Compare this variance to the previous two. This one should be more extreme.
+ 7. Consider using this variance for computing the `VaR` for our portfolio.
+
+ - *Compute and interpret VaR*
+
+ ```python
+
+def value_at_risk(portfolio_sum, variance, confidence_level, no_of_periods = 1):
+
+    import scipy.stats as st
+    zscore = st.norm.ppf(1-confidence_level, 0, 1)
+    sigma = np.sqrt(variance)
+    return np.abs(portfolio_sum * zscore * sigma * np.sqrt(no_of_periods))
+
+
+s = df.iloc[-1][stocks]
+portfolio_sum = np.sum((s * weights).values)
+
+var99 = value_at_risk(portfolio_sum, f_based_variance / 100, 0.99, 1) # / 100 because it was in percentage
+ ```
+
+ The `var99` number tells us that the probability to lose a value equal to `var99` or greater in the following period is `1%`. With our numbers, the `var99` value is `28.68`, with a total portfolio sum equal to `345`.
 
 ### Sportsbook risk
 
