@@ -326,6 +326,8 @@ plt.plot(range(0, len(h)), a, color="green")
 plt.show()
 ```
 
+TODO: look into this: [Dirichlet distribution](https://en.wikipedia.org/wiki/Dirichlet_distribution).
+
 ### The results
 
 ![Results]({{site.url}}/assets/bayes_2.png)

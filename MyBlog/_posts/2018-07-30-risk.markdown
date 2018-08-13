@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Risk"
+title:  "Risk Models"
 date:   2018-07-26 13:15:16 +0200
 categories: statistics
 ---
@@ -344,35 +344,209 @@ var99 = value_at_risk(portfolio_sum, f_based_variance / 100, 0.99, 1) # / 100 be
 The goal of a sportsbook is to secure a long-term profit by adding a small margin to each betting market, while not running out of business due to losses on any single day. The main cycle is:
 
 1. Select a match and a market and compute a set of probabilities for each possible outcome to occur.
-2. Compute the odds by artificially increasing the probability of each outcome to secure long term profit (e.g., for a fair coin toss, instead of offering odds at 2.0, a sportsbook might decide to offer odds at 1.9, securing a long-term 10 cent profit for each game)
+2. Compute the odds by artificially increasing the probability of each outcome to secure long term profit (e.g., for a fair coin toss, instead of offering odds at 2.0, a sportsbook might decide to offer odds at 1.9, securing a long-term 10 cent profit for each game). This notion is called overround and is computed below.
 3. Accept bets
 
-However, the sportsbook might not accurately determine the real odds odds or the market might have a strong preference towards a specific outcome. Like, for instance, in the example above, the coin might not be fair or the population might have a bias towards head due to some unknown factor. In these conditions, on that specific game, the sportsbook might lose money. In order to limit the risk of going bankrupt, the sportsbook has two strategies: decrease the odds for the preferred outcome thus incetivising people to bet on the other or stop accepting bets when a risk threshold is reached.
+```python
+def overround(self):
+    return sum((1/o for o in self.odds)) - 1
+```
+
+![Computing the profit based on total sakes and overround]({{site.url}}/assets/risk_4.png)
+
+The sportsbook might not accurately determine the real odds odds or the market might have a strong preference towards a specific outcome. Like, for instance, in the example above, the coin might not be fair or the population might have a bias towards head due to some unknown factor. In these conditions, on that specific game, the sportsbook might lose money. In order to limit the risk of going bankrupt, the sportsbook has two strategies: decrease the odds for the preferred outcome thus incetivising people to bet on the other or stop accepting bets when a risk threshold is reached.
 
 The role of the risk model is to prevent the sportsbook from going bankrupt and, in general, has two components: a) limit the stakes placed on each bet so that the risk budget is not in danger of being exceeded and b) when the risk is reached on a specific market, suspend betting on the culprit outcome. The risk model is dynamic, it is updated with each incoming bet and with each settled bet. Since the amount of calculation can be pretty high, it might be delayed until a certain threshold is reached (a batch of bets being placed), but this is an implementation detail and does not impact the actual model behind.
 
 ### Sportsbook data model
 
+We will consider a rather simple domain model for our sportsbook, composed of the following domain objects:
+- Sportsbook - the aggregate root for this bounded context
+- Discipline - the type of sport, like football, basketball, tennis.
+- League - A discipline can have many leagues, but a league can only have one discipline. E.g, Champions League.
+- Match - A match is part of a league. A league can have multiple matches, but a match can only be part of a single league.
+- Outcome - some event that can occur and on which one can offer bets.
+- Team / Participant - A discipline can have several teams, but a team is part of a single discipline. A match has one or more participants.
+- Market - a set of 2 or more mutually exclusive outcomes offered for betting on. A match can have multiple markets. An outcome can be found in several markets.
+- Selection - a combination of a Match / Market / Outcome.
+- Bet - a combination of 1 or multiple selections.
 
-incl. odds calculation, payout and overround()
+We will also consider only score-based markets, like 1x2, over-under, correct score. We will use strings for IDs so things are easy to follow and debug. For the sake of this example, we will leave aside other entities that would make a more complete and functional model, which for sure will include:
+- Event part - A time-based part of a match, e.g. first part, second part, ordinary time, extension, first set, etc.
+- Market template - build betting markets based on a set of common parameters, like `1x2`, which can be offered on a wide variety of matches. 
+etc.
+
+Some code snippets for placing and managing bets. As usual, we start by analysing usage. Throught our model, we will use this custom dictionary class to hold related objects. 
+
+```python
+class CustomDict(dict):
+
+    def __init__(self, *args, **kwargs):
+        super(CustomDict, self).__init__(*args, **kwargs)
+  
+    def get_or_create(self, key: str, b_create:  bool, create_func: Callable):
+        ret = self.get(key)
+
+        if ret is None and b_create is True:
+            ret = create_func()
+            self[key] = ret
+
+        return ret
+```
+
+The object model follows an implementation pattern like the following:
+
+```python
+class Sportsbook:
+    """ Main class for the application. Allows placing bets, updating odds, settling bets, computing risk """
+
+    __slots__ = ["disciplines"]
+
+    def __init__(self, disciplines: list = []):
+
+        # A tree of model entities, accessible by a string key.
+        self.disciplines = CustomDict({ name : Discipline(name) for name in disciplines })
+
+    def get_discipline(self, discipline: str, create_on_missing) -> Discipline:
+        return self.disciplines.get_or_create(discipline, create_on_missing, lambda: Discipline(discipline))         
+    
+    def get_matches(self, discipline: str, league: str, create_on_missing = False) -> Matches:
+        """ a shorcut, so we don't always query by discipline and leagues"""
+        disc = self.get_discipline(discipline, create_on_missing)
+        lg = disc.get_league(league, create_on_missing)
+        return Matches(disc, lg)
+
+    def get_market_templates(self, discipline: str, league: str):
+        """ returns a function! the reason is that for each match, each market will be created specifically. 
+        do not mistake market for market template"""    
+        return lambda: [Market('1x2'), Market('OverUnder-1.5'), Market('CorrectScore-0-0')]
+```
 
 
 
-### Risk at market level
+```python
+if __name__ == "__main__":
 
-- how risk is calculated for a 1x2 market
+    sportsbook = Sportsbook()
 
-- other types of markets, like over-under, correct score
+    teams = ["steaua", "dinamo", "iasi", "cluj"]
+    mkt_templates = sportsbook.get_market_templates("football", "ro") # disciline, league
 
-- multiples
+    matches = sportsbook.get_matches("football", "ro", True)    
 
-### Risk at match level
+    # generate league matches, with their respective templates
+    for m in itertools.permutations(teams, 2):
+        matches.create(m[0], m[1], mkt_templates)
+    
+    matches.set_odds('steaua', 'dinamo', '1x2', [2.1, 2.8, 3.5])
+    matches.set_odds('steaua', 'iasi', '1x2', [2.1, 2.8, 3.5])
+    matches.set_odds('steaua', 'cluj', '1x2', [2.1, 2.8, 3.5])
+    matches.set_odds('iasi', 'dinamo', '1x2', [2.1, 2.8, 3.5])
 
-- relationships between markets
+    # we will use these selections to place bets
+    # number of the end is the outcome ID from th respective market. 0 -> 1, x->1, 1->2
+    s1 = matches.create_selection('steaua', 'dinamo', '1x2', 0)
+    s2 = matches.create_selection('steaua', 'dinamo', '1x2', 1)
+    s3 = matches.create_selection('steaua', 'dinamo', '1x2', 2)    
+    s4 = matches.create_selection('iasi', 'dinamo', '1x2', 0)
+    
+    # betslip single
+    bet = sportsbook.place_single(s1, 10)
+    print("Expected wins:", bet.payout())
+
+    print("Market risk: {}".format(matches.get_market('steaua', 'dinamo', "1x2").market_risk()))
+    
+    # betslip multiple
+    bet = sportsbook.place_multiple([s1, s2, s3] , 10)
+    print("Expected wins:", bet.payout())
+
+    # betslip system
+    # we keep the variable assignment for inspection with the debugger
+    system = sportsbook.place_system([s1, s2, s3], 10, 0)
+    system = sportsbook.place_system([s2, s3, s4], 10, 1)
+    system = sportsbook.place_system([s2, s3, s4], 10, 2)
+    system = sportsbook.place_system([s2, s3, s4], 10, 3)
+
+    # risk
+    print("Market risk: {}".format(matches.get_market('steaua', 'dinamo', "1x2").market_risk()))
+
+    print("Football risk: {}".format(matches.discipline.discipline_risk()))
+```
+
+Also, since we touched the bet placement topic, here are the place bet methods (single, multiple, system):
+
+```python
+def generate_system(self, selections, stake, n):
+""" Generates an n-way system bet based on the selections list """
+
+    if n == 0:
+        return [Bet(selections, stake)]
+        
+    sel_cnt = len(selections)
+
+    if n > sel_cnt:
+        raise Exception("Number of bets is larger than the number of selections")
+
+    bet_combinations = list(itertools.combinations(selections, n))        
+    stake = stake * len(bet_combinations) / sel_cnt
+
+    return [Bet(sels, stake) for sels in bet_combinations]
+               
+def place_bet(self, selections, stake, n_way_system = 0):
+
+    if n_way_system > len(selections):
+        raise Exception("Invalid system bet")
+
+    # check if the odds are within market + threshold
+    for s in selections:
+        s.check_odds()
+                
+    bets = self.generate_system(selections, stake, n_way_system)         
+    selections = [s for b in bets for s in b.selections]
+
+    # check the risk; this method throws but does not alter the state of the market
+    for s in selections:
+        s.market.check_risk(s.outcome_id, s.odds,  s.stake) 
+
+    # commit risk; this method should not throw
+    for s in selections:
+        s.market.commit_selection(s.outcome_id, s.odds,  s.stake)
+
+    # TODO: store the bets    
+
+    return bets 
+
+def place_single(self, selection, stake: float):
+    return self.place_bet([selection], stake)[0]
+
+def place_multiple(self, selections: list, stake: float):
+    return self.place_bet(selections, stake)[0]
+
+def place_system(self, selections: list, stake: float, n_way_system: int):
+    return self.place_bet(selections, stake, n_way_system)
+```
+
+
+### Risk at match and market level
+
+Given a market with 3 disjoined outcomes, like 1x2, one can calculate the risk as follows:
+
+![Risk calculation]({{site.url}}/assets/risk_5.png)
+
+The formulas are quite self explanatory. There is an amount which was taken from the players, the sum of all stakes. And then there are specific amounts that need to be paid to the bettors for each outcome that might occur. For each of these outcomes, we substract the money due from the total stakes and some outcomes will be positive for us and some negative, meaning we lose money if that outcome occurs. The risk is the maximum loss that can occur. I find it interesting to also compute an "expected risk" value. This value has a higher probability (sum of all probabilities where losses can occur) at the expense of a lower sum. Given the higher probability, I think this number can give a certain indication that losses can truly occur on this market.
+
+Obviously, score-based markets are connected to each other. One match cannot have both `0-1` correct score happening and `1` or `x` from `1x2` occuring at the same time. Just the same, one cannot have `1-0` correct score occuring and `over 2` occuring at the same time. Factoring in these relationships, the sports book can more accurately predict the actual risk on a match. In our example, by simply including the correct score market inside the 1x2 market and inside the over-under budget and then substracting it once from the total risk budget, we can remove all the correct score markets from being included in the total risk calculation. Obviously, more such relations exist, each relation leading to a more accurate risk assessment. This is actually the inverse process used for generating odds, which, in principle and only for football, I will discuss in the next paragraph.
+
+### Odds generation
+
+### Multiples
+
 
 ### Risk at league / discipline level
 
 ### Total risk
+
+Estimation based on past performance with regression. 
 
 
 ### Odds generation
