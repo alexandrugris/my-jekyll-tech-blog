@@ -4,13 +4,13 @@ title:  "Risk Models"
 date:   2018-07-26 13:15:16 +0200
 categories: statistics
 ---
-A not-so-short discussion about finanical risk, starting from computing risk for a portfolio of stocks and discussing which ideas can be applied to modelling risk for a sportsbook. Many points presented here have not been tested in production or on real datasets. 
+A not-so-short discussion about finanical risk, starting from computing the risk for a portfolio of stocks and discussing which ideas might be applied to modelling risk for a sportsbook. Many points presented here have not been tested in production or on real datasets. 
 
-A sportsbook can be seen as a portfolio of bets on a set of markets, each with an expected positive return for the bookmaker. But things can turn south and losses do occur. We need to limit such losses so that the sportsbook remains profitable on the long run. However, simply summing up the worst case loss on each market may be too restrictive since some of the outcomes are strongly-correlated (more on this later). Also, since there are tens of thousands of events happening every month, the probability of an extreme loss at any given period is tiny, but the same tens of thousands of events mean that extreme situations do occur. If the total risk is seen as too extreme and too improbable, the traders might be incetivised to simply ignore it and to increase the risk limits blindly, thus opening the gates to unquantified losses. Similarly, if we stick to risk limits that are too restrictive, we might miss the oportunity to make profit in otherwise highly profitable markets.
+A sportsbook can be seen as a portfolio of bets on a set of markets, each with an expected positive return for the bookmaker. But things can turn south and losses do occur. We need to limit such momentary losses so that the sportsbook remains profitable on the long run. However, simply summing up the worst case loss on each match may be too restrictive since there are tens of thousands of events happening every month and the probability of an extreme loss at any given period is tiny, but the same tens of thousands of events mean that extreme situations do occur. If the total risk is seen as too extreme and too improbable, the traders might be incetivised to simply ignore it and to increase the risk limits blindly, thus opening the gates to unquantified losses. Similarly, if we stick to risk limits that are too restrictive, we might miss the oportunity to make profit in otherwise highly profitable markets.
 
 ### Risk
 
-Risk is a way to quantify uncertainty given a set of possible outcomes. A common way to quantify risk is by using the standard deviation. However, a poorly constructed risk model can lead to spectacular financial failures. Risks is derived from uncertainty. Whenever there is an uncertainty regarding an outcome, there is a risk associated with it. Risk can estimated based on a probabilistic model and expressed as probabilities and consequences for a specific set of outcomes.
+Risk is a way to quantify uncertainty given a set of possible outcomes. A common way to quantify risk is by using the standard deviation. However, a poorly constructed risk model can lead to major financial failures. Risks is derived from uncertainty. Whenever there is an uncertainty regarding an outcome, there is a risk associated with it. Risk can estimated based on a probabilistic model and expressed as probabilities and consequences for a specific set of outcomes.
 
 Several values come to mind when speaking of the set of possible outcomes:
 
@@ -18,7 +18,7 @@ Several values come to mind when speaking of the set of possible outcomes:
 - Best case (maximum win, if best case > 0)
 - Expected case (the probability-weighted average of all possible outcomes)
 - Range, the best case minus the worst case, but highly affected by outliers
-- Variance and stardard deviation, but they tend to hide extreme risks, like the low but still possible risk of getting bankrupt. 
+- Variance and stardard deviation. However they tend to hide extreme risks, like the low but still possible risk of getting bankrupt. 
 
 When computing the variance, it is important to verify if it makes sense to use [Bessel's correction](https://en.wikipedia.org/wiki/Bessel%27s_correction). Yes, if we assess the risk based on a subset of a larger population, no if the population is fixed and we cover the whole set of possible outcomes.
 
@@ -557,7 +557,7 @@ The obvious deficiency is that teams do not play independently but together and 
 
 [Paper here](https://tolstoy.newcastle.edu.au/R/e8/help/att-6544/karlisntzuofras03.pdf)
 
-Now that we have a basic mathematical understanding on how to simulate probabilities, the remaining question is how to draw the input data, the expected goals. Here is a simple additive model:
+Now that we have a basic mathematical understanding on how to simulate probabilities, the remaining question is how to draw the input data, the expected goals. Both models here have two factors: the systemic factor (the league overall characteristic, which is strongly underlined in both models) and the idiosyncratic factor (how each team performs by itself).
 
 ```
 home expected number of goals = (expected total goals scored per this game + expected difference in favor of home) / 2
