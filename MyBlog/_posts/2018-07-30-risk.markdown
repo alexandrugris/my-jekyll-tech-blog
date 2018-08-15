@@ -709,7 +709,7 @@ if __name__ == "__main__":
     plt.show()
 ```
 
-And the results:
+And the results (same 4 match sets, 5 runs of 1000 simulations for each - stability means data on each line looks very similar to each other):
 
 ![Risk for the series above]({{site.url}}/assets/risk_8.png)
 And also the print screen with data from this run (table above), as well as with 1500 other simulations of matches distributions each for 1000 trials for expected results.
