@@ -539,23 +539,185 @@ Obviously, score-based markets are connected to each other. One match cannot hav
 
 ### Odds generation
 
+For football, a rather simple and good way to generate odds is by estimated the number of expected goals each team will score and then use the Poisson distribution to compute the probability for each score. This model is useful for low scoring sports, like footbal, and treats each team independent of each other.
+
+![Poisson]({{site.url}}/assets/risk_6.png)
+
+1. Input the expected score for each team.
+2. Use Poisson to compute the probability for each score.
+3. Derrive the probabilities for over-under and 1x2 markets based on these values.
+
+The obvious deficiency is that teams do not play independently but together and the way each team plays influences the other. Thus, in practice, the probability of a draw is higher than what pure Poisson predicts. An improved model uses the bivariate Poisson distribution for more accurate score predictions:
+
+> This bivariate distribution allows for dependence between the two random variables. Marginally, each random variable follows a Poisson distribution with `E(X) = λ1+λ3` and `E(Y) = λ2+λ3`. 
+> Moreover, `cov(X,Y)` = `λ3`, and hence `λ3` is a measure of dependence between the two random variables. If λ3 = 0 then the two variables are independent and the bivariate Poisson distribution 
+> reduces to the product of two independent Poisson distributions (referred to as the double-Poisson distribution). For a comprehensive treatment of the bivariate Poisson distribution and its 
+> multivariate extensions see Kocherlakota and Kocherlakota (1992) and Johnson et al. (1997). It is plausible to adopt this distribution for modelling dependence in team sports. A natural 
+> interpretation of the parameters of a bivariate Poisson model is that `λ1` and `λ2` reﬂect the net scoring ability of each team whereas `λ3` reﬂects game conditions(e.g.the speed of the game, the weather or stadium conditions).
+
+[Paper here](https://tolstoy.newcastle.edu.au/R/e8/help/att-6544/karlisntzuofras03.pdf)
+
+Now that we have a basic mathematical understanding on how to simulate probabilities, the remaining question is how to draw the input data, the expected goals. Here is a simple additive model:
+
+```
+home expected number of goals = (expected total goals scored per this game + expected difference in favor of home) / 2
+away expected number of goals = (expected total goals scored per this game - expected difference in favor of home) / 2
+
+where:
+the expected of scored goals per this game = (total goals per game team 1 + total goals per game team 2) / 2
+
+where: 
+total goals per game team 1, 2 = (number of received goals + number of scored goals) / number of matches considered (at least since the beginning of the season)
+
+and:
+expected difference in favor of home = avg diff goals scored by home team - avg diff goals scored by away team + league home advantage
+
+where:
+league home advantage = home average scored  - away average scored, for all matches in the league, not for this match
+
+and:
+avg diff goals scored by home team = (scored by home team - received by home team) / number of matches considered
+avg diff goals scored by away team = (scored by away team - received by away team) / number of matches considered
+```
+
+The input variables for the model above are `scored / received by home / away team`, `number of matches considered` and `home / away average scored` which can be obtained by looking up values on the internet, on each league page, for instance.  
+
+Another model, the multiplicative model, has yet simpler formulas:
+
+```
+goals for home = home team attack strength * away team defence strength * average league home goals
+goals for away = away team attack strength * home team defence strength * average league away goals
+
+wehere:
+attack strength = goal scored / average league goal scored #higher means stronger
+defence strength = goals conceded / average league goals conceded #lower means stronger
+```
+
+Again, numbers can be found by seaching on Internet, for example [here](https://en.wikipedia.org/wiki/2017–18_Premier_League)
+Similar formulas are used by bookmakers to set starting odds as well as by punters to seach for value bets. The beauty of Poisson-based models is that they can be used even during a match. Since we know the rate of goals for each team, we can compute the odds for each team to score an additional 1-2-...-n goals for the remainder of the match, at any given moment. 
+
 ### Multiples
 
+Going back to risk, the main problem with multiples is that they are used by punters to boost their odds by adding to their betslips highly probable events priced low, or to bypass wagering restrictions imposed by bookmakers. Therefore, a more accurate formula for assessing risk takes into consideration these possible tricks, instead of simply splitting the stake equally across all selections:
 
-### Risk at league / discipline level
+![Multiple risk allocation]({{site.url}}/assets/risk_7.png)
 
-### Total risk
+In our case, `=$E$7*(1-E2)/(COUNT($E$2:$E$4) - SUM($E$2:$E$4))`
 
-Estimation based on past performance with regression. 
+### Total Risk and Conclusions
+
+I don't know yet a good way to estimate at any given moment the value at risk, like we did earlier with the portfolio of stocks. Unlike the stocks scenario, it is hard to find a factor model and estimating based only on past performance might be less than ideal. It is good to have a buffer, compute a maximum stake allowed for each outcome based on the total risk on that market and adjust odds to factor in risk and public preferences. I still think that relying only on adding the worst possible outcomes for a bookmaker is not optimal, but I am yet to find a better metric.
+
+I have written some code to validate my assumptions about risk distribution. I used also the "Expected Risk" notion introduced earlier to see how risk distribution is compared to this value. Results are underwhelming. Here is the simulation code, together with some charts.
+
+```python
+def max_loss(matches: list):
+    # filter out those with probability 0
+    return reduce(lambda a, b: (a[0] * b[0], a[1] + b[1]) , matches, (1, 0))
+
+def expected_loss(losses):
+
+    losses = [(p, v) for (p, v) in losses if v < 0 and p > 0]
+    p = sum(( p for p, v in losses))
+    v = sum(( p*v for p, v in losses))
+
+    return (p, v / p)
+
+def expected_wins(losses):
+
+    wins = [(p, v) for (p, v) in losses if v > 0 and p > 0]
+    p = sum(( p for p, v in wins))
+    v = sum(( p*v for p, v in wins))
+    return (p, v/p)
 
 
-### Odds generation
+def expected_values(events):
+    """ Events is a collection of (probability, value) pairs, independent of each other, covering the whole spectrum of possible values (sum(pi) == 1) """
 
-### Simulation:
+    ev = sum(( p*v for p, v in events))
+    variance =  sum( (p * (v-ev)**2  for p, v in events) )
 
-poisson: goals per match, leading to various outcomes
+    return (ev, variance)
+
+def compute_compound_risk(matches: list): 
+    """matches is a list of tuples of the following form: (p_loss, loss, won). loss must be a negative number """
+
+    assert(sum([1 for x in matches if x[1] > 0]) == 0)
+
+    if len(matches) == 0:
+        return (0, 1, 0, 1, 0, 1)
+
+    pmax, max            = max_loss(matches) # this should be computed on the initial array, less numbers
+    
+    # generate disjoined events
+    events = [e for e in gen_disjoint_events(matches)]
+   
+    assert(abs(sum([p for p, v in events]) - 1) < 1e-5)
+
+    # written like this so that I can inspect with the debugger
+    pexpected, expected  = expected_loss(events)
+    pwins, wins          = expected_wins(events)
+    mean, variance       = expected_values(events)
+
+    assert(abs(pexpected + pwins - 1) < 1e-5)
+
+    return (max, pmax, expected, pexpected, wins, pwins, mean, math.sqrt(variance))
+
+def simulate(plt, matches: list, N : int):
+
+    """ Simulates the results for a set matches, N times """
+
+    r = compute_compound_risk(matches)    
+
+    trials = N
+    returns = [0] * trials
+    for i in range (0, trials):
+        round = [v[1] if random() <= v[0] else v[2] for v in matches]
+        returns[i] = sum(round)
+
+    worst_loss               = min(returns)
+    percent_less_than_expected = (sum([1 for x in returns if x < r[2]]) / trials) * 100
+
+    between_expectations = (sum([1 for x in returns if x>=r[2] and x <= r[4]]) / trials) * 100
+
+    total_winnings           = sum(r for r in returns) / trials
+    total_expected_winnings  = int(r[2] * r[3] + r[4] * r[5])
+
+    if plt is not None:
+        plt.hist(returns, 100)
+
+    ## write summary for processing in excel:
+    print(",".join([str(rr) for rr in ([x for x in r] + [worst_loss, percent_less_than_expected, between_expectations, total_winnings, total_expected_winnings])]))
 
 
+if __name__ == "__main__":
+
+    # small number of matches
+    matches = [
+       [(0.2, -750, 300), (0.3, -200, 300), (0.3, -220, 100), (0.6, -80, 110), (0.1, -1050, 300), (0.2, -550, 300), (0.31, -520, 100), (0.5, -120, 110)],
+       gen_matches(12, 1),
+       gen_matches(12, 0.5),
+       gen_matches(12, 0.2)
+       ]
+
+    fig, ax = plt.subplots(len(matches), 5)
+    for i in range(0, len(matches)):
+        for j in range(0, 5): # 5 different runs to show a nice chart                
+            p = ax[i][j]
+            simulate(p, matches[i], 1000)
+
+    plt.show()
+```
+
+And the results:
+
+![Risk for the series above]({{site.url}}/assets/risk_8.png)
+And also the print screen with data from this run (table above), as well as with 1500 other simulations of matches distributions each for 1000 trials for expected results.
+
+![Risk for the series above]({{site.url}}/assets/risk_9.png)
+The expected loss and expected wins are seem to be rather stable indicators. Together with the max loss / max win indicators, they tend to hint towards a bell-shaped distribution for which the parameters are yet to be determined. However, the bell shape does not apply to all distributions of results in a given set of matches, as shown few sections above, thus much care should be taken to not generalize too early.
+
+[Excel Data Here]({{site.url}}/assets/risk-simulation.xlsx)
 
 
 
