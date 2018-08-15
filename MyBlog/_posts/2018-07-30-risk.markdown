@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Risk Models"
-date:   2018-07-26 13:15:16 +0200
+date:   2018-08-15 13:15:16 +0200
 categories: statistics
 ---
 A not-so-short discussion about finanical risk, starting from computing the risk for a portfolio of stocks and discussing which ideas might be applied to modelling risk for a sportsbook. Many points presented here have not been tested in production or on real datasets. 
