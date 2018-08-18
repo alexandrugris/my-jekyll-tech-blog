@@ -716,7 +716,7 @@ And the results (same 4 match sets, 5 runs of 1000 simulations for each - stabil
 And also the print screen with data from this run (table above), as well as with 1500 other simulations of matches distributions each for 1000 trials for expected results.
 
 ![Risk for the series above]({{site.url}}/assets/risk_9.png)
-The expected loss and expected wins are seem to be rather stable indicators. Together with the max loss / max win indicators, they tend to hint towards a bell-shaped distribution for which the parameters are yet to be determined. However, the bell shape does not apply to all distributions of results in a given set of matches, as shown few sections above, thus much care should be taken to not generalize too early and also the variability of the max risk relative to the expected loss is very high - see the chart below.
+The expected loss and expected wins are seem to be rather stable indicators. Together with the max loss / max win indicators, they tend to hint towards a bell-shaped distribution for which the parameters are yet to be determined. However, the bell shape does not apply to all distributions of results in a given set of matches, as shown few sections above, thus much care should be taken to not generalize too early. Additionally, the variability of the max risk relative to the expected loss is very high, see the chart below, so the premature VaR computations based on the assumed distribution will probably grossly underestimate the actual risk.
 
 ![Scatter plot of max loss vs expected loss]({{site.url}}/assets/risk_10.png)
 
