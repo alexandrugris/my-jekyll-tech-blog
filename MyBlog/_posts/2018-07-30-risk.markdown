@@ -692,19 +692,20 @@ def simulate(plt, matches: list, N : int):
 
 if __name__ == "__main__":
 
-    # small number of matches
-    matches = [
-       [(0.2, -750, 300), (0.3, -200, 300), (0.3, -220, 100), (0.6, -80, 110), (0.1, -1050, 300), (0.2, -550, 300), (0.31, -520, 100), (0.5, -120, 110)],
-       gen_matches(12, 1),
-       gen_matches(12, 0.5),
-       gen_matches(12, 0.2)
-       ]
+    # 12 - number of concurrent matches, 1, 0.75, ... 0.1 the maximum probability of losing on this market
+    # 1 means equal chances of win and loss
+    # 0.1 means 0.1 chances of loss; the lower chances of loss, the more extreme the distribution of results
+    # see the gen_matches function above
+    parameters = [(12, 1), (12, 0.75), (12, 0.5), (12, 0.5), (12, 0.1)]
+    fig, ax = plt.subplots(len(parameters), 5)
 
-    fig, ax = plt.subplots(len(matches), 5)
-    for i in range(0, len(matches)):
-        for j in range(0, 5): # 5 different runs to show a nice chart                
+    i = 0
+    for param in parameters:        
+        for j in range(0, 5): # 5 different runs to show some possible distributions
+            matches = gen_matches(param[0], param[1])
             p = ax[i][j]
-            simulate(p, matches[i], 1000)
+            simulate(p, matches, 1000)
+        i += 1
 
     plt.show()
 ```
@@ -715,7 +716,9 @@ And the results (same 4 match sets, 5 runs of 1000 simulations for each - stabil
 And also the print screen with data from this run (table above), as well as with 1500 other simulations of matches distributions each for 1000 trials for expected results.
 
 ![Risk for the series above]({{site.url}}/assets/risk_9.png)
-The expected loss and expected wins are seem to be rather stable indicators. Together with the max loss / max win indicators, they tend to hint towards a bell-shaped distribution for which the parameters are yet to be determined. However, the bell shape does not apply to all distributions of results in a given set of matches, as shown few sections above, thus much care should be taken to not generalize too early.
+The expected loss and expected wins are seem to be rather stable indicators. Together with the max loss / max win indicators, they tend to hint towards a bell-shaped distribution for which the parameters are yet to be determined. However, the bell shape does not apply to all distributions of results in a given set of matches, as shown few sections above, thus much care should be taken to not generalize too early and also the variability of the max risk relative to the expected loss is very high - see the chart below.
+
+![Scatter plot of max loss vs expected loss]({{site.url}}/assets/risk_10.png)
 
 [Excel Data Here]({{site.url}}/assets/risk-simulation.xlsx)
 
