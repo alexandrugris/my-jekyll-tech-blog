@@ -152,6 +152,8 @@ Let's consider a 2-category model, let's say male and female. For this we introd
 
 Explanation is simple. If the character is a male, c1 and c2 will be 0 thus leading to `y_male = a1 + b1*x`. If the character is femaile, `c1=1` and `c2=x`, leading to `y_female=a2 + b2*x`.
 
+We may not want the *slope* influence to be reflected, but only the intercept. In this case, we would only add a single binary dummy variable.
+
 ### Standard errors of coefficients
 
 Given the multiple regression line from above, the points `(xi, yi)` for which we estimate the regression coefficients are just a sample of the total population of possible `(xi, yi)` pairs. Thus each coefficient, `c0 ... cn`, is normally distributed and we can estimate the mean and sigma for each of these coefficients. Obviously, the lower the standard error (`SE`) of each coefficient, the higher confidence we can have that that parameter is close to correctness.
@@ -175,4 +177,4 @@ How good, overall, is our model? That is, if *all* our regression parameters wer
 >The F value in regression is the result of a test where the null hypothesis is that all of the regression coefficients are equal to zero. In other words, the model has no predictive capability.
 > Basically, the f-test compares your model with zero predictor variables (the intercept only model), and decides whether your added coefficients improved the model. If you get a significant result, then whatever coefficients you included in your model improved the model’s fit.
 
-If all `ci == 0`, then the total variance of the residuals in this case would be the total variance of Y, which is the absolute maximum variance the model can have.  If our model were to bring value, then the variance of the residuals would be much lower than the total variance of Y. Just like the *t-statistic*, the *f-statistic* measures how many deviations (but in this case it is not a normal distribution) from the maximum variance our residual variance is, that is how far `Var(Residuals) / Var(Y)` is from 1.
+If all `ci == 0`, then the total variance of the residuals in this case would be the total variance of Y, which is the absolute maximum variance the model can have.  If our model were to bring value, then the variance of the residuals would be much lower than the total variance of Y. Just like the *t-statistic*, the *f-statistic* measures how far from the maximum variance our residual variance is, that is how far `Var(Residuals) / Var(Y)` is from 1.
