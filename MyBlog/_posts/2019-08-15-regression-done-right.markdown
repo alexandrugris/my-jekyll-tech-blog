@@ -26,6 +26,12 @@ In order to check that a linear regression model is correct, we need to examine 
  - Be independent of X
  - Be normally distributed
 
+In general:
+
+- Low R^2, plot of Y vs X has no pattern - no cause-effect relationship
+- Hi R^2, residuals not independent of each other - not properly defined relathionship, maybe non-linear
+- Low R^2, residuals not independent of X - incomplete relationship, there is something other factor to be taken into consideration.
+
  ### A good regression example
 
 Let's do an example in Excel. Let's consider `X = RANDBETWEEN(10,100)` and `Y=100 + 3 × X + RANDBETWEEN(−100, 100)`. This leads to Y being in linear relationship with X with the paramenters `b=100` and `a=3`. In Excel, slope (`a'`) and intercept (`b'`) are computed with the formulas `a' = SLOPE(Y, X)` and `b' = INTERCEPT(Y, X)`. Running these lead to `a'=3.06` and `b'=91.56` and an `R^2=0.81`, where `R^2=Var(Regressed Y) / Var(Y)` as noted before. This means that 81% of the variation of Y is explained by the regression model. We can also consider a rough interval of confidence of 95% as `(y' - 3 * stddev(y'), y' + 3 * stddev(y'))
