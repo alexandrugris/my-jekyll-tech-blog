@@ -32,9 +32,9 @@ In general:
 - Hi R^2, residuals not independent of each other - not properly defined relathionship, maybe non-linear
 - Low R^2, residuals not independent of X - incomplete relationship, there is something other factor to be taken into consideration.
 
- ### A good regression example
+### A good regression example
 
-Let's do an example in Excel. Let's consider `X = RANDBETWEEN(10,100)` and `Y=100 + 3 × X + RANDBETWEEN(−100, 100)`. This leads to Y being in linear relationship with X with the paramenters `b=100` and `a=3`. In Excel, slope (`a'`) and intercept (`b'`) are computed with the formulas `a' = SLOPE(Y, X)` and `b' = INTERCEPT(Y, X)`. Running these lead to `a'=3.06` and `b'=91.56` and an `R^2=0.81`, where `R^2=Var(Regressed Y) / Var(Y)` as noted before. This means that 81% of the variation of Y is explained by the regression model. We can also consider a rough interval of confidence of 95% as `(y' - 3 * stddev(y'), y' + 3 * stddev(y'))
+Let's do an example in Excel. Let's consider `X = RANDBETWEEN(10,100)` and `Y=100 + 3 × X + RANDBETWEEN(−100, 100)`. This leads to Y being in linear relationship with X with the paramenters `b=100` and `a=3`. In Excel, slope (`a'`) and intercept (`b'`) are computed with the formulas `a' = SLOPE(Y, X)` and `b' = INTERCEPT(Y, X)`. Running these lead to `a'=3.06` and `b'=91.56` and an `R^2=0.81`, where `R^2=Var(Regressed Y) / Var(Y)` as noted before. This means that 81% of the variation of Y is explained by the regression model. We can also consider a back-of-the-napkin interval of confidence of 95% as `(y' - 3 * stddev(y'), y' + 3 * stddev(y')) - more on this later in this post.
 
 Let's look now at the residuals:
 
@@ -121,11 +121,58 @@ and
 And finally, observed Y vs Y regressed show a strong linear relatinon of slope almost 1, but with visibly increasing errors towards the right extreme:
 ![Y observed vs Y regressed]({{site.url}}/assets/regression_9.png)
 
-### Conclusions
+### Conclusions - simple linear regression
 
 1. Residuals _must_ be inspected in order to make sure the regression is correct and captures the underlying movement of data.
 2. Timeseries usually need to be transformed to percentage gains (or returns)
 3. Obviously, while the transformation towards percentage returns still tends to accumulate errors as X grows, it still captures much better the data.
 4. In the example above, a significant part of the increase in error is due to the way I generated the Y vector in the first place: `Y = 3 * X * (X+RANDBETWEEN(-10, 10)) + RANDBETWEEN(-200, 200)`. Simply by using this formula, the errors increase towards the end because the generated (observed) data has proportionally more variation towards the end.
 5. As with any model, visual inspection of the end result is very important.
-6. Using the percentage gain difference will lead to slightly different results.
+6. Using the percentage gain obtained by difference will lead to slightly different results.
+
+### Multiple linear regression
+
+In Excel, the function to perform multiple linear regression in `LINEST` - attention, the returned coefficients are in reversed order. A multiple regression is a function `y = c0 + c1 * f1 + ... + cn * fn`, a generalization of the simple linear regression described above.
+
+Things to check for:
+
+- Multicollinearity between factors
+- Adjusted R^2 - penalizes regression models that has included irrelevant factors. R^2 is misleading with multiple regression as it only goes up as we add more and more variables. [Wikipedia](https://en.wikipedia.org/wiki/Coefficient_of_determination#Adjusted_R2)
+- Residuals
+- F-statistic
+- Standard errors of coefficients
+
+### Dummy variables for categorical data
+
+Let's consider a 2-category model, let's say male and female. For this we introduce two dummy variables (c1 and c2), one for intercept and one for slope. The variable for intercept (c1) will be `0` if male and `1` if female, while the variable for slope will be `0` if male and `x` if female. If we want do to a regression, the regression line would look like:
+
+`y = a1 + (a2-a1) * c1 + (b2-b1) * c2 + b1 * x` which is equivalent with the generic multiple regression equation
+
+`y = f0 + f1 * c1 + f2 * c2 + f3 * x`
+
+Explanation is simple. If the character is a male, c1 and c2 will be 0 thus leading to `y_male = a1 + b1*x`. If the character is femaile, `c1=1` and `c2=x`, leading to `y_female=a2 + b2*x`.
+
+### Standard errors of coefficients
+
+Given the multiple regression line from above, the points `(xi, yi)` for which we estimate the regression coefficients are just a sample of the total population of possible `(xi, yi)` pairs. Thus each coefficient, `c0 ... cn`, is normally distributed and we can estimate the mean and sigma for each of these coefficients. Obviously, the lower the standard error (`SE`) of each coefficient, the higher confidence we can have that that parameter is close to correctness.
+
+Now, what we have is a coefficient `ci` for each of the factors. The question is, is each of these factors relevant? Differently said, if `ci == 0`, that factor would be irrelevant. Now we need to see if `ci == 0` is probable enough so that it cannot be discarded that is, if the `ci` for the whole population would actually be 0 (null hypothesis), how probable would it be for us to observe the value obtained from performing the regression?
+
+To answer the question above we compute what is called *the t-statistic*. `t-statistic(ci) = ci / SE(ci)`. The `t-statistic` measures how many standard errors we are away from the mean if the mean were 0, that is if the `ci` coefficient for the entire population were 0.
+
+From this we extract the following rule of thumb:
+
+*The value of each coefficient divided by its standard error should ideally be greater than 3. If the ratio slips below 1, we should remove the variable from the regression. [Wikipedia 1](https://en.wikipedia.org/wiki/Simple_linear_regression#Confidence_intervals) and [Wikipedia 2](https://en.wikipedia.org/wiki/Simple_linear_regression#Numerical_example)*
+
+Closely related to the *t-statistic* is the *p-value* which quantifies the probability that we obtain for `ci` a value greater or equal to what we obtained through regression, provided that `ci` were actually 0. That means, we look for a very low *p-value* which corresponds to a high *t-statistic* in order to determine the relevance of this particular factor in the model. Equivalent to a *t-statistic* of 3 is a *p-value* of `0.05%` (3 deviations from the mean, two-sided p-value).
+
+### The F-statistic
+
+How good, overall, is our model? That is, if *all* our regression parameters were 0, how far would our residuals be from residuals that would be generated from an intercept-only model.
+
+[F-Statistic](http://www.statisticshowto.com/probability-and-statistics/f-statistic-value-test/)
+
+>The F value in regression is the result of a test where the null hypothesis is that all of the regression coefficients are equal to zero. In other words, the model has no predictive capability.
+> Basically, the f-test compares your model with zero predictor variables (the intercept only model), and decides whether your added coefficients improved the model. If you get a significant result, then whatever coefficients you included in your model improved the model’s fit.
+
+If all `ci == 0`, then the total variance of the residuals in this case would be the total variance of Y, which is the absolute maximum variance the model can have.  If our model were to bring value, then the variance of the residuals would be much lower than the total variance of Y. Just like the *t-statistic*, the *f-statistic* measures how many deviations (but in this case it is not a normal distribution) from the maximum variance our residual variance is, that is how far `Var(Residuals) / Var(Y)` is from 1.
