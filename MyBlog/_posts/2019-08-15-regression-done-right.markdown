@@ -180,3 +180,158 @@ How good, overall, is our model? That is, if *all* our regression parameters wer
 > Basically, the f-test compares your model with zero predictor variables (the intercept only model), and decides whether your added coefficients improved the model. If you get a significant result, then whatever coefficients you included in your model improved the model’s fit.
 
 If all `ci == 0`, then the total variance of the residuals in this case would be the total variance of Y, which is the absolute maximum variance the model can have.  If our model were to bring value, then the variance of the residuals would be much lower than the total variance of Y. Just like the *t-statistic*, the *f-statistic* measures how far from the maximum variance our residual variance is, that is how far `Var(Residuals) / Var(Y)` is from 1.
+
+### Worked example
+
+I have generated some data to create a regression model [here]({{site.url}}/assets/task-data.xlsx)). The data assumes a team of 3 people working on a software module, with 3 types of tasks: front-end, backend and data. As time passes, the complexity of the code base increase thus also estimations tend to increase. The data includes a measure for code complexity, the type of task, initial estimation given by each developer, which developer worked on each task (there is an affinity for developers for task types, but not 100%) and what was the final duration. We want a model which aims to predict the final duration of a new task.
+
+The data is chosen in such a way that it presents multicollinearity and categorical components.
+
+First step is to see if maybe a simple regresion based on the average estimation given by developers is enough. We notice than, while the trend in task duration correlates with both average estimation and the code complexity, neither are good predictors - rather low R^2 in both cases as well as two divergent trends in the first chart. Both elements hint towards more factors needed to be included in the regression.
+
+[Exploratory analysis - regression against one variable]({{site.url}}/assets/regression_12.png))]
+
+A second step, which we will skip now, is to analyse the duration based solely on time. If we were to do this, we would have to switch to percentage returns to remove the trendiness in data, as explained in a previous section.
+
+The third step is to analyse muticollinearity. When we start scatter-plotting one variable against the other, we notice very strong correlations - note that, for estimations, they are from the start based on Fibonnaci numbers, thus the several parallel lines instead of a cloud of points.
+
+[Exploratory analysis - multicollinearity]({{site.url}}/assets/regression_13.png))]
+
+From the multicollinear variables, seems the "Average Estimation" explains the best the variation in duration, thus we will keep it and discard the rest.
+
+[Exploratory analysis - select one variable out of several]({{site.url}}/assets/regression_14.png))]
+
+After doing our analysis, we will take into consideration the following factors:
+- Backend task
+- Frontend task
+- Average estimation
+- Worked R - slope dummy variable, multiplied by the predictor "average estimation"; we want to see how who worked on the task influenced the end-duration
+- Worked D
+- Number of incidents
+
+we don't include also the `Worked R, D` slope dummy because they highly lag 1 autorrelate to `Frontend task` and `Backend task`. 
+
+### Python code
+
+```python
+import pandas as pd
+import numpy as np
+from matplotlib import pyplot as plt
+
+def y_regressed(factors, coef_matrix):
+    coef = np.array(coef_matrix)
+    factors = np.array(factors)
+    factors = np.hstack((np.ones((factors.shape[0], 1)), factors))
+    return np.dot(factors, coef.T)
+
+def r_squared(Y, Y_regressed):
+    Y = np.array(Y)
+    Y_regressed = np.array(Y_regressed)
+    return np.var(Y_regressed) / np.var(Y)
+
+def adjusted_r_squared(Y, Y_regressed, no_of_factors):
+    """ Number of factors DOES NOT include the intercept """
+    # the level at which adjusted R2 reaches a maximum, and decreases afterward, 
+    # would be the regression with the ideal combination of having the best fit 
+    # without excess/unnecessary terms. 
+
+    r_sq = r_squared(Y, Y_regressed)
+    sample_size = len(np.array(Y))
+    return 1 - (1-r_sq) * (sample_size - 1) / (sample_size - no_of_factors - 1)
+
+def residuals(Y, Y_regressed):
+    # add a column of ones in front to ease with multiplication
+    Y = np.array(Y)
+    Y_regressed = np.array(Y_regressed)
+    return Y - Y_regressed
+
+
+def cov(_x, _y):
+
+    x = _x.flatten()
+    y = _y.flatten()
+
+    if x.size != y.size:
+        raise Exception("x and y should have the same size")
+
+    mean_x = np.mean(x)
+    mean_y = np.mean(y)
+
+    N = x.size
+
+    return (1 / N) * np.sum((x - mean_x) * (y - mean_y))
+
+def cov_mtx(X, Y):
+    return np.array([[cov(x, y) for y in Y] for x in X])
+
+def lin_regress_mtx(Y, Fs):
+
+    # Multiple regression: Y = As + sum(i, Bi * Fi)
+    # Bs = cov(Y, F) * cov (F, F)^(-1)
+    # As = mean_Y - sum(bi * mean_xi)
+    # Does multiple regressions of the same factors at the same time
+    # if Y is a matrix, instead of a single column
+    # useful for regressing various stocks on a single set of factors, in one operation
+
+    # convert to numpy array
+    Y = Y.values.T
+    Fs = Fs.values.T
+
+    Cxx = cov_mtx(Fs, Fs)
+    Cyx = cov_mtx(Y, Fs)
+
+    Bs = Cyx.dot(np.linalg.inv(Cxx))
+
+    mean_Fs = np.mean(Fs, axis=1)
+    As = np.array([[np.mean(y) - np.dot(bs, mean_Fs)] for y, bs in zip(Y, Bs)])
+
+    return pd.DataFrame(np.hstack((As, Bs))) 
+```
+
+And the usage:
+
+```python
+data = pd.read_csv('task-data.csv', index_col='Task ID')
+factors = ['Backend Task', 'FrontEnd Task', 'Avg Estimation', 'Worked R', 'Worked D', 'No of Incidents Per Period of Time']
+result = ['Actual Duration']
+
+# get the coefficients
+coef_matrix = lin_regress_mtx(data[result], data[factors])
+
+# compute the results of the regression on the original data
+Y_regressed = y_regressed(data[factors], coef_matrix)
+Y = np.array(data[result])
+
+# compute R^2
+print(r_squared(Y, Y_regressed))
+
+# plot Y against Y_regressed to visually assess the quality of the regression
+plt.scatter(Y, Y_regressed)
+plt.show()
+
+# plot the residuals to inspect their properties
+resid = residuals(Y, Y_regressed)
+plt.plot(resid)
+plt.show()
+
+# adjusted R^2
+print(adjusted_r_squared(Y, Y_regressed, len(factors)))
+```
+
+With the following results:
+
+[Regression analysis]({{site.url}}/assets/regression_15.png))]
+
+It is obvious that except some outliers the residuals are quite normally distributed. However, they have a trend upwards which should be investigated.
+
+It also is quite obvious that the results of the regression are not far from the observed data. This is numerically highlighted also by the rather high R^2 and adjusted R^2.
+
+Coefficients are a little bit strange though: `17.674954 -0.244873 -1.934692  0.933654  0.383172 -0.031911 -1.19284`. A high intercept and a negative correlation with the number of incidents. The number of incidents is selected to be Poisson distributed with a mean of 5, no matter the code complexity. This, together with a high margin of error in the way the Inverse Poisson  was computed in Excel which leads to a predisposition towards lower numbers, might be interpreted as "as the code complexity increases, the team becomes less confident in their ability and finishes quicker than estimates". The extra average added by the incidents is included in the intercept, while the predisposition for lower numbers is included in the negative factor for the incidents.
+
+The next steps would be:
+
+ - Compute the SE for the coefficients
+ - Analyse the T-Statistic
+ - Analyse the F-Statistic
+
+I am not going to do them now, but add a link to a paper which show how to compute these values: [link here](http://mezeylab.cb.bscb.cornell.edu/labmembers/documents/supplement%205%20-%20multiple%20regression.pdf)
