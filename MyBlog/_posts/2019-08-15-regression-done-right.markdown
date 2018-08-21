@@ -154,6 +154,8 @@ Explanation is simple. If the character is a male, c1 and c2 will be 0 thus lead
 
 We may not want the *slope* influence to be reflected, but only the intercept. In this case, we would only add a single binary dummy variable.
 
+We can generalize this to `k` categories. To avoid multicollinearity, we will introduce `k-1` dummy variables for intercept and `k-1` for slope, if we want to consider slope as well.
+
 ### Standard errors of coefficients
 
 Given the multiple regression line from above, the points `(xi, yi)` for which we estimate the regression coefficients are just a sample of the total population of possible `(xi, yi)` pairs. Thus each coefficient, `c0 ... cn`, is normally distributed and we can estimate the mean and sigma for each of these coefficients. Obviously, the lower the standard error (`SE`) of each coefficient, the higher confidence we can have that that parameter is close to correctness.
