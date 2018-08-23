@@ -22,11 +22,11 @@ The linear algebra problem that helps us find these factors is called *eigenvalu
 
 Results from decomposition are:
 
-- eigenvalues: tell us how much of the variance can be explain by this particular component
+- *eigenvalues:* tell us how much of the variance can be explain by this particular component
 
-- the principal components themselves: these can be used in regression if the eigenvalues are high enough
+- *the principal components themselves:* these can be used in regression if the eigenvalues are high enough
 
-- eigenvectors: which are needed to calculate the principal components as follows:
+- *eigenvectors:* which are needed to calculate the principal components as follows:
 `[Fi] = [Xi] * [Vi]`. That is, the column matrix containing all factors is the matrix product between the column matrix of eigenvectors `Vi=[a1 ... an]` and the original factor matrix, `X=[X1 ... Xn]`, (n factors, each with k elements)
 
 Now, dividing each eigenvalue `ei=Var(Fi)` to the total variance of F, `Var(F) = Var(F1) + ... Var(Fn)` since `Covar(Fi, Fj) = 0`, we obtain a vector `v` with `sum(vi) = 1`. The plot of this vector is called *scree plot* and shows how much each factor contributes to explaining the variance of the original data. This is the most important decision tool for us to decide which factors we keep in our analysis.
@@ -38,6 +38,8 @@ More information [here](https://en.wikipedia.org/wiki/Eigendecomposition_of_a_ma
 The following Python code uses the power method together with deflation for computing the eigenvectors and eigenvalues for a *square* matrix `A`.
 
 ```python
+import numpy as np
+
 def vector_norm(v):
     return np.sqrt(np.dot(v, v))
 
@@ -73,7 +75,7 @@ def eigen_decomposition(A):
     
     for i in range(0, A.shape[1]):
         
-        lmbda, v = eigen_vector(A)
+        lmbda, v = dominant_eigenvector(A)
         
         vectors.append(v),
         lambdas.append(lmbda)
@@ -92,3 +94,122 @@ Correctness is very simple to check. Do the following:
 
 1. Check that `A * lambda == lambda * v` - condition for eigenvector
 2. Check that all vectors are perpendicular to eachother: `np.dot(v1, v2) == 0` - condition for all the eigenvectors
+
+### Principal factor determination
+
+Let's setup a test bed of linear-dependent variables. We will want to predict `Y` based on `A` - see below:
+
+```python
+import numpy as np
+from matplotlib import pyplot as plt
+
+# 2 factors, 1000 points each
+a = np.arange(0, 100, 0.1)
+b = 3 * a + 5 + np.random.normal(0, 50, a.size)
+
+plt.plot(a, b)
+
+A = np.array([a, b])
+Y = 1.6 * a - 2.3 * b + np.random.normal(0, 20, a.size)
+```
+
+Let's compute the covariance of and correlation of the two vectors, `a` and `b`:
+
+```python
+def covar(_x, _y):
+
+    x = _x.flatten()
+    y = _y.flatten()
+
+    if x.size != y.size:
+        raise Exception("x and y should have the same size")
+
+    mean_x = np.mean(x)
+    mean_y = np.mean(y)
+
+    N = x.size
+
+    return (1 / N) * np.sum((x - mean_x) * (y - mean_y))
+
+def corr_mtx(X, Y):
+    return np.array([[covar(x, y) / np.sqrt(np.var(x) * np.var(y)) for y in Y] for x in X])
+                      
+def covar_mtx(X, Y):
+    return np.array([[covar(x, y) for y in Y] for x in X])
+
+# high Corr above / below diagonal => the two factors are highly correlated => we should switch to PCA
+# in our case, corr above diagonal is 0.83
+# this can be seen also from plotting a vs b
+Corr_AA = corr_mtx(A, A)
+```
+
+Eigenvalue decomposition is applied to the covariance matrix. So let's do just that:
+
+```python
+# eigen value decomposition is applied on the covariance matrix
+Covar_AA = covar_mtx(A, A)
+
+# lmbdas contain the eigenvalues and v the normalized eigenvectors
+lmbdas, v = eigen_decomposition(Covar_AA)
+```
+
+We can quickly check that the two `v's` are perpedicular to each other, by doing 
+
+```
+np.dot(v[0], v[1])
+Out[209]: -9.731923600320158e-11
+```
+
+We call the following function which computes the principal factors (vector `F` described in the *PCA* section) based on the initial matrix `A` and the eigenvalues vector `v`.
+
+```python
+def factors(A, vectors):
+    # rough check that all vectors are normalized
+    for v in vectors:
+        assert(np.abs(vector_norm(v) - 1) < 1e-5)
+
+    Fs = [[np.sum([A[i] * v[i] for i in range(0, len(v))], axis=0)] for v in vectors]
+    return np.array(Fs).reshape(A.shape)
+```
+
+and then
+
+```python
+Fs = factors(A, v)
+```
+
+Now we can quickly check that, indeed, `Var(Fs[i]) == lmdas[i]`:
+
+```python
+np.var(Fs, axis=1)
+Out[226]: array([10333.05692141,   199.78928639])
+
+lmbdas
+Out[227]: [10333.056921412048, 199.78928639278513]
+```
+
+This also shows that the fist factor contributes `98%` to the total variance, so we can use it alone in regression.
+
+### Final regression and check
+
+We will simply plot `Fs[0]` vs `Y` and `Fs[1]` vs `Y`. Obviously, much more from the variation is explained by `Fs[0]` than `Fs[1]`:
+
+![Analysis]({{site.url}}/assets/pca_1.png)
+
+### Additional notes:
+
+1. When to use the correlation and when to use the covariance matrix: [https://stats.stackexchange.com](https://stats.stackexchange.com/questions/53/pca-on-correlation-or-covariance)
+
+2. Why use covariance (or correlation at all) - because we are interested in finding the axes which describe the highest variation of data:
+
+>Finding the eigenvectors and eigenvalues of the covariance matrix is the equivalent of fitting those straight, principal-component lines to the variance of the data. Why? Because eigenvectors trace the principal lines of force, and the axes of greatest variance and covariance illustrate where the data is most susceptible to change.
+
+And then
+
+>Because the eigenvectors of the covariance matrix are orthogonal to each other, they can be used to reorient the data from the x and y axes to the axes represented by the principal components. You re-base the coordinate system for the dataset in a new space defined by its lines of greatest variance.
+
+[PCA](https://skymind.ai/wiki/eigenvector)
+
+So basically, just like a space transform in a 3D space, by multiplying the observed data with the coordinate system which describes best its covariance / correlation, we bring that data into the coordinate space where each axis represent, in decreasing order, its highest variation. Matrix multiplication is simply a linear (coordinate space) transformation.
+
+
