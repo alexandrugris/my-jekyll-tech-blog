@@ -211,5 +211,3 @@ And then
 [PCA](https://skymind.ai/wiki/eigenvector)
 
 So basically, just like a space transform in a 3D space, by multiplying the observed data with the coordinate system which describes best its covariance / correlation, we bring that data into the coordinate space where each axis represent, in decreasing order, its highest variation. Matrix multiplication is simply a linear (coordinate space) transformation.
-
-
