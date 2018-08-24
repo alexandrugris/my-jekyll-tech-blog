@@ -34,7 +34,7 @@ In general:
 
 ### A good regression example
 
-Let's do an example in Excel. Let's consider `X = RANDBETWEEN(10,100)` and `Y=100 + 3 × X + RANDBETWEEN(−100, 100)`. This leads to Y being in linear relationship with X with the paramenters `b=100` and `a=3`. In Excel, slope (`a'`) and intercept (`b'`) are computed with the formulas `a' = SLOPE(Y, X)` and `b' = INTERCEPT(Y, X)`. Running these lead to `a'=3.06` and `b'=91.56` and an `R^2=0.81`, where `R^2=Var(Regressed Y) / Var(Y)` as noted before. This means that 81% of the variation of Y is explained by the regression model. We can also consider a back-of-the-napkin interval of confidence of 95% as `(y' - 3 * stddev(y'), y' + 3 * stddev(y')) - more on this later in this post.
+Let's do an example in Excel. Let's consider `X = RANDBETWEEN(10,100)` and `Y = 100 + 3 × X + RANDBETWEEN(−100, 100)`. This leads to Y being in linear relationship with X with the paramenters `b=100` and `a=3`. In Excel, slope (`a'`) and intercept (`b'`) are computed with the formulas `a' = SLOPE(Y, X)` and `b' = INTERCEPT(Y, X)`. Running these lead to `a'=3.06` and `b'=91.56` and an `R^2=0.81`, where `R^2 = Var(Regressed Y) / Var(Y)` as noted before. This means that 81% of the variation of Y is explained by the regression model. More on the interval of confidence for these values later in this post.
 
 Let's look now at the residuals:
 
@@ -53,10 +53,10 @@ and the regression line
 Let's consider now the same X as before, but this time Y defined in a square relationship to Y. We apply the regression steps described before and we obtain:
 
 - Regression line `y = 326.66 * x - 6660`
-- `R^2 = 0.9586` - very high, over `0.9` which might hint the model is problematic
-- `Lag 1 autocorrelation = 0.16` - low, but is low from a mistake. We should have sorted by X the data series before to see the real correlation.
+- `R^2 = 0.9586` - very high, over `0.9`, which hints the model is problematic
+- `Lag 1 autocorrelation = 0.16` - low, but is low from a mistake. *We should have sorted by X the data series before to see the real correlation.*
 
-But when we inspect the scatter plot of residuals vs X we see a pattern where should be none:
+When we inspect the scatter plot of residuals vs X we see a pattern where should be none:
 
 ![Residuals vs X]({{site.url}}/assets/regression_3.png)
 
@@ -110,10 +110,10 @@ Results inspection:
 Low `R^2`, lag 1 autocorrelation of only `0.08`, highly independent of X, seem rather normally distributed:
 ![Log residuals]({{site.url}}/assets/regression_7.png)
 
-Final residuals show a tendency to accumulate errors towards the right extreme.
+Reverting to initial scale (before the percentage returns transformation), residuals show a tendency to accumulate errors towards the right extreme.
 ![Final residuals]({{site.url}}/assets/regression_11.png)
 
-Plots of originally observed Y vs X and regressed Y vs X show good capture of the fundamental X^2 coefficient as well as a good fit
+Plots of originally observed Y vs X and regressed Y vs X show good capture of the fundamental `X^2` coefficient as well as a good fit
 ![Observed data]({{site.url}}/assets/regression_8.png)
 and
 ![Regressed data]({{site.url}}/assets/regression_10.png)
@@ -124,7 +124,7 @@ And finally, observed Y vs Y regressed show a strong linear relatinon of slope a
 ### Conclusions - simple linear regression
 
 1. Residuals _must_ be inspected in order to make sure the regression is correct and captures the underlying movement of data.
-2. Timeseries usually need to be transformed to percentage gains (or returns)
+2. Timeseries usually need to be transformed to percentage gains.
 3. Obviously, while the transformation towards percentage returns still tends to accumulate errors as X grows, it still captures much better the data.
 4. In the example above, a significant part of the increase in error is due to the way I generated the Y vector in the first place: `Y = 3 * X * (X+RANDBETWEEN(-10, 10)) + RANDBETWEEN(-200, 200)`. Simply by using this formula, the errors increase towards the end because the generated (observed) data has proportionally more variation towards the end.
 5. As with any model, visual inspection of the end result is very important.
@@ -132,9 +132,11 @@ And finally, observed Y vs Y regressed show a strong linear relatinon of slope a
 
 ### Multiple linear regression
 
-In Excel, the function to perform multiple linear regression in `LINEST` - attention, the returned coefficients are in reversed order. A multiple regression is a function `y = c0 + c1 * f1 + ... + cn * fn`, a generalization of the simple linear regression described above.
+A multiple regression is a function `y = c0 + c1 * f1 + ... + cn * fn`, a generalization of the simple linear regression described above.
 
-Things to check for:
+In Excel, the function to perform multiple linear regression in `LINEST` - attention, the returned coefficients are in reversed order. 
+
+Things to check for in a multiple linear regression:
 
 - Multicollinearity between factors
 - Adjusted R^2 - penalizes regression models that has included irrelevant factors. R^2 is misleading with multiple regression as it only goes up as we add more and more variables. [Wikipedia](https://en.wikipedia.org/wiki/Coefficient_of_determination#Adjusted_R2)
@@ -168,7 +170,7 @@ From this we extract the following rule of thumb:
 
 *The value of each coefficient divided by its standard error should ideally be greater than 3. If the ratio slips below 1, we should remove the variable from the regression. [Wikipedia 1](https://en.wikipedia.org/wiki/Simple_linear_regression#Confidence_intervals) and [Wikipedia 2](https://en.wikipedia.org/wiki/Simple_linear_regression#Numerical_example)*
 
-Closely related to the *t-statistic* is the *p-value* which quantifies the probability that we obtain for `ci` a value greater or equal to what we obtained through regression, provided that `ci` were actually 0. That means, we look for a very low *p-value* which corresponds to a high *t-statistic* in order to determine the relevance of this particular factor in the model. Equivalent to a *t-statistic* of 3 is a *p-value* of `0.05%` (3 deviations from the mean, two-sided p-value).
+Closely related to the *t-statistic* is the *p-value* which quantifies the probability that we obtain for `ci` a value greater or equal to what we obtained through regression, provided that `ci` were actually 0. That means, we look for a very low *p-value* which corresponds to a high *t-statistic* in order to determine the relevance of this particular factor in the model. Equivalent to a *t-statistic* of 3 is a *p-value* of roughly `0.05%` (3 deviations from the mean, two-sided p-value).
 
 ### The F-statistic
 
@@ -183,7 +185,7 @@ If all `ci == 0`, then the total variance of the residuals in this case would be
 
 ### Worked example
 
-I have generated some data to create a regression model [here]({{site.url}}/assets/task-data.xlsx)). The data assumes a team of 3 people working on a software module, with 3 types of tasks: front-end, backend and data. As time passes, the complexity of the code base increase thus also estimations tend to increase. The data includes a measure for code complexity, the type of task, initial estimation given by each developer, which developer worked on each task (there is an affinity for developers for task types, but not 100%) and what was the final duration. We want a model which aims to predict the final duration of a new task.
+I have generated some data to create a regression model [here]({{site.url}}/assets/task-data.xlsx). The data assumes a team of 3 people working on a software module, with 3 types of tasks: front-end, backend and data. As time passes, the complexity of the code base increase thus also estimations tend to increase. The data includes a measure for code complexity, the type of task, initial estimation given by each developer, which developer worked on each task (there is an affinity for developers for task types, but not 100%) and what was the final duration. We want a model which aims to predict the final duration of a new task.
 
 The data is chosen in such a way that it presents multicollinearity and categorical components.
 
@@ -325,7 +327,7 @@ It is obvious that except some outliers the residuals are quite normally distrib
 
 It also is quite obvious that the results of the regression are not far from the observed data. This is numerically highlighted also by the rather high R^2 and adjusted R^2.
 
-Coefficients are a little bit strange though: `17.674954 -0.244873 -1.934692  0.933654  0.383172 -0.031911 -1.19284`. A high intercept and a negative correlation with the number of incidents. The number of incidents is selected to be Poisson distributed with a mean of 5, no matter the code complexity. This, together with a high margin of error in the way the Inverse Poisson  was computed in Excel which leads to a predisposition towards lower numbers, might be interpreted as "as the code complexity increases, the team becomes less confident in their ability and finishes quicker than estimates". The extra average added by the incidents is included in the intercept, while the predisposition for lower numbers is included in the negative factor for the incidents.
+Coefficients are a little bit strange though: `17.674954 -0.244873 -1.934692  0.933654  0.383172 -0.031911 -1.19284`. A high intercept and a negative correlation with the number of incidents. The number of incidents is selected to be Poisson distributed with a mean of 5, no matter the code complexity. This, together with a high margin of error in the way the Inverse Poisson  was computed in Excel which leads to a predisposition towards lower numbers, might be interpreted as "as the code complexity increases, the team becomes less confident in its ability, but still finishes faster than their too pessimistic estimates". The extra average added by the incidents is included in the intercept, while the predisposition for lower numbers is included in the negative factor for the incidents.
 
 The next steps would be:
 
