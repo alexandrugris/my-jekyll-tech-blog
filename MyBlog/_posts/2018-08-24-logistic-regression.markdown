@@ -32,7 +32,7 @@ Therefore, we will find a mathematical model that uses the logistic function to 
 
 We will further define our problem like this:
 
- - `Xi = [xi_1 ... xi_n]` - factors, with i between 1 and k
+ - `Xi = [xi_1 ... xi_n]` - factors, with i between 1 and k. Attention, one of the factors needs to be `1`, the intercept - see the excel example below
  - `B = [b1 ... bn]` - coefficients
  - `Y = [y1 ... yk]` - a vector of 1 and 0 of k elements
  - `dot(Xi, B) == Xi_1 * b1 + ... Xi_n * bn`
@@ -54,11 +54,13 @@ A perfect fit means `P(yi | Xi) == 1`, whatever `i=1..k`, which reads *given the
 
  But since we only aim to model the real world, we are happy if this product is merely maximized by our estimated probability function (logistic) with `B` plugged in. That is,
 
-`PRODUCT(P(yi | Xi), for i = 0..k) = P(y1 | X1) * P(y2 | X2) * ...` is maximized
+`PRODUCT(P(yi | Xi), for i = 0..k) = P(y1 | X1) * P(y2 | X2) * ...` is maximized, as close as possible to 1.
 
 which is equivalent to 
 
-`log(PRODUCT) = log(P(y1 | X1)) + ...` is maximized - we converted from product to sum. Now we can use gradient descent to find the vector `B`. Unfortunately this method might be slow for large datasets because, for every incremental change in any `B`, all the exponentials and the logarithms for each line in the dataset need to be recomputed.
+`log(PRODUCT) = SUM(log(P(yi | Xi)) = SUM( yi * log(f(Xi)) + (1-yi) * log(1-f(Xi)))` where `f(Xi) = 1 / (1+e^-dot(Xi,B))` is maximized as close as possible to 0. 
+
+Now we can use gradient descent to find the vector `B`. Unfortunately this method might be slow for large datasets because, for every incremental change in any `B`, all the exponentials and the logarithms for each line in the dataset need to be recomputed.
 
 ### Implementation in Excel on the Iris dataset
 
@@ -74,7 +76,7 @@ which is equivalent to
 10. Because the setosa is strictly separated from the other two types, the solver steps continues until the regression becomes very tight and the coefficients very large. In order for the `1/1+EXP(-SUMPRODUCT)` not to overflow, I added a constraint for the `-SUMPRODUCT()` to be less or equal to 50. This does not seem to impact the quality of the regression.
 11. Check the test data.
 
-Excel file (here]({{site.url}}/assets/iris.xlsx)
+Excel file [here]({{site.url}}/assets/iris.xlsx)
 
 ![Solver Dialog]({{site.url}}/assets/logistic_regression_1.png)
 
