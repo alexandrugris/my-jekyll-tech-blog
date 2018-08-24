@@ -198,7 +198,7 @@ We will simply plot `Fs[0]` vs `Y` and `Fs[1]` vs `Y`. Obviously, much more from
 
 ### Normalization of data
 
-If end up with the principal `F` factor explaining less of the variance any of the `X` initial factors, PCA should be applied to standardized random variables. That is, from which the mean was substracted and then we divided them by their standard deviation. For our `A` matrix, the matrix of all `X` factors, the function is as follows:
+If end up with the principal `F` factor explaining less of the variance any of the `X` initial factors, we must standardize our data. That is, from which the mean was substracted and then we divided them by their standard deviation. For our `A` matrix, the matrix of all `X` factors, the function is as follows:
 
 ```python
 def standardize(A):
