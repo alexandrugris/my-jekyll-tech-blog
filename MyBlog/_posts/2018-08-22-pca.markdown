@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Principal Component Analisys"
-date:   2018-08-15 13:15:16 +0200
+date:   2018-08-22 13:15:16 +0200
 categories: statistics
 ---
 This is a continuation on my previous post on linear regression. It talks about finding a set of axes (dimensions) along which to regress in such a way as to preserve the most relevant data while avoiding multicollinearity and reducing the amount of dimensions.

@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Linear Regression Done Right"
-date:   2018-08-15 13:15:16 +0200
+date:   2018-08-17 13:15:16 +0200
 categories: statistics
 ---
 In several of my previous posts I wrote about linear regression, but in none I wrote about when and how to use it correctly and how to interpret the results. Computing a simple regression line is easy, but applying it blindly will surely lead to incorrect results.
