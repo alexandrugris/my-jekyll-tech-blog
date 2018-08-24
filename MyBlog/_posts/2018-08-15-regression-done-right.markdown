@@ -191,17 +191,17 @@ The data is chosen in such a way that it presents multicollinearity and categori
 
 First step is to see if maybe a simple regresion based on the average estimation given by developers is enough. We notice than, while the trend in task duration correlates with both average estimation and the code complexity, neither are good predictors - rather low R^2 in both cases as well as two divergent trends in the first chart. Both elements hint towards more factors needed to be included in the regression.
 
-[Exploratory analysis - regression against one variable]({{site.url}}/assets/regression_12.png))]
+![Exploratory analysis - regression against one variable]({{site.url}}/assets/regression_12.png)
 
 A second step, which we will skip now, is to analyse the duration based solely on time. If we were to do this, we would have to switch to percentage returns to remove the trendiness in data, as explained in a previous section.
 
 The third step is to analyse muticollinearity. When we start scatter-plotting one variable against the other, we notice very strong correlations - note that, for estimations, they are from the start based on Fibonnaci numbers, thus the several parallel lines instead of a cloud of points.
 
-[Exploratory analysis - multicollinearity]({{site.url}}/assets/regression_13.png))]
+![Exploratory analysis - multicollinearity]({{site.url}}/assets/regression_13.png)
 
 From the multicollinear variables, seems the "Average Estimation" explains the best the variation in duration, thus we will keep it and discard the rest.
 
-[Exploratory analysis - select one variable out of several]({{site.url}}/assets/regression_14.png))]
+![Exploratory analysis - select one variable out of several]({{site.url}}/assets/regression_14.png)
 
 After doing our analysis, we will take into consideration the following factors:
 - Backend task
@@ -246,7 +246,6 @@ def residuals(Y, Y_regressed):
     Y = np.array(Y)
     Y_regressed = np.array(Y_regressed)
     return Y - Y_regressed
-
 
 def cov(_x, _y):
 
@@ -322,7 +321,7 @@ print(adjusted_r_squared(Y, Y_regressed, len(factors)))
 
 With the following results:
 
-[Regression analysis]({{site.url}}/assets/regression_15.png))]
+![Regression analysis]({{site.url}}/assets/regression_15.png)
 
 It is obvious that except some outliers the residuals are quite normally distributed. However, they have a trend upwards which should be investigated.
 

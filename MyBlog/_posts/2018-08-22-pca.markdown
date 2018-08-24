@@ -1,0 +1,213 @@
+---
+layout: post
+title:  "Principal Component Analisys"
+date:   2018-08-15 13:15:16 +0200
+categories: statistics
+---
+This is a continuation on my previous post on linear regression. It talks about finding a set of axes (dimensions) along which to regress in such a way as to preserve the most relevant data while avoiding multicollinearity and reducing the amount of dimensions.
+
+### PCA
+
+Mathematical optimization problem to find the direction line along which the distance between projected data points is the greatest, that is it has the largest variance. We choose this direction because the largest amount of information about the value of each point is preserved in this projection. The second principal component is an axis perpendicular to the first axis and so on, for multi-dimensional coordiante spaces. This choice of axes not only preserves the most amount of information, but also avoids multicollinearity, as the principal compoments are perpendicular to each other.
+
+The problem can be rephrased as: given a set of highly correlated factors, `[X1 ... Xn]`, find a equal number of factors, `[F1 ... Fn]`, completely uncorrelated to each other, sorted so that `Var(F1) > ... > Var(Fn)`, on which we are able to describe our regression problem as `Y = A + B1 * F1 + ... Bn * Fn`. These factors satisfy the equality `Var(F) == Var(X)`, meaning we don't lose information when we do the decomposition along these new axes. 
+
+*It is important to notice the inequality, ``Var(F1) > ... > Var(Fn)`. The higher the variance along that particular axis, the more information is contained in that axis.*.  
+
+The linear algebra problem that helps us find these factors is called *eigenvalue decomposition* and can be phrased as:
+
+> Find `F1 = a1X1 + ... + anXn` such that `Var(F1)` is maximised and the coefficients `a1 .. an` satisfy the contraint `a1^2 + ... + an^2 = 1`. `F1` is the principal component 1, `v1 = [a1,...,an]` is called *eigenvector 1* and `e1 = Var(F1)` is called the *eigenvalue* of the principal component `F1`.
+
+> Principal component `F2 = b1(X1 - F1) + ... + bn(Xn - F1)` is subject to the same constraints. Like this, we have defined a recurrent problem which allows us to find all `Fn` components.
+
+Results from decomposition are:
+
+- *eigenvalues:* tell us how much of the variance can be explain by this particular component
+
+- *the principal components themselves:* these can be used in regression if the eigenvalues are high enough
+
+- *eigenvectors:* which are needed to calculate the principal components as follows:
+`[Fi] = [Xi] * [Vi]`. That is, the column matrix containing all factors is the matrix product between the column matrix of eigenvectors `Vi=[a1 ... an]` and the original factor matrix, `X=[X1 ... Xn]`, (n factors, each with k elements)
+
+Now, dividing each eigenvalue `ei=Var(Fi)` to the total variance of F, `Var(F) = Var(F1) + ... Var(Fn)` since `Covar(Fi, Fj) = 0`, we obtain a vector `v` with `sum(vi) = 1`. The plot of this vector is called *scree plot* and shows how much each factor contributes to explaining the variance of the original data. This is the most important decision tool for us to decide which factors we keep in our analysis.
+
+More information [here](https://en.wikipedia.org/wiki/Eigendecomposition_of_a_matrix)
+
+### Eigenvalue decomposition
+
+The following Python code uses the power method together with deflation for computing the eigenvectors and eigenvalues for a *square* matrix `A`.
+
+```python
+import numpy as np
+
+def vector_norm(v):
+    return np.sqrt(np.dot(v, v))
+
+def dominant_eigenvector(A):
+    
+    """ Returns the principal eigen vector and its corresponding eigen value. uses the power method technique """
+    
+    # check that A is square
+    assert(A.shape[0] == A.shape[1])
+    
+    v = np.random.rand(A.shape[1])
+    v_prim = np.zeros(A.shape[1])
+    
+    lmbda = 0
+    
+    # TODO: add raleigh for faster convergence
+    
+    while np.max(v-v_prim) > 1e-10:
+       v_prim = np.dot(A, v)
+       lmbda = vector_norm(v_prim)
+       v, v_prim = (v_prim / lmbda, v)
+       
+    # eigenvalue, normalized eigenvector
+    return (lmbda, v)
+
+def eigen_decomposition(A):
+    
+    # check that A is square
+    assert(A.shape[0] == A.shape[1])
+    
+    vectors = []
+    lambdas = []
+    
+    for i in range(0, A.shape[1]):
+        
+        lmbda, v = dominant_eigenvector(A)
+        
+        vectors.append(v),
+        lambdas.append(lmbda)
+        
+        # power method deflation eigenvectors
+        # idea is to remove the initial contribution from the initial space
+        A = A - lmbda * np.matmul(v.reshape(A.shape[1], 1), v.reshape(1, A.shape[1]))
+        
+        # each vector is perpendicular to the rest
+       
+    
+    return (lambdas, vectors)
+```
+
+Correctness is very simple to check. Do the following:
+
+1. Check that `A * lambda == lambda * v` - condition for eigenvector
+2. Check that all vectors are perpendicular to eachother: `np.dot(v1, v2) == 0` - condition for all the eigenvectors
+
+### Principal factor determination
+
+Let's setup a test bed of linear-dependent variables. We will want to predict `Y` based on `A` - see below:
+
+```python
+import numpy as np
+from matplotlib import pyplot as plt
+
+# 2 factors, 1000 points each
+a = np.arange(0, 100, 0.1)
+b = 3 * a + 5 + np.random.normal(0, 50, a.size)
+
+plt.plot(a, b)
+
+A = np.array([a, b])
+Y = 1.6 * a - 2.3 * b + np.random.normal(0, 20, a.size)
+```
+
+Let's compute the covariance of and correlation of the two vectors, `a` and `b`:
+
+```python
+def covar(_x, _y):
+
+    x = _x.flatten()
+    y = _y.flatten()
+
+    if x.size != y.size:
+        raise Exception("x and y should have the same size")
+
+    mean_x = np.mean(x)
+    mean_y = np.mean(y)
+
+    N = x.size
+
+    return (1 / N) * np.sum((x - mean_x) * (y - mean_y))
+
+def corr_mtx(X, Y):
+    return np.array([[covar(x, y) / np.sqrt(np.var(x) * np.var(y)) for y in Y] for x in X])
+                      
+def covar_mtx(X, Y):
+    return np.array([[covar(x, y) for y in Y] for x in X])
+
+# high Corr above / below diagonal => the two factors are highly correlated => we should switch to PCA
+# in our case, corr above diagonal is 0.83
+# this can be seen also from plotting a vs b
+Corr_AA = corr_mtx(A, A)
+```
+
+Eigenvalue decomposition is applied to the covariance matrix. So let's do just that:
+
+```python
+# eigen value decomposition is applied on the covariance matrix
+Covar_AA = covar_mtx(A, A)
+
+# lmbdas contain the eigenvalues and v the normalized eigenvectors
+lmbdas, v = eigen_decomposition(Covar_AA)
+```
+
+We can quickly check that the two `v's` are perpedicular to each other, by doing 
+
+```
+np.dot(v[0], v[1])
+Out[209]: -9.731923600320158e-11
+```
+
+We call the following function which computes the principal factors (vector `F` described in the *PCA* section) based on the initial matrix `A` and the eigenvalues vector `v`.
+
+```python
+def factors(A, vectors):
+    # rough check that all vectors are normalized
+    for v in vectors:
+        assert(np.abs(vector_norm(v) - 1) < 1e-5)
+
+    Fs = [[np.sum([A[i] * v[i] for i in range(0, len(v))], axis=0)] for v in vectors]
+    return np.array(Fs).reshape(A.shape)
+```
+
+and then
+
+```python
+Fs = factors(A, v)
+```
+
+Now we can quickly check that, indeed, `Var(Fs[i]) == lmdas[i]`:
+
+```python
+np.var(Fs, axis=1)
+Out[226]: array([10333.05692141,   199.78928639])
+
+lmbdas
+Out[227]: [10333.056921412048, 199.78928639278513]
+```
+
+This also shows that the fist factor contributes `98%` to the total variance, so we can use it alone in regression.
+
+### Final regression and check
+
+We will simply plot `Fs[0]` vs `Y` and `Fs[1]` vs `Y`. Obviously, much more from the variation is explained by `Fs[0]` than `Fs[1]`:
+
+![Analysis]({{site.url}}/assets/pca_1.png)
+
+### Additional notes:
+
+1. When to use the correlation and when to use the covariance matrix: [https://stats.stackexchange.com](https://stats.stackexchange.com/questions/53/pca-on-correlation-or-covariance)
+
+2. Why use covariance (or correlation at all) - because we are interested in finding the axes which describe the highest variation of data:
+
+>Finding the eigenvectors and eigenvalues of the covariance matrix is the equivalent of fitting those straight, principal-component lines to the variance of the data. Why? Because eigenvectors trace the principal lines of force, and the axes of greatest variance and covariance illustrate where the data is most susceptible to change.
+
+And then
+
+>Because the eigenvectors of the covariance matrix are orthogonal to each other, they can be used to reorient the data from the x and y axes to the axes represented by the principal components. You re-base the coordinate system for the dataset in a new space defined by its lines of greatest variance.
+
+[PCA](https://skymind.ai/wiki/eigenvector)
+
+So basically, just like a space transform in a 3D space, by multiplying the observed data with the coordinate system which describes best its covariance / correlation, we bring that data into the coordinate space where each axis represent, in decreasing order, its highest variation. Matrix multiplication is simply a linear (coordinate space) transformation.
