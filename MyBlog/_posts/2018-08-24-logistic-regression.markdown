@@ -58,5 +58,26 @@ A perfect fit means `P(yi | Xi) == 1`, whatever `i=1..k`, which reads *given the
 
 which is equivalent to 
 
-`log(PRODUCT) = log(P(y1 | X1)) + ...` is maximized - we converted from product to sum. Now we can use gradient descent to find the vector `B`. Unfortunately this method is slow because for every incremental change in `B`, all the data points need to be recomputed, which leads to a slow step.
+`log(PRODUCT) = log(P(y1 | X1)) + ...` is maximized - we converted from product to sum. Now we can use gradient descent to find the vector `B`. Unfortunately this method might be slow for large datasets because, for every incremental change in any `B`, all the exponentials and the logarithms for each line in the dataset need to be recomputed.
+
+### Implementation in Excel on the Iris dataset
+
+1. We download the Iris dataset.
+2. We setup 3 variables, one for each type of flower. They are 1 if the flower is of that type and 0 otherwise.
+3. We split the data into trainig and test dataset.
+4. Add a new column for intercept.
+5. Add a new row for the `B` vector. These are the values we want to find.
+6. Add a new column for `P(setosa)`, the probabilities we want as result from the logistic regression. `P(setosa) = 1/1+EXP(-SUMPRODUCT(B, X))`
+7. Add a new column, the log column, `log(P(yi | Xi)`, the column for which the sum we want to optimize as close as possible to 0. The formula for each of the elements in the column is `yi *LN(P(setosa)+0.0001) + (1-yi)*LN(1-P(setosa)+0.0001)`. I added a `0.0001` correction factor because, as the maximization algorithm goes on, we might end up with `NaN` values due to computing `P(setosa) = 0` which leads to `LN(0)` which is `-infinity`.
+8. Add a summary value for the column at 7, as `SUM(log(P(yi | Xi)))`.
+9. Use Excel Solver plugin to maximize the value of this summary value to as close to 0 as possible.
+10. Because the setosa is strictly separated from the other two types, the solver steps continues until the regression becomes very tight and the coefficients very large. In order for the `1/1+EXP(-SUMPRODUCT)` not to overflow, I added a constraint for the `-SUMPRODUCT()` to be less or equal to 50. This does not seem to impact the quality of the regression.
+11. Check the test data.
+
+Excel file (here]({{site.url}}/assets/iris.xlsx)
+
+![Solver Dialog]({{site.url}}/assets/logistic_regression_1.png)
+
+### Implementation using linear regression
+
 
