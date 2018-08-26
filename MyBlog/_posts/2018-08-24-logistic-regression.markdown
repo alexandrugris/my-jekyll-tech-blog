@@ -121,17 +121,21 @@ We want to:
 
 ### Steps
 
-Linear regression on the raw, unprocessed, original data. If we include an intercept, the intercept will reflect the amount of men included in the test, so, for a single man, the results for the prediction will be completely off. We will see that these results are pretty close to what we will obtain from logistic regression, because the probabilities themselves are in the lower part of the spectrum, where the logistic regression itself is quite linear. However, we expect that, as the risk factors increase significantly, for instance by codifying a "heavy smoker" or a "highly obese", the results from the linear regression to diverge from the real probabilities.
+*Linear regression on the raw, unprocessed, original data, just to have a benchmark*
+
+If we include an intercept, the intercept will reflect the amount of men included in the test, so, for a single man, the results for the prediction will be completely off. We will see that these results are pretty close to what we will obtain from logistic regression, because the probabilities themselves are in the lower part of the spectrum, where the logistic regression itself is quite linear. However, we expect that, as the risk factors increase significantly, for instance by codifying a "heavy smoker" or a "highly obese", the results from the linear regression to diverge from the real probabilities.
 
 Please see how the variables for smoking, obese and snoring are codified. We want them to affect the slope of the regression, not the intercept.
 
 ![Linear Regression]({{site.url}}/assets/logistic_regression_5.png)
 
-We will do two types of logistic regression - one that does not account for the amount of men included in the sample and one which does. The problem with not ballancing the regression for the amount of men is equivalent to discarding the precision of the initial etimation of probability given by the sample (no of hypertensives / no of men). E.g., the more men you include, the more confident one can be that the expected value of the sample is closer to the actual expected value of the population.
+*Logistic Regression*
 
-First step is to remove from the regression the line where only 2 men are counted. This line does not contain enough information to be able to codify a probability out of it or, better said, the margin of error is too high.
+We will do two types of logistic regression - one that does not account for the amount of men included in the sample and one which does. The problem with not ballancing the regression for the amount of men is equivalent to discarding the precision of the initial estimation of probability given by the sample (no of hypertensives / no of men). E.g., the more men we include, the more confident one can be that the expected value of the sample is closer to the actual expected value of the population.
 
-Second step, we add the following columns:
+First step for both regression is to remove from the regression the line where only 2 men are counted. This line does not contain enough information to be able to codify a probability out of it or, better said, the margin of error is too high.
+
+The second step, also for both regressions, is to add the following columns:
 
 - `Log(Odds Observed) = LN(P_observed / 1 - (P_observed))` where `P_observed = hypertensives / total number of men in that category`.
 - Smoking, obesity, snoring, codified as 1 if the person is smoking, obese or snoring.
@@ -146,11 +150,11 @@ We also added two more tables:
 - One under the logistic regression for drawing and validating how probabilities change for various fractions of Snoring, Smoking and Obese predictor variables.
 - One under the linear regression to validate how many standard deviations the observed ratio (probability) is from the theoretical probability obtained from the logistic regression. That is, assuming the probabilities from the regression are correct, how likely it is to have observed the value we have observed. For this, we used the theoretical mean and variance for the *binomial distribution*, `mean = sample_size * p` and `variance = sample_size * p * (1-p)`
 
-First run, the results without taking into consideration the sample size:
+First run, the results without taking into consideration the sample size: [Logistic Regression]({{site.url}}/assets/logistic_regression_6.png)
 
 ![Logistic Regression]({{site.url}}/assets/logistic_regression_6.png)
 
-The second time, we took into consideration the sample size by weightning the square of the residuals with the sample size when computing the square sum of the residuals we want to minimize. This is equivalent to having 1 row in the regression for each men that was considered in the regression. We see that this also minimizes the sum of the square standard scores, meaning that the results are now closer to the reality that was observed in the field. As a side note, I tried computing the `Bs` by minimizing directly the sum of the square standard scores and the results were very close to the ones predicted by the logistic regression.
+The second time we took into consideration the sample size by weightning the square of the residuals with the sample size when computing the square sum of the residuals we want to minimize. This is equivalent to having 1 row in the regression for each men that was considered in the regression. We see that this also minimizes the sum of the square standard scores, meaning that the results are now closer to the reality that was observed in the field. As a side note, I tried computing the `Bs` by minimizing directly the sum of the square standard scores and the results were very close to the ones predicted by the logistic regression. [Weighted Logistic Regression]({{site.url}}/assets/logistic_regression_7.png)
 
 ![Weighted Logistic Regression]({{site.url}}/assets/logistic_regression_7.png)
 
