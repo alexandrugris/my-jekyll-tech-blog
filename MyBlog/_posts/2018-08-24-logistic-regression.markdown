@@ -26,7 +26,9 @@ We notice that the Logistic function, `f(x) = 1 / (1+e^-(ax+b))`, has properties
 - it is continuous
 - has an inflection point from which `f(x)` grows quickly from close to 0 to close to 1
 
-[Logistic function](https://en.wikipedia.org/wiki/Logistic_function)
+![Logistic function]({{site.url}}/assets/logistic_regression_8.png)
+
+And the wikipedia link: [Logistic function](https://en.wikipedia.org/wiki/Logistic_function)
 
 Therefore, we will find a mathematical model that uses the logistic function to map from causes to probabilities. The model aims to find a vector `B` that, when plugged into the logistic function multiplied by the factors `X`, the observed results match as closely as possible to the results determined by our model. In this case, our logistic function looks like `f(X_i) = 1 / (1+e^-(b1 * xi_1 + ... bn * xi_n)`, where `Xi = [xi_1, ... xi_n]` are the observed `X` factors at point `i`.
 
