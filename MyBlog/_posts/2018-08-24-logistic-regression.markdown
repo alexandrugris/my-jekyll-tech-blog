@@ -4,7 +4,7 @@ title:  "Logistic Regression"
 date:   2018-08-24 13:15:16 +0200
 categories: statistics
 ---
-While linear regression is about predicting effects given a set of causes, logistic regression predicts the probability of certain effects. This way, its main applications are classification and forecasting. Logistic regression helps find how probabilities are changed by our actions.
+While linear regression is about predicting effects given a set of causes, logistic regression predicts the probability of certain effects. This way, its main applications are classification and forecasting. Logistic regression helps find how probabilities are changed by our actions or by various changes in the factors included in the regression.
 
 ### The problem
 
@@ -80,6 +80,80 @@ Excel file [here]({{site.url}}/assets/iris.xlsx)
 
 ![Solver Dialog]({{site.url}}/assets/logistic_regression_1.png)
 
-### Implementation using linear regression
+*Note:*
 
+Performing the same steps for *virginica* leads also to very good results, while for *versicolor* the results are barely above random choice. 
 
+In the second iteration of the file, I have modified the regression so that it operates on standardized factors. This way, we can interpret the coefficients and see which factor contributes the most for classification. The picture below also contains the `log(odds)` vs `most important factor` chart, sorted by `odds = P(1) / P(0)`, the ratio between the probability of `1` and `0`. This is also a reminder that data for logistic regression should pe pepared in a similar manner to that for linear regression. 
+
+![Standardized Data]({{site.url}}/assets/logistic_regression_2.png)
+
+### Linear Regression and Logistic Regression
+
+By the choice for the logistic function, `p = 1 / (1+EXP(-SUMPROD(Beta, X)))`, with `Beta` the coefficients for each of the factors X included in the regression, including the intercept, Logistic Regression hints stongly towards the linear regression. 
+
+We introduce the function `Odds(p) = p / 1-p` with its inverse, `p = Odds / (1+Odds)`.
+
+By simple arithmetic, we conclude that `Odds(p) = EXP(SUMPRODUCT(Beta, X))` which leads to `LN(Odds(p)) = SUMPRODUCT(Beta, X)` which is a linear function.
+
+Please remember that `p` is the probability for the event to happen, that is proability for the flower to be setosa, in the example above.
+
+This function, `ln(Odds(p)) = ln(p/1-p)`, called the *logit function*, maps the probability space `[0,1]` to a linear space `[-inf, inf]` in which we can do the regression.
+
+![Logit function]({{site.url}}/assets/logistic_regression_3.png)
+
+In order to use linear regression to compute the probabilities and thus build our classifier, we need in our input data probabilities as well. The Iris dataset, as presented above, has only 0 and 1 inputs, so we need to collapse it to intervals on which meaninful probabilities can be computed. 
+
+In this example we will use another dataset which is already collapsed:
+
+![Hypertensive men]({{site.url}}/assets/logistic_regression_4.png)
+
+The data is described as follows:
+- Number of men analysed
+- Number of men with hypertension
+- Wether the man is smoking, obese or snores
+
+We want to:
+- Find the real probabilities for a man to be hypertensive given the factors above - please note that we are talking about a small sample of the population, so the real probabilities are not simply the division between men with hypertension and men.
+- Map these probabilities to individual conditions of a patient - he may be fat but not obese or he might just be a casual smoker, metrics which can be represented as fractions of the smoking, obese, snores variables above.
+
+### Steps
+
+Linear regression on the raw, unprocessed, original data. If we include an intercept, the intercept will reflect the amount of men included in the test, so, for a single man, the results for the prediction will be completely off. We will see that these results are pretty close to what we will obtain from logistic regression, because the probabilities themselves are in the lower part of the spectrum, where the logistic regression itself is quite linear. However, we expect that, as the risk factors increase significantly, for instance by codifying a "heavy smoker" or a "highly obese", the results from the linear regression to diverge from the real probabilities.
+
+Please see how the variables for smoking, obese and snoring are codified. We want them to affect the slope of the regression, not the intercept.
+
+![Linear Regression]({{site.url}}/assets/logistic_regression_5.png)
+
+We will do two types of logistic regression - one that does not account for the amount of men included in the sample and one which does. The problem with not ballancing the regression for the amount of men is equivalent to discarding the precision of the initial etimation of probability given by the sample (no of hypertensives / no of men). E.g., the more men you include, the more confident one can be that the expected value of the sample is closer to the actual expected value of the population.
+
+First step is to remove from the regression the line where only 2 men are counted. This line does not contain enough information to be able to codify a probability out of it or, better said, the margin of error is too high.
+
+Second step, we add the following columns:
+
+- `Log(Odds Observed) = LN(P_observed / 1 - (P_observed))` where `P_observed = hypertensives / total number of men in that category`.
+- Smoking, obesity, snoring, codified as 1 if the person is smoking, obese or snoring.
+- Intercept, all values equal to 1.
+
+As result, we have:
+- `Log(Odds regressed)`, the result of the linear regression
+- `P Logistic` which is the probability as computed from the logistic regression.
+
+We also added two more tables:
+
+- One under the logistic regression for drawing and validating how probabilities change for various fractions of Snoring, Smoking and Obese predictor variables.
+- One under the linear regression to validate how many standard deviations the observed ratio (probability) is from the theoretical probability obtained from the logistic regression. That is, assuming the probabilities from the regression are correct, how likely it is to have observed the value we have observed. For this, we used the theoretical mean and variance for the *binomial distribution*, `mean = sample_size * p` and `variance = sample_size * p * (1-p)`
+
+First run, the results without taking into consideration the sample size:
+
+![Logistic Regression]({{site.url}}/assets/logistic_regression_6.png)
+
+The second time, we took into consideration the sample size by weightning the square of the residuals with the sample size when computing the square sum of the residuals we want to minimize. This is equivalent to having 1 row in the regression for each men that was considered in the regression. We see that this also minimizes the sum of the square standard scores, meaning that the results are now closer to the reality that was observed in the field. As a side note, I tried computing the `Bs` by minimizing directly the sum of the square standard scores and the results were very close to the ones predicted by the logistic regression.
+
+![Weighted Logistic Regression]({{site.url}}/assets/logistic_regression_7.png)
+
+Excel file [here](({{site.url}}/assets/hypertensives.xlsx))
+
+### Conclusion
+
+We used logistic regression to build a clasifier on the Iris dataset and to predict the probability of a person having hypertension given a set of predictors. We used two ways to compute the regression coefficients: one by maximizing directly a probability function using the gradient descent, the other by applying linear regression to the log-odds function and then computing the probabilities from it.
