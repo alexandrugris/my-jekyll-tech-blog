@@ -606,9 +606,9 @@ In our case, `=$E$7*(1-E2)/(COUNT($E$2:$E$4) - SUM($E$2:$E$4))`
 
 ### Total Risk and Conclusions
 
-I don't know yet a good way to estimate at any given moment the value at risk, like we did earlier with the portfolio of stocks. Unlike the stocks scenario, it is hard to find a factor model and estimating based only on past performance might be less than ideal. It is good to have a buffer, compute a maximum stake allowed for each outcome based on the total risk on that market and adjust odds to factor in risk and public preferences. I still think that relying only on adding the worst possible outcomes for a bookmaker is not optimal, but I am yet to find a better metric.
+I don't know yet a good way to estimate at any given moment the value at risk, like we did earlier with the portfolio of stocks. Unlike the stocks scenario, it is hard to find a factor model and estimating based only on past performance might be less than ideal. It is good to have a buffer; compute a maximum stake allowed for each outcome based on the total risk on that market and adjust odds to factor in risk and public preferences. I still think that relying only on adding the worst possible outcomes for a bookmaker is not optimal, but I am yet to find a better metric.
 
-I have written some code to validate my assumptions about risk distribution. I used also the "Expected Risk" notion introduced earlier to see how risk distribution is compared to this value. Results are underwhelming. Here is the simulation code, together with some charts.
+I have written some code to validate my assumptions about risk distribution. I used also the "Expected Risk" notion introduced earlier to see how the risk distribution compares to this value. Results are underwhelming. Here is the simulation code, together with some charts.
 
 ```python
 def max_loss(matches: list):
@@ -710,13 +710,13 @@ if __name__ == "__main__":
     plt.show()
 ```
 
-Results show high variability of the distribution of risk vs wins, even for the same simulation parameters (each line). See code above for parameters.
+Results show high variability of the distribution of risk vs wins, even for the same simulation parameters (each line). See the code above for parameters.
 
 ![Risk for the series above]({{site.url}}/assets/risk_8.png)
 And also the print screen with data from this run (table above), as well as with 1500 other simulations of matches distributions each for 1000 trials for expected results.
 
 ![Risk for the series above]({{site.url}}/assets/risk_9.png)
-The expected loss and expected wins are seem to be rather stable indicators. Together with the max loss / max win indicators, they tend to hint towards a bell-shaped distribution for which the parameters are yet to be determined. However, the bell shape does not apply to all distributions of results in a given set of matches, as shown few sections above, thus much care should be taken to not generalize too early. Additionally, the variability of the max risk relative to the expected loss is very high, see the chart below, so the premature VaR computations based on the assumed distribution will probably grossly underestimate the actual risk.
+The expected loss and expected wins seem to be rather stable indicators. Together with the max loss / max win indicators, they tend to hint towards a bell-shaped distribution for which the parameters are yet to be determined. However, the bell shape does not apply to all distributions of the results in a given set of matches, as shown few sections above, thus much care should be taken to not generalize too early. Additionally, the variability of the max risk relative to the expected loss is very high, see the chart below, so the premature VaR computations based on an assumed distribution will probably grossly underestimate the actual risk.
 
 ![Scatter plot of max loss vs expected loss]({{site.url}}/assets/risk_10.png)
 

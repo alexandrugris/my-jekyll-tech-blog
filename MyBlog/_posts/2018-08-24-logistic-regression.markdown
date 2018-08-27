@@ -160,6 +160,95 @@ The second time we took into consideration the sample size by weightning the squ
 
 Excel file [here](({{site.url}}/assets/hypertensives.xlsx))
 
-### Conclusion
+### Using of linear regression to determe the coefficients for Iris dataset
 
-We used logistic regression to build a clasifier on the Iris dataset and to predict the probability of a person having hypertension given a set of predictors. We used two ways to compute the regression coefficients: one by maximizing directly a probability function using the gradient descent, the other by applying linear regression to the log-odds function and then computing the probabilities from it.
+In order to use linear regression to determine the coefficients, the data needs to be binned, put in a form from which we can extract probabilities. For the Iris dataset, I did this with the following Python script:
+
+```python
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Aug 26 15:07:47 2018
+
+@author: alexandru gris
+"""
+
+import pandas as pd
+from functools import partial, reduce
+
+# columns used as predictors
+X = ['sepal_length',
+ 'sepal_width',
+ 'petal_length',
+ 'petal_width']
+
+# columns for the result on which we train the algorithm
+Y = ['setosa',
+ 'versicolor',
+ 'virginica']
+
+data = pd.read_csv("iris.csv")[X + Y]
+
+# split each dimension intro two groups, low and high
+# each group should have a representative number of elements in it
+# had we had more items in the dataset, we could have simply increased the group count to 3
+# by binning, part of the information is lost but we hope to compensate through 
+# the curvy form of the logistic function
+groups = 2
+
+# 1e-10 below is a small hack to include the last item in the last group
+# the split could / should have been done based on percentiles, not range
+# we will do by range just to keep the code simple
+stats = { x : {'range': mx-mn, 'min': mn, 'grp_range': (mx-mn) / groups } \
+            for x, mx, mn in ( (x, data[x].max() + 1e-10, data[x].min()) for x in X) }
+
+# the function which will compute the new index for grouping
+def fn(x, idx): 
+    """x - column. idx - current index for the row"""
+    idx = int((data.loc[idx][x] - stats[x]['min']) * groups / stats[x]['range'])
+    return (idx + 1) *  stats[x]['grp_range'] + stats[x]['min']
+    
+# create the summary table
+agg = {y : pd.DataFrame.sum for y in Y}
+x =  data.groupby([partial(fn, x) for x in X]).agg(agg)
+
+# add the totals and the probabilities column for each vector
+# totals:
+x['totals'] = reduce(lambda c1, c2: c1 + c2, [x[c] for c in Y])
+# probabilities for setosa, versicolor, virginica:
+for prob, col in (("p_" + y, y) for y in Y):
+    x[prob] = x[col] / x['totals']
+
+# print a csv file for further processing in excel
+with open("iris_processed.csv", "w") as f:    
+    pf = partial(print, file=f)
+
+    pf(",".join(X+list(x)))
+    
+    for i, r in x.iterrows():
+        pf(",".join([str(s) for s in (list(i) + list(r))]))
+```
+
+Summarized data looks like this: 
+
+![Summarized table]({{site.url}}/assets/logistic_regression_9.png)
+
+The predictor rows contain the middle of the group range for that particular bin, which does not reflect the actual mean of the data inside the bin. This is highly sensitive to outliers and thus a bad choice. A better way would have been to first split each predictor in equal-sized groups, compute the median for each group, and then use this number as part of the index for each bin. 
+
+When we compute the odds and log(odds) to use in the regression we notice 3 possible error scenarios:
+ - too little data in one bin - we remove that bin from the regression
+ - all data in a bin is in the category we want to predict - which leads to the odds being computed to infinity
+ - all data in a bin is not in the cateogory we want to predict - which leads to the logaritm being infinite
+
+ Neither of the two last scenarios account for a usable probability, but we have enough data in those bins to draw a conclusion that we cannot simply discard. I used two approaches and the results for the regression were very similar:
+  - Use the beta distribution and start from an a-priori value of 50%-50% (alpha=1, beta=1), which is equivalent to saying *just before we started to count we have observed an opposite value* and adjust the probability based on this formula - this gives us an upper (or lower) bound for the probability of 1 in that particular bin.
+  - Assume that the string of 0s or 1s was a random extraction from the all possible extractiobs but that it had a rather high probability to occur (of 50% in this case, a value which seemed right to me :) ). Thus consider `p^bin_size = 0.5` and compute `p=EXP(LN(0.5) / bin_size)`.
+
+Excel file [here]({{site.url}}/assets/iris_processed.xlsx)
+
+Results for the regression at a `0.5` threshold were not as good as with direct maximization of the log-of-probabilities, but rasing the threshhold at `0.8` leads to perfect prediction. Picture below:
+
+![Logistic regression]({{site.url}}/assets/logistic_regression_10.png)
+
+### Conclusions
+
+We used logistic regression to build a clasifier on the Iris dataset and to predict the probability of a person having hypertension given a set of predictors. We used two ways to compute the regression coefficients: one by maximizing directly a probability function using the gradient descent, the other by applying linear regression to the log-odds function and then computing the probabilities from it. The third example was to process the Iris dataset used in the first regression and to compute the coefficients in a similar manner to that used for determining hypertensives.
