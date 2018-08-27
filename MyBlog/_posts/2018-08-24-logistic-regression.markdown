@@ -60,7 +60,7 @@ A perfect fit means `P(yi | Xi) == 1`, whatever `i=1..k`, which reads *given the
 
 which is equivalent to 
 
-`log(PRODUCT) = SUM(log(P(yi | Xi)) = SUM( yi * log(f(Xi)) + (1-yi) * log(1-f(Xi)))` where `f(Xi) = 1 / (1+e^-dot(Xi,B))` is maximized as close as possible to 0. 
+`log(PRODUCT) = SUM(log(P(yi | Xi)) = SUM(yi * log(f(Xi)) + (1-yi) * log(1-f(Xi)))` where `f(Xi) = 1 / (1+e^-dot(Xi,B))` is maximized as close as possible to 0. 
 
 Now we can use gradient descent to find the vector `B`. Unfortunately this method might be slow for large datasets because, for every incremental change in any `B`, all the exponentials and the logarithms for each line in the dataset need to be recomputed.
 
@@ -71,8 +71,8 @@ Now we can use gradient descent to find the vector `B`. Unfortunately this metho
 3. We split the data into trainig and test dataset.
 4. Add a new column for intercept.
 5. Add a new row for the `B` vector. These are the values we want to find.
-6. Add a new column for `P(setosa)`, the probabilities we want as result from the logistic regression. `P(setosa) = 1/1+EXP(-SUMPRODUCT(B, X))`
-7. Add a new column, the log column, `log(P(yi | Xi)`, the column for which the sum we want to optimize as close as possible to 0. The formula for each of the elements in the column is `yi *LN(P(setosa)+0.0001) + (1-yi)*LN(1-P(setosa)+0.0001)`. I added a `0.0001` correction factor because, as the maximization algorithm goes on, we might end up with `NaN` values due to computing `P(setosa) = 0` which leads to `LN(0)` which is `-infinity`.
+6. Add a new column for `P(setosa)`, the probabilities we want as result from the logistic regression. `P(setosa) = 1 / (1 + EXP(-SUMPRODUCT(B, X))`
+7. Add a new column, the log column, `log(P(yi | Xi)`, the column for which the sum we want to optimize as close as possible to 0. The formula for each of the elements in the column is `yi * LN(P(setosa) + 0.0001) + (1 - yi) * LN( 1 - P(setosa) + 0.0001)`. I added a `0.0001` correction factor because, as the maximization algorithm goes on, we might end up with `NaN` values due to computing `P(setosa) = 0` which leads to `LN(0)` which is `-infinity`.
 8. Add a summary value for the column at 7, as `SUM(log(P(yi | Xi)))`.
 9. Use Excel Solver plugin to maximize the value of this summary value to as close to 0 as possible.
 10. Because the setosa is strictly separated from the other two types, the solver steps continues until the regression becomes very tight and the coefficients very large. In order for the `1/1+EXP(-SUMPRODUCT)` not to overflow, I added a constraint for the `-SUMPRODUCT()` to be less or equal to 50. This does not seem to impact the quality of the regression.
@@ -89,6 +89,10 @@ Performing the same steps for *virginica* leads also to very good results, while
 In the second iteration of the file, I have modified the regression so that it operates on standardized factors. This way, we can interpret the coefficients and see which factor contributes the most for classification. The picture below also contains the `log(odds)` vs `most important factor` chart, sorted by `odds = P(1) / P(0)`, the ratio between the probability of `1` and `0`. This is also a reminder that data for logistic regression should pe pepared in a similar manner to that for linear regression. 
 
 ![Standardized Data]({{site.url}}/assets/logistic_regression_2.png)
+
+*Note:*
+
+The factor we are minimizing, `ce = -(y * ln(p) + (1 - y) * ln(1-p))`, where y is the observed value (0 or 1) and `p` is the probability given by our model, is called *cross entropy*. 
 
 ### Linear Regression and Logistic Regression
 
