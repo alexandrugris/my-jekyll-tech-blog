@@ -249,6 +249,8 @@ Results for the regression at a `0.5` threshold were not as good as with direct 
 
 ![Logistic regression]({{site.url}}/assets/logistic_regression_10.png)
 
+And link here: [Logistic regression]({{site.url}}/assets/logistic_regression_10.png)
+
 ### Conclusions
 
 We used logistic regression to build a clasifier on the Iris dataset and to predict the probability of a person having hypertension given a set of predictors. We used two ways to compute the regression coefficients: one by maximizing directly a probability function using the gradient descent, the other by applying linear regression to the log-odds function and then computing the probabilities from it. The third example was to process the Iris dataset used in the first regression and to compute the coefficients in a similar manner to that used for determining hypertensives.
