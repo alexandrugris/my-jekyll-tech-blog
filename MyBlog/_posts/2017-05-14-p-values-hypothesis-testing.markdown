@@ -26,6 +26,28 @@ Before going forward, I would like to point out these two links:
 - [OpenIntro Statistics Book](https://www.boundless.com/users/233402/textbooks/openintro-statistics/)
 - [OpenIntro Statistics Hub](https://www.boundless.com/statistics/)
 
+## The maths
+
+Let's consider the following problem: a software routine is known to return the result of a complex computation in approx. 1.2 seconds. A software engineer tries to optimize the routine and obtained an average over 100 runs of 1.05 seconds, with a standard deviation of 0.5s. Has the routine been improved?
+
+*Answer:*
+
+- H0: the software performs just as it did before.
+- H1: the improvement had an effect (not saying wether improvement or worsening).
+
+If we assume H0, that means the mean of the sample should be close enough to the mean of the total distribution.
+
+We define the standard error of the mean for the population `SEM = population standard deviation / SQRT(populatin size)`
+
+Since we have enough samples in our population, over 30, we can approximate to `SEM = sample standard deviation / SQRT(population size)` which leads to `SEM = 0.5/SQRT(100) = 0.5/10 = 0.05`.
+
+We have `Z-score = (population mean - sample mean) / SEM = (1.2 - 1.05) / 0.05 = 3`, which means that our result (sample mean) is 3 standard deviations from the mean of the population, which means we have a `p-value = 0.3%` chance to observe a result as extreme or more extreme to the one we observed, which means we can consider that the improvement worked - we considered an extreme result on both the positive and the negative side (a two-tailed test).
+
+Now, let's assume the H1 were *the software response has improved (lowered)*, a one-tailed test, our p-value would have been `0.015%`.
+
+Assuming we would have had 10 samples, not 100, the sample mean would not have been normally distributed, but t-distributed and we would have had to use the *T-distribution with n-1 degrees of freedom* to find the p-values. T-score is computed exactly the same as the Z-score, but the p-values are computed based on the associated T-distribution with n-1 degrees of freedom.
+
+
 ## Code example - unfair coin
 
 We are going to test if a coin is unfair (slightly biased towards the head, with a `p(head) = 0.55`). We are going to use two sample sizes and see how the sample size affects the results. 
@@ -76,16 +98,16 @@ def interval_probability_centered(p, mu, sigma):
     hw = 9 * sigma # half width of intw
     interval_low, interval_high = mu - hw, mu + hw
     current_prob = 1.0
-    
+
     while abs(current_prob - p) > 1e-12:
         hw /= 2
         if p < current_prob:
-            interval_low, interval_high = interval_low + hw, interval_high - hw            
+            interval_low, interval_high = interval_low + hw, interval_high - hw
         else:
-            interval_low, interval_high = interval_low - hw, interval_high + hw            
+            interval_low, interval_high = interval_low - hw, interval_high + hw
 
         current_prob = normal_probability_between(interval_low, interval_high, mu, sigma)
-        
+
     return interval_low, interval_high
 
 def normal_upper_bound(p, mu, sigma):
@@ -95,13 +117,13 @@ def normal_upper_bound(p, mu, sigma):
     intw_high = mu + delta
     current_prob = 1.0
     while abs(current_prob - p) > 1e-12:
-        
+
         delta /= 2
 
         while p < current_prob:
             intw_high -= delta
             current_prob = normal_probability_below(intw_high, mu, sigma)
-            
+
         while p > current_prob:
             intw_high += delta
             current_prob = normal_probability_below(intw_high, mu, sigma)
