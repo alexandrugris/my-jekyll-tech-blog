@@ -158,6 +158,10 @@ We may not want the *slope* influence to be reflected, but only the intercept. I
 
 We can generalize this to `k` categories. To avoid multicollinearity, we will introduce `k-1` dummy variables for intercept and `k-1` for slope, if we want to consider slope as well.
 
+### Polynomial regression
+
+Assuming we want to fit a model that looks like `Y = b0 + b1 * X + b2 * X^2 + ...`, we can simply reduce it to multiple linear regression by selecting our features as `X = [1, X, X^2, X^3, ...]`. In this case, we should seriously consider scaling the features `[X, X^2, ..., X^n]` if we want our model to converge sufficiently fast.
+
 ### Standard errors of coefficients
 
 Given the multiple regression line from above, the points `(xi, yi)` for which we estimate the regression coefficients are just a sample of the total population of possible `(xi, yi)` pairs. Thus each coefficient, `c0 ... cn`, is normally distributed and we can estimate the mean and sigma for each of these coefficients. Obviously, the lower the standard error (`SE`) of each coefficient, the higher confidence we can have that that parameter is close to correctness.
