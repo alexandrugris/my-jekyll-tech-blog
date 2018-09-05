@@ -580,7 +580,7 @@ avg diff goals scored by home team = (scored by home team - received by home tea
 avg diff goals scored by away team = (scored by away team - received by away team) / number of matches considered
 ```
 
-The input variables for the model above are `scored / received by home / away team`, `number of matches considered` and `home / away average scored` which can be obtained by looking up values on the internet, on each league page, for instance.  
+The input variables for the model above are `scored / received by home / away team`, `number of matches considered` and `home / away average scored` which can be obtained by looking up values on the internet, on each league page, for instance. Great sites are [here](https://www.fctables.com/) and [here](http://www.football-lineups.com/)
 
 Another model, the multiplicative model, has yet simpler formulas:
 
