@@ -258,3 +258,12 @@ And link here: [Logistic regression]({{site.url}}/assets/logistic_regression_10.
 ### Conclusions
 
 We used logistic regression to build a clasifier on the Iris dataset and to predict the probability of a person having hypertension given a set of predictors. We used two ways to compute the regression coefficients: one by maximizing directly a probability function using the gradient descent, the other by applying linear regression to the log-odds function and then computing the probabilities from it. The third example was to process the Iris dataset used in the first regression and to compute the coefficients in a similar manner to that used for determining hypertensives.
+
+### Additional notes - decision boundary
+
+If we set the classification decision to `1` when `p(1) > 0.5`, given the equation of the logistic function, it is equivalent to saying `y = b0 + ... bn*xn > 0`. *This is the equation of a line which divides the factor space in two sections.*
+
+*If we want to divide the space into an enclosed area, with outside and inside spaces,* we can set, for instance, the regression to include squares of its factors, like `y = b0 + b1*x1 + b2*x2 + b3*x1^2 + b4 *x2^1`. In this example, for instance, if we set `b0 = -1, b1 = 0, b2 = 0, b3 = 1, b4 = 1`, at the boundary condition we arrive precisely at the equation for a cirle, `1 = x1^2 + x2^2`.
+
+The beauty of logistic regression is that the decision boundary can be visualised by just comparing the regression term to 0, since we know that in that particular point `P=1/(1+e^0) = 0.5`
+
