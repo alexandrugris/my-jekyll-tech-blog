@@ -177,3 +177,13 @@ The inserted row appears in the select from the original table. If we want to se
 ```
 psql>SELECT * FROM ONLY test_ids;
 ```
+
+### Performance tuning
+
+pgAdmin is a great tool to play around and visualize query execution plans:
+
+![pgAdmin]({{site.url}}/assets/postgres_1.png)
+
+Postgres has the ability to set per-query parameters to optimize execution.
+
+Inheritance is the foundation for vertical partitioning in Postgres and it brings the extra benefit of adding a semantic twist to it. One shouldn't try to add inheritance to an existing table, but rather create a new set of tables and move the data over to them.
