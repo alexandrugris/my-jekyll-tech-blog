@@ -4,7 +4,7 @@ title:  "Postgresql"
 date:   2018-08-24 13:15:16 +0200
 categories: programming
 ---
-This post is an introduction to Postgresql.
+An introduction to Postgresql.
 
 ### Installation (Mac)
 
@@ -76,6 +76,7 @@ A more involved example, exporting the results of a query to a CSV file (or, in 
 The same command, if `to` is replaced with `from`, can be used to import csv files into postgres.
 
 If I want to output to CSV the results of a complex query I have stored in a file, I can do as follows:
+
 1. Create a `tmp-export.sql` containing a complex query like `create view tmp_export_view as select ... [complex sql query]` 
 2. Run `psql` as follows:
 
@@ -83,7 +84,7 @@ If I want to output to CSV the results of a complex query I have stored in a fil
 psql alexandrugris -c '\i ~/tmp-export.sql' -c '\copy (select * from tmp_export) to stdout with csv' -c 'drop view tmp_export'
 ```
 
-### Creating a table with an automatically generated ID:
+### Creating a table with automatically generated IDs:
 
 ```sql
 psql> CREATE TABLE test_ids(rowid serial, myname character(50));
@@ -135,7 +136,7 @@ psql>ALTER TABLE test_ids ADD COLUMN borndate timestamp CHECK (borndate > '1/1/1
 
 with the result
 
-```sql
+```
 alexandrugris=# \d test_ids
                                          Table "public.test_ids"
   Column  |            Type             | Collation | Nullable |                 Default                 
@@ -312,3 +313,105 @@ select t.my_text, ts_rank(t.words_vector, q)
 From postgresql documentation, regarding cost:
 
 | The most critical part of the display is the estimated statement execution cost, which is the planner's guess at how long it will take to run the statement (measured in cost units that are arbitrary, but conventionally mean disk page fetches). Actually two numbers are shown: the start-up cost before the first row can be returned, and the total cost to return all the rows. For most queries the total cost is what matters, but in contexts such as a subquery in EXISTS, the planner will choose the smallest start-up cost instead of the smallest total cost (since the executor will stop after getting one row, anyway). Also, if you limit the number of rows to return with a LIMIT clause, the planner makes an appropriate interpolation between the endpoint costs to estimate which plan is really the cheapest.
+
+![Running Explain From PyCharm]({{site.url}}/assets/postgres_2.png)
+
+### Triggers
+
+- Before triggers: invoked before the constraints are checked
+- Instead of triggers: the trigger can skip the insert / update operations
+- Afer triggers: after the event has occured fuly
+- For each row: called once for each row that is affected by the operation
+- For each statement: once for each statement that is executed
+
+Triggers for the same event will fire in alphabetical order.
+
+A small example using before and after triggers, with conditions. The example consists of two tables, one named `employees` with employee's name and salary and an audit table where all changes to the salary are logged.
+
+Table creation:
+
+```sql
+create table employees(
+    id serial primary key, 
+    name varchar(50) unique, 
+    salary numeric(6,2));
+
+create table salary_audit(
+        emp_id integer references employees(id), 
+        old_salary decimal(6, 2), 
+        new_salary decimal(6, 2), 
+        updated timestamp);
+
+create index idx_emp_salary_audit on salary_audit(emp_id);
+create index idx_emp on employees(LOWER(name));
+```
+
+A 'before' trigger to validate some complex business rules:
+
+```sql
+-- enforce some constraints, for proving how before triggers work
+create or replace function emp_constraints() returns trigger language plpgsql as $$
+begin
+
+    if new.name is null or new.salary is null then
+
+      raise exception '% employee cannot have name or salary null', new.id;
+
+    end if;
+
+    if new.salary < 0 then
+      raise exception '% employee cannot have negative salary', new.name;
+    end if;
+
+    return new;
+  end;
+$$;
+
+drop trigger if exists emp_constraints on employees;
+create trigger emp_constraints before insert or update on employees
+	for each row execute procedure emp_constraints();
+```
+
+An after trigger, for when all business conditions have been checked, in order to log the changes. The trigger is only executed when changes to the salary occur, not when name changes.
+
+```sql
+-- trigger to insert in the audit table all the changes to this table
+create or replace function salary_audit() returns trigger language plpgsql as $$
+declare
+  old_salary integer default null;
+begin
+
+  --- if insert, old does not exist
+  if TG_OP = 'UPDATE' then
+    old_salary := old.salary;
+  end if;
+
+  insert into salary_audit(emp_id, old_salary, new_salary, updated) 
+    values (new.id, old_salary, new.salary, now());
+
+  return new;
+end;
+$$;
+
+-- execute audit trigger only when salary changes, not when name changes and only if different
+drop trigger if exists emp_salary_audit on employees;
+create trigger emp_salary_audit after update of salary on employees
+  for each row when (old.* is distinct from new.*) execute procedure salary_audit();
+
+-- old does not exist, thus we need a separate trigger for insert
+drop trigger if exists emp_salary_audit_insert on employees;
+create trigger emp_salary_audit_insert after insert on employees
+  for each row execute procedure salary_audit();
+```
+
+And, of course, tests:
+
+```sql
+insert into employees(name, salary) values ('AG6', 100), ('OM7', 100);
+update employees set salary = salary * 1.5 where LOWER(name) = LOWER('OM7');
+
+-- see the increases for all employees in percentage change
+select e.name,  (-a.old_salary+a.new_salary)/a.old_salary as pct_change, a.updated 
+    from employees e inner join salary_audit a 
+    on e.id=a.emp_id and a.old_salary is not null and a.old_salary > 0;
+```
