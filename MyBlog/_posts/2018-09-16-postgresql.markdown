@@ -48,13 +48,40 @@ or connect to it using `psql`, the command line client:
 > psql your_database_name
 ```
 
+or list the databases one can connect to:
+```
+> psql -l
+```
+
 Then the list of basic commands:
 
-- `\c` - shows current database and username
+- `\c` - shows current database and username or connects to another database
 - `\l` - lists all databases
-- `\d` - describes current database
+- `\d` - describes current database, with variants `\dt` for tables, `\dv` for views or `\d table_name` to describe a specific table
 - `\c database_name` - connects to `database_name`
+- `\x` - transposes the results from queries
+- `\q` - exit
+- `\p` - shows the query buffer
+- `\e` - opens the query buffer in vim for editing.
+- `\i` - reads the query from a file
+- `\!` - run shell commands from `psql`
 - `help <command>` - inline help
+
+A more involved example, exporting the results of a query to a CSV file (or, in the case below, dumping it to the stdout and piping it through more):
+
+```
+>psql alexandrugris -c '\copy (select * from test_ids) to stdout with csv' | more
+```
+
+The same command, if `to` is replaced with `from`, can be used to import csv files into postgres.
+
+If I want to output to CSV the results of a complex query I have stored in a file, I can do as follows:
+1. Create a `tmp-export.sql` containing a complex query like `create view tmp_export_view as select ... [complex sql query]` 
+2. Run `psql` as follows:
+
+```
+psql alexandrugris -c '\i ~/tmp-export.sql' -c '\copy (select * from tmp_export) to stdout with csv' -c 'drop view tmp_export'
+```
 
 ### Creating a table with an automatically generated ID:
 
@@ -275,3 +302,13 @@ select t.my_text, ts_rank(t.words_vector, q)
     where t.words_vector @@ q
     order by rank desc;
 ```
+
+### Analyse and Explain
+
+`ANALYZE` collects statistics about the contents of tables in the database, and stores the results in the pg_statistic system catalog. Subsequently, the query planner uses these statistics to help determine the most efficient execution plans for queries.
+
+`EXPLAIN` shows the execution plan of a statement.
+
+From postgresql documentation, regarding cost:
+
+| The most critical part of the display is the estimated statement execution cost, which is the planner's guess at how long it will take to run the statement (measured in cost units that are arbitrary, but conventionally mean disk page fetches). Actually two numbers are shown: the start-up cost before the first row can be returned, and the total cost to return all the rows. For most queries the total cost is what matters, but in contexts such as a subquery in EXISTS, the planner will choose the smallest start-up cost instead of the smallest total cost (since the executor will stop after getting one row, anyway). Also, if you limit the number of rows to return with a LIMIT clause, the planner makes an appropriate interpolation between the endpoint costs to estimate which plan is really the cheapest.
