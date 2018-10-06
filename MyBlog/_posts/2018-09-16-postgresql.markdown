@@ -389,7 +389,7 @@ begin
   insert into salary_audit(emp_id, old_salary, new_salary, updated) 
     values (new.id, old_salary, new.salary, now());
 
-  return new;
+    return null; -- results are discarded since this is an after trigger
 end;
 $$;
 
@@ -411,7 +411,78 @@ insert into employees(name, salary) values ('AG6', 100), ('OM7', 100);
 update employees set salary = salary * 1.5 where LOWER(name) = LOWER('OM7');
 
 -- see the increases for all employees in percentage change
-select e.name,  (-a.old_salary+a.new_salary)/a.old_salary as pct_change, a.updated 
+select e.name, (-a.old_salary+a.new_salary)/a.old_salary as pct_change, a.updated 
     from employees e inner join salary_audit a 
-    on e.id=a.emp_id and a.old_salary is not null and a.old_salary > 0;
+    on e.id = a.emp_id 
+    where a.old_salary is not null and a.old_salary > 0;
+```
+
+### Updating views through triggers
+
+We are going to continue the example above and extend it with a log of employee positions within our organization database. We want to be able to do the following:
+
+```sql
+insert into employee_current_position (emp_name, position_name) values ('AG10', 'Director');
+insert into employee_current_position (emp_name, position_name) values ('AG10', 'Developer');
+
+select * from employee_current_position;
+```
+
+and get the last position of that particular employee. Ok, maybe `update` might have been a sematically better choince, but for now we will settle with `insert`.
+
+First of all, the model:
+
+```sql
+create table positions (id serial primary key, name varchar);
+
+create table employee_position(
+  id serial primary key,
+  emp_id integer references employees(id),
+  pos_id integer references positions(id),
+  s timestamp, e timestamp);
+
+--- some seed values
+insert into positions(name) values ('architect'), ('developer'), ('manager');
+
+--- our view
+create view employee_current_position as
+  select e.id emp_id, e.name emp_name, p.name position_name, ep.s start_date from
+    employees e
+    inner join employee_position ep on e.id = ep.emp_id
+    inner join positions p on ep.pos_id = p.id where ep.e is null;
+```
+
+If we try to insert directly into this view, Postgres will throw an error complaining that it doesn't know how to insert. Therefore, we need to create a trigger what will help us with our mission.
+
+```sql
+create or replace function insert_into_emp_position() returns trigger language plpgsql as $$
+declare
+  pos integer default null; -- id of the position
+  emp integer default null; -- id of the employee
+begin
+
+  -- strict keyword to return exactly one; if it doen't exist => raise exception and exit
+  select id into strict emp from employees where name = new.emp_name;
+
+  -- try to see if we already have a position inserted in the database that matches our wish
+  select id into pos from positions where name = new.position_name;
+
+  -- if not, we create it
+  if pos is null then
+    insert into positions(name) values (new.position_name);
+    select currval('positions_id_seq') into pos; -- this will give us the id from the insert above
+  end if;
+
+  -- set the end time to the previous position (if any) to current time
+  update employee_position ep set e = now() where ep.emp_id = emp and ep.e is null;
+
+  -- start a new position
+  insert into employee_position(emp_id, pos_id, s) values (emp, pos, now());
+  return new ;
+end;
+$$;
+
+-- create the trigger instead of insert
+create trigger lst_employee_position instead of insert on employee_current_position
+  for each row execute procedure insert_into_emp_position();
 ```
