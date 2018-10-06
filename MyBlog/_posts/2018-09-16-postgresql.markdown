@@ -423,12 +423,14 @@ We are going to continue the example above and extend it with a log of employee 
 
 ```sql
 insert into employee_current_position (emp_name, position_name) values ('AG10', 'Director');
-insert into employee_current_position (emp_name, position_name) values ('AG10', 'Developer');
+insert into employee_current_position (emp_name, position_name) values ('AG11', 'Developer');
+
+update employee_current_position set position_name='Developer' where emp_name='AG10';
 
 select * from employee_current_position;
 ```
 
-and get the last position of that particular employee. Ok, maybe `update` might have been a sematically better choince, but for now we will settle with `insert`.
+and get the last position of that particular employee. Also, we don't want the position to change its start / end date if the insert or update refers to the same position the employee currently holds.
 
 First of all, the model:
 
@@ -455,7 +457,7 @@ create view employee_current_position as
 If we try to insert directly into this view, Postgres will throw an error complaining that it doesn't know how to insert. Therefore, we need to create a trigger what will help us with our mission.
 
 ```sql
-create or replace function insert_into_emp_position() returns trigger language plpgsql as $$
+create or replace function update_into_emp_position() returns trigger language plpgsql as $$
 declare
   pos integer default null; -- id of the position
   emp integer default null; -- id of the employee
@@ -471,6 +473,9 @@ begin
   if pos is null then
     insert into positions(name) values (new.position_name);
     select currval('positions_id_seq') into pos; -- this will give us the id from the insert above
+  elsif (select count(ep.emp_id) from employee_position ep 
+        where ep.emp_id = emp and ep.pos_id = pos and ep.e is null) > 0 then
+    return null; -- same position, no update. silent fail. another option would be to raise exception
   end if;
 
   -- set the end time to the previous position (if any) to current time
@@ -478,11 +483,13 @@ begin
 
   -- start a new position
   insert into employee_position(emp_id, pos_id, s) values (emp, pos, now());
-  return new ;
+  return new ; -- this does not matter
 end;
 $$;
 
--- create the trigger instead of insert
-create trigger lst_employee_position instead of insert on employee_current_position
-  for each row execute procedure insert_into_emp_position();
+-- create the trigger instead of insert or update
+create trigger update_emp_pos instead of insert or update on employee_current_position
+  for each row execute procedure update_into_emp_position();
 ```
+
+Note: similar behavior can be obtained through rules. If many rows are updated in a trigger which is invoked for each row, a better solution might be to use rules directly which basically behave as a rewriting of the original query.
