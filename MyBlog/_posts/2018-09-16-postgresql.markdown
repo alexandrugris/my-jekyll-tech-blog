@@ -493,3 +493,205 @@ create trigger update_emp_pos instead of insert or update on employee_current_po
 ```
 
 Note: similar behavior can be obtained through rules. If many rows are updated in a trigger which is invoked for each row, a better solution might be to use rules directly which basically behave as a rewriting of the original query.
+
+### A more comprehensive example:
+
+We are going to do a fun exercise. Consider a set of teams from various cities. We are going to implement a function that takes string input and finds the best matches for that particular string. We are also going to consider synonyms, like `(Bucharest, Bucuresti)`, `(Kiev, Kyiv)`, `(Dynamo, Dinamo)`. We are going to be able to correctly identify `(New York Ranges)` based on this input string. It will work fast even for incomplete strings, like `Dyna`.
+
+Postgres has its synonyms dictionaries which can be altered when spliting into lexemes, but let's see how to implement such a dictionary ourselves.
+
+The dictionary with synonyms. We are going to call them `auto_tags` below because we are going to tag the teams with them in an automatic manner.
+
+```sql
+create table auto_tags(
+  id serial primary key, -- the tag index, we will use this for tagging teams
+  index tsvector -- create a gin index on this
+);
+
+create index fts on auto_tags using gin(index);
+
+--- The function below creates new tags or maps synonyms to existing tags (or creates a tag in the process)
+create or replace function update_tags(t1 text, t2 text = null) returns integer language plpgsql as $$
+declare
+
+  t1_q tsquery;
+  t2_q tsquery;
+  t1_v tsvector;
+  t2_v tsvector;
+
+  ret integer := 0;
+
+begin
+
+  if t1 is null then
+    raise exception 'First term must not be null';
+  end if;
+
+  if t2 is null then
+    t2 := t1;
+  end if;
+
+  t1_q := plainto_tsquery(t1);
+  t2_q := plainto_tsquery(t2);
+  t1_v := to_tsvector(t1);
+  t2_v := to_tsvector(t2);
+
+  -- one of the two tags already exist in the database
+  if exists(select 1 from auto_tags where index @@ (t1_q || t2_q) limit 1) then
+
+    -- search / update for the left tag, no new tag is created
+    with t as (update auto_tags set index = strip(index || t2_v)
+      where id in (select id from auto_tags where index @@ (select t1_q && !!t2_q))
+      returning 1) select count(*) from t into ret;
+
+    -- search / update for the right tag
+    if ret = 0 then
+      with t as (update auto_tags set index = strip(index || t1_v)
+        where id in (select id from auto_tags where index @@ (select t2_q && !!t1_q))
+        returning 1) select count(*) from t into ret;
+
+      end if;
+
+  else
+    -- create the tags as they do not exist
+    insert into auto_tags(index) values (strip(t1_v || t2_v));
+    return 1;
+  end if;
+
+  return ret;
+
+end;
+$$;
+
+--- The function below returns the index for a specifc tag. 
+--- If the tag is not found, it inserts it and returns its new index
+create or replace function get_or_insert_tag(tag text) returns integer language plpgsql as $$
+declare
+  ret integer default null;
+begin
+
+  select id from auto_tags where index @@ plainto_tsquery(tag) limit 1 into ret;
+
+  if ret is null then
+    select update_tags(tag) into ret;
+    if ret <> 1 then
+      raise exception 'Something bad happened, procedure not correct. Should have at least 1 insert here.';
+    end if;
+
+    select currval('auto_tags_id_seq') into ret;
+  end if;
+
+  return ret;
+end;
+$$;
+```
+
+The functiosn above can be used as follows:
+
+```sql
+select update_tags('Dynamo', 'Dinamo');
+select update_tags('Kiev', 'Kyiv');
+select update_tags('Bucharest', 'Bucuresti');
+select update_tags('Poly', 'Politehnica');
+select update_tags('New York');
+```
+
+The function `get_or_insert_tag()` is used when inserting a new team. Let's look at the team table.
+
+```sql
+create table teams (
+  id       serial primary key, -- teamid
+  name     varchar(50), -- name of the team
+  location varchar(50), -- the location of the team
+  index_name    integer references auto_tags(id), -- link to the auto_tags for name
+  index_location integer references auto_tags(id) -- link for auto_tags for location
+);
+
+-- since the index is basically an arbitrary token and range searches do not make sense for it
+-- we use has indexes
+create index idx_team_name on teams using hash(index_name);
+create index idx_team_location on teams using hash(index_location);
+
+-- trigger to update the tag (index in the auto_tags table)
+create or replace function insert_or_update_teams() returns trigger language plpgsql as $$
+begin
+
+  select get_or_insert_tag(new.name::text) into new.index_name;
+  select get_or_insert_tag(new.location::text) into new.index_location;
+
+  return new;
+
+end;
+$$;
+
+create trigger trg_insert_or_update_teams before insert or update on teams
+  for each row execute procedure insert_or_update_teams();
+
+insert into teams(name, location) values
+                                          ('Poly', 'Iasi'),
+                                          ('Poly', 'Timisoara'),
+                                          ('Dinamo', 'Bucuresti'),
+                                          ('Dinamo', 'Kiev'),
+                                          ('Rangers', 'New York'),
+                                          ('Steaua', 'Bucuresti'),
+                                          ('Rapid', 'Bucuresti'),
+                                          ('Arsenal', 'Kyiv'),
+                                          ('Locomotiv', 'Kyiv'),
+                                          ('Arsenal', 'London');
+
+select * from teams;
+select * from auto_tags; -- we see that new tags are created for the team names
+```
+
+And now, the function that will return the sorted list of the teams that are the most relevant for my search.
+
+```sql
+ate or replace function get_team_by_prefix(prefix text) returns setof teams language plpgsql as $$
+declare
+  arr_query_terms text array;
+  l integer;
+begin
+
+  select string_to_array(prefix, ' ') into arr_query_terms;
+  l := array_length(arr_query_terms, 1);
+
+  create temp table if not exists indices (idx integer) on commit drop;
+  truncate indices;
+
+  for i in  1 .. l-1 loop
+    insert into indices select id from auto_tags where index @@ plainto_tsquery(arr_query_terms[i]);
+  end loop;
+
+  if char_length(arr_query_terms[l]) > 0 then
+     insert into indices select id from auto_tags where index @@ to_tsquery(arr_query_terms[l] || ':*') ;
+  end if;
+
+  return query
+    select r.* from teams r inner join
+            (select x.id, count(x.id) as rank from
+                  (select t.id from teams t inner join indices i on t.index_name = i.idx
+                   union all
+                  select t.id from teams t inner join indices i on
+            t.index_location = i.idx) x
+    group by x.id) q on r.id = q.id
+    order by q.rank
+    desc limit 10;
+
+end;
+$$;
+```
+
+with usages:
+
+```sql 
+
+select get_team_by_prefix('Kie'); -- will return everything that is Kiev and Kyiv
+select get_team_by_prefix('Kyi'); -- will return everything that is Kiev and Kyiv
+select get_team_by_prefix('Dynamo Kyi'); -- will return Dinamo Kiev, followed by a the dinamo bucharest and other teams from Kiev
+select get_team_by_prefix('New York Ran'); -- will return Rangers New York
+```
+
+### Conclusion
+
+Postres is a very powerful database.
+
