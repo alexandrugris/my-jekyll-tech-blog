@@ -684,7 +684,6 @@ $$;
 with usages:
 
 ```sql 
-
 select get_team_by_prefix('Kie'); -- will return everything that is Kiev and Kyiv
 select get_team_by_prefix('Kyi'); -- will return everything that is Kiev and Kyiv
 select get_team_by_prefix('Dynamo Kyi'); -- will return Dinamo Kiev, followed by a the dinamo bucharest and other teams from Kiev
