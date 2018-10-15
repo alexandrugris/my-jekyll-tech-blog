@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Postgres"
-date:   2018-08-24 13:15:16 +0200
+date:   2018-10-15 13:15:16 +0200
 categories: programming
 ---
 An introduction to PostgreSQL, including an example of full text indexing and search at the end of the article.
@@ -92,7 +92,7 @@ psql> CREATE TABLE test_ids(rowid serial, myname character(50));
 
 will create one relation and one sequence:
 
-```sql
+```
 alexandrugris=# \d
                    List of relations
  Schema |        Name        |   Type   |     Owner     
