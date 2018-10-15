@@ -690,10 +690,7 @@ select get_team_by_prefix('Dynamo Kyi'); -- will return Dinamo Kiev, followed by
 select get_team_by_prefix('New York Ran'); -- will return Rangers New York
 ```
 
-
 ![Running the queries]({{site.url}}/assets/postgres_3.png)
 
-### Conclusion
-
-Postres is a very powerful database.
+With a little bit of handcrafting, the stored procedure above can be made more SQL-ish using CTEs (`WITH` construct) and recursivity for looping through the list of words to search for. However, I find that, in this case, the effort harms readability of the entire procedure. 
 
