@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "Postgresql"
+title:  "Postgres"
 date:   2018-08-24 13:15:16 +0200
 categories: programming
 ---
-An introduction to Postgresql.
+An introduction to PostgreSQL, including an example of full text indexing and search at the end of the article.
 
 ### Installation (Mac)
 
