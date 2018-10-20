@@ -201,3 +201,48 @@ docker run --net=oda --rm confluentinc/cp-kafka bash -c "seq 42 | kafka-console-
 
 docker run --net=oda --rm confluentinc/cp-kafka kafka-console-consumer --bootstrap-server kafka:9092 --topic foo --from-beginning --max-messages 42
 ```
+
+To test the Kafka cluster I created the following script:
+
+```javascript
+#!/usr/local/bin/node
+
+let child_process = require('child_process');
+
+let cmds = {
+    'topics' : ['kafka-topics', '--zookeeper', 'zookeeper:2181'],
+    'produce' : ['kafka-console-producer', '--broker-list', 'kafka:9092'],
+    'consume' : ['kafka-console-consumer', '--bootstrap-server', 'kafka:9092']
+}
+
+let params = null;
+
+process.argv.forEach((arg) => {
+    // first with command
+    if (params == null && cmds[arg] != null) {
+        let cmd = cmds[arg];
+        params = ['run', '--net=oda', '--rm', '-it', 'confluentinc/cp-kafka', ...cmd]
+    }
+    // add the rest
+    if (params != null){
+        params.push(arg);
+    }
+});
+
+let docker = child_process.spawn('docker', params, {stdio: 'inherit'});
+
+docker.on('error', (err) => {
+    console.log('Failed to start docker');
+});
+
+docker.on('close', (code) => {
+    console.log(`Child process exited with code ${code}`);
+});
+```
+
+This allows easy testing as follows:
+
+ - To create a topic named `test`: `./kafka.js topics --create --topic test --replication-factor 3 --partitions 3`
+ - To list the topics: `./kafka.js topics --list`
+ - To produce some messages: `./kafka.js produce --topic test`
+ - To read the messages from the beginning: `./kafka.js consume --topic test --from-beginning`
