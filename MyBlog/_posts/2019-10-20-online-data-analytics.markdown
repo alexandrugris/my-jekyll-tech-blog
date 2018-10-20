@@ -196,7 +196,7 @@ networks:
 
 Sometimes Kafka service fails to start and it must me restarted with `docker-compose scale kafka=1`. Once the service is up, we can test the configuration as follows:
 
-```bash
+```
 docker run --net=oda --rm confluentinc/cp-kafka bash -c "seq 42 | kafka-console-producer --request-required-acks 1 --broker-list kafka:9092 --topic foo && echo 'Produced 42 messages.'"
 
 docker run --net=oda --rm confluentinc/cp-kafka kafka-console-consumer --bootstrap-server kafka:9092 --topic foo --from-beginning --max-messages 42
