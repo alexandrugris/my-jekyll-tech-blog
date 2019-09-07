@@ -1,11 +1,33 @@
 ---
 layout: post
 title:  "Live Streaming Architecture Using Apache Kafka And Redis"
-date:   2018-10-20 13:15:16 +0200
+date:   2019-09-04 13:15:16 +0200
 categories: programming
 ---
 
-This topic describes a streaming architecture based on Apache Kafka and Redis that can be applied to build high perfoming, resilient streaming architectures.
+This topic describes a streaming architecture based on Apache Kafka and Redis that can be applied to build high perfoming, resilient streaming architectures. 
+
+It applies to near-realtime systems where a stream of events needs to be processed and the results submitted to a large list of subscribers, each of them receiving its own view of the stream. 
+
+Examples might include include:
+- Streaming bookmaker odds - different users are browing different parts of the site, have different markets in their bet slips
+- Realtime games - based on player input and game rules, for each player a different world view is computed
+- Subscription-based data distribution, each consumer receiving a partition of the total data set
+
+The architecture assumes large data volumes, potentially with a computationally intensive step required to compute the individual view. The architecture assumes the reducers, the components responsible for computation, can scale independently and recover from failures by restarts. Their stateless nature and dynamic scaling makes them very suitable for a deploying in a Kubernetes cluster. 
+
+![Architecture]({{site.url}}/assets/arch_1.png)
+
+The picture above uses the terminology of a streaming system for distributing bookmaker odds to all connected web and mobile clients.
+
+Overall, the system is composed of several parts working together and scaling independently:
+
+- A stream control API: can be implemented as a normal REST service, load balanced.
+- A stream publisher: it accepts WebSockets connections, load balanced, individual connections can land on any machine.
+- A Redis PUB-SUB where channels reside. This can, eventually, be sharded or replaced with a RabbitMQ cluster. The stream publisher and the Redis PUB-SUB can be replaced with `socket.io`. It uses the same principle underneath.
+- A Kafka queue with two topics: one for stream commands, which are distributed to all reducers, and a partitioned topic, from which all reducers consume their individual partitions without overlap (let's call it the data topic). This topic receives the largest amount of data. For good load balancing, it is recommended that it has a high number of partitions.
+- The reducers themselves, consuming non-overlapping partitions from the data topic.
+- A state store, can be either a HA Redis cluster, MongoDB or any very fast key-value sture. 
 
 ### Apache Kafka
 
@@ -180,9 +202,8 @@ Consumer Groups provide the core abstration on which the proposed architecture i
 
 The code above allows a very easy way to check how consumer groups work. Just start several competing consumers and kill one of them or restart it later. Since restart policy is set to the beginning of the topic, `'auto.offset.reset' : 'smallest'` consuming will start everytime from the beginning of each partition.
 
-### Architecture Description
+### Main Command and Data Flows
 
-![Architecture]({{site.url}}/assets/arch_1.png)
 
 
 
