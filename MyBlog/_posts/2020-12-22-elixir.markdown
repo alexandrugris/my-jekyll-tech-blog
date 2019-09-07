@@ -1,0 +1,178 @@
+---
+layout: post
+title:  "Elixir Intro"
+date:   2018-12-22 13:15:16 +0200
+categories: programming
+---
+
+Some fun programming over the weekend, reading a little bit about Elixir, a very beautiful and succint language. I hope, Elixir, someday we will meet for an exciting project together.
+
+# The Basics
+
+Starting the REPL
+
+```
+>iex
+```
+
+Atoms are type in Elixir for which their value as string is also their representation in code. E.g. `:test` has the string value of `test`. 
+
+All atoms are true except `:false` and `:nil`. Operator `||` will return the first true value. For example, the expression `false || :helloworld || true` will return `:helloworld`. Comparing atoms is fast and space efficient. They are similar to comparing enum values in other programming languages.
+
+All strings are UTF encoded. `String.length()` - length of the string, `<>` - concatenation operator. String interpolation is built in, with the syntax `"Hello #{name}"`
+
+Tuples are defined with the syntax `t = {:ok, "Hello world"}`. Items in a tuple are accessed with `elem(t, 0)`. To change a value in a tuple one can use `put_elem(t, 1, "Hello Alexandru")`, but this will create a new tuple, as the data is immutable. Elixir supports deconstructing tuples with the syntax `{returncode, message} = t`. 
+
+Lists are composed of heads and tails. `l = [1, 2, 3]` and then `hd(l)` will return 1 while `tl(l)` will return `[2, 3]`. Deconstructing works with lists as well `[h | t] = l`.
+
+> When counting the elements in a data structure, Elixir also abides by a simple rule: the function is named size
+> if the operation is in constant time (i.e. the value is pre-calculated) or length if the operation is linear 
+> (i.e. calculating the length gets slower as the input grows). As a mnemonic, both “length” and “linear” start 
+> with “l”. (Elixir Tutorial)
+
+Keyword lists are defined as `l = [{:k, :v}]` or using the shorthand notation `l = [k: :v]`. Elements can be accesses as `l[:k]`.
+
+Maps are defined as follows: `m = %{:first_key => "this is the value"}`. Keys and values can be anything and, if they are atoms, they can be accessed with shortcut notation `m.first_key`.
+
+Modules are defined as follows:
+
+```elixir
+defmodule ModuleHello do
+    def say_hello do
+        IO.puts "Hello"
+    end
+end
+```
+
+and are reloaded in the REPL with `r(ModuleHello)`.
+
+Functions and pattern matching
+
+```elixir
+defmodule PatternMatching do
+
+    def first([]) do: nill
+    def first( [head | _]) do: head
+
+end
+```
+
+Invoked as `PatternMatching.first([])` or `PatternMatching.first([1, 2, 3])`
+
+An alternative way
+
+```elixir
+defmodule MyCalendar do
+
+    def is_leap_year(yr) when rem(year, 400) do: true
+    def is_leap_year(yr) when rem(year, 100) do: false
+    def is_leap_year(yr) when rem(year, 4) do: true
+    def is_leap_year(yr) do: false
+
+end
+```
+
+Elixir also supports default parameters using the `val \\ default_val` syntax, private functions, defined with `defp` instead of def or discarding parameters which are not used using the `_` placeholder.
+
+Function address is taken by using the `&` operator, for instance when sent as a parameter to another function. Anonymous functions are also supported, e.g. `Enum.map([1, 2, 3, 4], fn(n) -> n * n end)`. Another shorthand notation is the capture-style anonymous function, specified as `Enum.reduce([1, 2, 3, 4], 0, &(&1 + &2))`. When submitted as a parameter, the syntax for invoking a function is `f.(params)`.
+
+The `cond` block:
+
+```elixir
+defmodule MyCalendar do
+    def day_abbr(day) do:
+        cond do:
+            day == :Monday -> "Mon"
+            day == :Tuesday -> "Tue
+            true -> "Neither Mon nor Tue"
+    end
+end
+```
+
+Using pattern matching do execute parts of code:
+
+```elixir
+defmodule MyCalnedar do
+
+    def describe_date(date) do:
+
+        case date do:
+            {1, _, _} -> "First day of the month!"
+            {25, 12, _} -> "Merry Christmas!"
+            {25, month, _} -> "Only #{12 - month} months until Christmas"
+            {31, 10, _} -> "Happy Helloween!"
+            {_, month, _} when month <= 12 -> "Just an average day"
+            {_, _, _} -> "Invalid month"
+        end
+    end
+end
+```
+
+Another useful example of `case` and pattern matching is handling errors from functions:
+
+```elixir
+def read_file(path) do
+    case File.read(path) do:
+        {:ok, data} -> process_data(data)
+        {:error, err} -> IO.puts "Cannot open file"
+end
+```
+
+To start observing the Erlang VM type `iex>  :observer.start()`
+
+ASCII code of a letter is given by the `?` prefix, e.g. `?a`.
+
+# Pattern matching
+
+```elixir
+<<"alexandru", x::binary>> = "alexandru gris"
+"alexandru " <> gris = "alexandru gris"
+```
+
+# A Binary Search Tree
+
+A slightly more involved example of pattern matching, a binary search tree example:
+
+```elixir
+defmodule Tree do
+
+  def insert({:leaf, nil}, nv) do
+    {:leaf, nv}
+  end
+
+  def insert({:leaf, v}, nv) when v >= nv do
+    {:node, v, {:leaf, nv}, {:leaf, nil}}
+  end
+
+  def insert({:leaf, v}, nv) when v < nv do
+    {:node, v, {:leaf, nil}, {:leaf, nv}}
+  end
+
+  def insert({:node, v, left, right}, nv) when v >= nv do
+    {:node, v, insert(left, nv), right}
+  end
+
+  def insert({:node, v, left, right}, nv) when v < nv do
+    {:node, v, left, insert(right, nv)}
+  end
+
+  def to_list({:leaf, nil}) do
+    []
+  end
+
+  def to_list({:leaf, v}) do
+    [v]
+  end
+
+  def to_list({:node, v, left, right}) do
+    to_list(left) ++ [v] ++ to_list(right)
+  end
+
+  def create() do
+    {:leaf, nil}
+  end
+
+end
+```
+
+Interesting to note how succint the code is.
