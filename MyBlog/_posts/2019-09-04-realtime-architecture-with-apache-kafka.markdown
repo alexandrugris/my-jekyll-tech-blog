@@ -1,15 +1,13 @@
 ---
 layout: post
-title:  "Live Streaming Architecture Using Apache Kafka And Redis"
+title:  "Streaming Architecture Using Apache Kafka And Redis"
 date:   2019-09-04 13:15:16 +0200
 categories: programming
 ---
 
-This topic describes a streaming architecture based on Apache Kafka and Redis that can be applied to build high perfoming, resilient streaming architectures. 
+This post describes an architecture based on Apache Kafka and Redis that can be applied to building high perfoming, resilient streaming systems.  It applies to near-realtime systems, where a stream of events needs to be processed and the results submitted to a large list of subscribers, each of them receiving its own view of the stream. 
 
-It applies to near-realtime systems where a stream of events needs to be processed and the results submitted to a large list of subscribers, each of them receiving its own view of the stream. 
-
-Examples might include include:
+Examples might include the following:
 - Streaming bookmaker odds - different users are browing different parts of the site, have different markets in their bet slips
 - Realtime games - based on player input and game rules, for each player a different world view is computed
 - Subscription-based data distribution, each consumer receiving a partition of the total data set
@@ -24,7 +22,7 @@ Overall, the system is composed of several parts working together and scaling in
 
 - A stream control API: can be implemented as a normal REST service, load balanced.
 - A stream publisher: it accepts WebSockets connections, load balanced, individual connections can land on any machine.
-- A Redis PUB-SUB where channels reside. This can, eventually, be sharded or replaced with a RabbitMQ cluster. The stream publisher and the Redis PUB-SUB can be replaced with `socket.io`. It uses the same principle underneath.
+- A Redis PUB-SUB component where channels reside. This can, eventually, be sharded or replaced with a RabbitMQ cluster. The stream publisher and the Redis PUB-SUB can be replaced with `socket.io`. It uses the same principle underneath.
 - A Kafka queue with two topics: one for stream commands, which are distributed to all reducers, and a partitioned topic, from which all reducers consume their individual partitions without overlap (let's call it the data topic). This topic receives the largest amount of data. For good load balancing, it is recommended that it has a high number of partitions.
 - The reducers themselves, consuming non-overlapping partitions from the data topic.
 - A state store, can be either a HA Redis cluster, MongoDB or any very fast key-value sture. 
@@ -196,13 +194,29 @@ kafka.consumer("consumer-group").join(consumerConfig, function(err, instance) {
   });
 ```
 
-### Apache Kafka Consumer Groups
+### Consumer Groups
 
 Consumer Groups provide the core abstration on which the proposed architecture is built. Consumer Groups allow a set of concurrent processes to consume messages from a Kafka topic while, at the same time, guaranteeing that no two consumers will be allocated the same list of partitions. This allows seamless scaling up and down of the consumer group as the result of fluctiating traffic, as well as due to restarts caused by consumer crashes. Consumers from a consumer group receive a `rebalance` notification callback with a list of partitions that are allocated to them, and they can resume consuming either from the beginning of the paritition, from the last committed offest by another member of the group or from a self-managed offset.
 
 The code above allows a very easy way to check how consumer groups work. Just start several competing consumers and kill one of them or restart it later. Since restart policy is set to the beginning of the topic, `'auto.offset.reset' : 'smallest'` consuming will start everytime from the beginning of each partition.
 
+### Note on Redis
+
+The architecture can achieve its highest throughput only by using Redis pipelines to batch updates to Redis as much as possible. 
+
+For additional scenarios, Kafka offets might be committed only after the Redis is updated, trading throughput for correctness. 
+
 ### Main Command and Data Flows
+
+In the following paragraph we will take the odds update scenario (sportsbook), in which the odds need to be pushed to the listening frontend as fast as possible. 
+
+Variation: subscribes to common queries 
+
+### Alternative Approach
+
+An alternative approach that can be used for prototyping and a relatively solid MVP is to use something like MongoDB Streams (or Firebase, or RethinkDB) to listen to changes to a collection where the states are stored and modified in place. Each document is the atomic unit of change. A customer can subscribe to 1 to many documents.  All changes are propagated to all publishers and the publisher decides who are the correct recipients.
+
+This take on the architecture allows a simpler model where the develpers are freed from managing complex problems like persistence, synchronization and restores and it cuts dramatically from the architecture moving parts (Redis, Kafka).
 
 
 
