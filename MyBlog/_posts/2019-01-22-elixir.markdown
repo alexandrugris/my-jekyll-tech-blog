@@ -129,7 +129,7 @@ ASCII code of a letter is given by the `?` prefix, e.g. `?a`.
 "alexandru " <> gris = "alexandru gris"
 ```
 
-# A Binary Search Tree
+# Two examples
 
 A slightly more involved example of pattern matching, a binary search tree example:
 
@@ -176,3 +176,75 @@ end
 ```
 
 Interesting to note how succinct the code is.
+
+Another one, a small vector class which can be used for maths processing. It uses pattern matching, the pipeline operator and function references to keep the code short. 
+
+```elixir
+defmodule Vector do
+
+  def op([h1 | t1], [h2 | t2], f) do
+    [f.(h1, h2) | op(t1, t2, f)]
+  end
+
+  def op([], [], _) do
+    []
+  end
+
+  def op([h1 | t1], scalar, f) when is_number(scalar) do
+     [f.(h1, scalar) | op(t1, scalar, f)]
+  end
+
+  def op([], scalar, _) when is_number(scalar) do
+    []
+  end
+
+  def add(v1, v2) do
+    op(v1, v2, &(&1 + &2))
+  end
+
+  def add(v) do
+    Enum.reduce(v, &add(&1, &2))
+  end
+
+  def subtract(v1, v2) do
+    op(v1, v2, &(&1 - &2))
+  end
+
+  def negate(v) do
+    multiply(v, -1)
+  end
+
+  def multiply(v1, v2) do
+    op(v1, v2, &(&1 * &2))
+  end
+
+  def dot(v1, v2) do
+    multiply(v1, v2) |> Enum.sum
+  end
+
+  def norm(v) do
+    dot(v, v) |> :math.sqrt
+  end
+
+  def normalize(v) do
+    op(v, norm(v), &(&1 / &2))
+  end
+
+  def mean(v) do
+    multiply(v, 1 / Enum.sum(v))
+  end
+
+  def weighed_mean(v, w) do
+    multiply(v, w) |> multiply(1 / dot(v, w))
+  end
+
+  def sq_distance(v, w) do
+    subtract(v, w) |> (fn x -> dot(x, x) end).()
+  end
+
+  def distance(v, w) do
+    sq_distance(v, w) |> :math.sqrt
+  end
+
+end
+```

@@ -1,0 +1,162 @@
+---
+layout: post
+title:  "Odds And Models"
+date:   2019-07-26 13:15:16 +0200
+categories: statistics
+---
+
+Experiments with sports prediction models.
+
+### Analyzing Premier League 2018-2019 Matches
+
+We are going to use publicly available data, downloaded from [here](https://datahub.io/sports-data/english-premier-league#readme). In case the link disappears, here is a [local copy]({{site.url}}/assets/season-1819_csv.csv) of the csv file used for this analysis. The explanation for the columns can be found [here][local copy]({{site.url}}/assets/data_explanation.txt)
+
+### Expected Goals - Multiplicative Model
+
+In the first part of the analysis we are going to use a simple multiplicative model and the Poisson distribution to compute:
+
+- Expected goals
+- Home Draw Away odds for the match and compare our results to the bookmakers odds
+
+Another way to have looked at this analysis is to reverse engineer the expected goals by looking at the bookmakers odds for HDA and OU and use gradient descent to minimize the function `(h_predicted - h_bkmkr)^2 + (d_predicted - d_bkmkr)^2 + (a_predicted - a_bkmkr)^2  + (o_predicted - o_bkmkr)^2 + (u_predicted - u_bkmkr)^2`. 
+
+The principle behind this model is to compute an attack and a defence score for each team relative to the season averages. The home team advantage is embedded in the model by applying the factors to the home and away means, respectively. These are the relevant lines:
+
+```python
+    xGH = h_attack * a_defence * home.mean()
+    xGA = a_attack * h_defence * away.mean()
+```
+
+Below is the full code:
+
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# https://datahub.io/sports-data/english-premier-league#readme
+
+data = pd.read_csv("season-1718_csv.csv") # todo: add index on team names!
+
+rows = len(data)
+teams = int(np.sqrt(rows)) + 1
+
+home = data['FTHG'] # full time home goals series
+away = data['FTAG'] # full time away goals series
+
+avg_goals_scored = (home.mean() + away.mean()) / 2
+
+def attack_defence(team):
+    attack = (data['FTHG'].loc[data['HomeTeam'] == team].mean() + data['FTAG'].loc[data['AwayTeam'] == team].mean()) / (2 * avg_goals_scored)
+    defence = (data['FTAG'].loc[data['HomeTeam'] == team].mean() + data['FTHG'].loc[data['AwayTeam'] == team].mean()) / (2 * avg_goals_scored)
+
+    return (attack, defence)
+
+def xg(home_, away_):
+
+    h_attack, h_defence = attack_defence(home_)
+    a_attack, a_defence = attack_defence(away_)
+    
+    xGH = h_attack * a_defence * home.mean()
+    xGA = a_attack * h_defence * away.mean()
+    
+    return (xGH, xGA)
+     
+# compute the expected goals for each team
+xGH, xGA = xg('Brighton', 'Tottenham')
+```
+
+In this case, the result would be: `xGA=1.7696721143296168` and `xGH=0.7235778121818841`. While this model is crude, it is a good starting point into our data exploration.
+
+We are going to use now the observation that goals in a football match are roughly Poisson distributed, to compute any goal-based markets. In our case, we are going to look at the Home Draw Away markets. The same approach can be used to reverse engineer the expected goals from existing bookmakers odds, the Home Draw Away and Over Under markets.
+
+```python
+from scipy.stats import poisson
+
+def hda(xGH, xGA):
+    h = np.array([poisson.pmf(x, xGH) for x in range(0, 10)])
+    a = np.array([poisson.pmf(x, xGA) for x in range(0, 10)])
+    
+    ret = [0, 0, 0]
+    
+    for i in range (0, 10):
+        for j in range (0, 10):
+            if i > j:
+                ret[0] += h[i] * a[j]
+            if i == j:
+                ret[1] += h[i] * a[j]
+            if i < j:
+                ret[2] += h[i] * a[j]
+                
+    return 1 / np.array(ret)
+
+def expected_goal_odds(row):
+    
+    hm = row['HomeTeam']
+    aw = row['AwayTeam']
+    hmg = row['FTHG']
+    awg = row['FTAG']
+    
+    xGH, xGA = xg(hm, aw)
+    [h, d, a] = hda(xGH, xGA)
+    return (hm, aw, xGH, xGA, h, d, a, row['FTR'], hmg > awg, hmg == awg, hmg < awg, row['BbAvH'], row['BbAvD'], row['BbAvA'])
+
+expected_goals = data.apply(expected_goal_odds, axis=1, result_type='expand') 
+expected_goals.columns=['HomeTeam', 'AwayTeam', 'xGH', 'xGA', 'HOdds', 'DOdds', 'AOdds', 'Result' ,'H', 'D', 'A', 'BbAvH','BbAvD','BbAvA']
+```
+
+What we get is this:
+
+![odds_models]({{site.url}}/assets/odds_and_models_1.png)
+
+Disclaimer: I know that I am making an error here, because I am including in the source data set the same match that I am trying to predict, which leads to a circular relationship. In a production-ready analysis, at least this match should have been excluded from the source.
+
+The last 3 columns expand for further analysis the actual match result. These results look nice, but let's compare them to the Bet Brain HDA average index for these odds. Unfortunately, there is quite a bit of a difference. A good place to start betting is to have a look at those odds which, in our model, are higher than the bookmakers odds. Bookmaker odds might be skewed down by their risk management so we might find and edge there. 
+
+Here are the distribution of probabilities:
+
+```
+plt.scatter(1/expected_goals['HOdds'], 1/expected_goals['BbAvH'])
+plt.scatter(1/expected_goals['DOdds'], 1/expected_goals['BbAvD'])
+plt.scatter(1/expected_goals['AOdds'], 1/expected_goals['BbAvA'])
+```
+
+![odds_models]({{site.url}}/assets/odds_and_models_2.png)
+
+Doing linear regression between our values and the bookmakers values we get:
+
+```python
+from sklearn.linear_model import LinearRegression
+
+scores = {}
+
+for s in ['H', 'D', 'A']:
+
+    X = 1/expected_goals[s + 'Odds']
+    y = 1/expected_goals['BbAv' + s]
+
+    X = X.values.reshape(-1, 1)
+
+    linear_regressor = LinearRegression()  # create object for the class
+    linear_regressor.fit(X, y)  # perform linear regression
+    
+    scores[s] = {
+            'intercept' : linear_regressor.intercept_,
+            'slope' : linear_regressor.coef_[0],
+            'score' : linear_regressor.score(X, y)
+            } 
+```
+
+![odds_models]({{site.url}}/assets/odds_and_models_3.png)
+
+### Conclusions to our first model
+
+- There is a strong correlation between our model and the bookmakers models.
+- Our predicted probability tends to grow slightly faster than the bookmaker predicted probability.
+- We can transform now our model through this function to predict what the bookmakers might say. Where our transformed odds are still higher than the bookmaker's, we can be pretty sure it is worth investigating further if we don't have a value bet.
+- For other applications, we can predict the bookmaker's value to fill in the blanks for missing data-points in scraped data, if we wish to rely on such a thing.
+
+
+
+
+
