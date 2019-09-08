@@ -232,7 +232,7 @@ atk_def_spread['Predicted Spread'] = y_pred # for eyeballing our predicted sprea
 from scipy.stats import norm as norm
 atk_def_spread['Predicted Spread'] = y_pred
 ## compute prob of winning
-atk_def_spread['Computed Home Prob'] = 1 - norm.cdf(0, loc=y_pred, scale=y_pred.std())
+atk_def_spread['Computed Home Prob'] = 1 - norm.cdf(0, loc=y_pred, scale=e.std())
 ```
 
 ![odds_models]({{site.url}}/assets/odds_and_models_7.png)
@@ -250,11 +250,6 @@ The regression parameters:
  - `'score': 0.8632736293163973`
 
 Which basically means a rather similar quality model to the Poisson based. 
-
-
-
-
-
 
 
 
