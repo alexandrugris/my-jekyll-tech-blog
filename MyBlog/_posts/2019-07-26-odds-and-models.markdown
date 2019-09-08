@@ -249,7 +249,53 @@ The regression parameters:
  - `'slope': 0.8639928039354018`
  - `'score': 0.8632736293163973`
 
-Which basically means a rather similar quality model to the Poisson based. 
+Which basically means a rather similar quality model to the Poisson based.
+
+### Which Method Fares Better?
+
+We are going to compute a score for each method, as follows: the winner is the system for which the probability of observing the very set of events that occurred in real life is the highest. For instance, a system that would predict 100% accurate the results would have a maximum probability of 1. 
+
+```
+P(realization of the observed result) = product(p(each individual_result)) is max <=>
+log() = log(product) is max <=>
+log() = sum(p(1) * result + p(0) * (1 - result)) is max
+```
+
+The code that implements it is shown below:
+
+```python
+expected_goals['Spread Home Prob'] = atk_def_spread['Computed Home Prob']
+expected_goals['Poisson Prob'] = 1/expected_goals['HOdds']
+expected_goals['Bkmkrs Prob'] =  1/expected_goals['BbAvH']
+
+expected_goals['SHP_cost'] = expected_goals['Spread Home Prob'] * expected_goals['H'] + (1 - expected_goals['Spread Home Prob']) * (1 - expected_goals['H'])
+expected_goals['PP_cost'] = expected_goals['Poisson Prob'] * expected_goals['H'] + (1 - expected_goals['Poisson Prob']) * (1 - expected_goals['H'])
+expected_goals['BP_cost'] = expected_goals['Bkmkrs Prob'] * expected_goals['H'] + (1 - expected_goals['Bkmkrs Prob']) * (1 - expected_goals['H'])
+
+expected_goals['SHP_cost'].sum()
+expected_goals['PP_cost'].sum()
+expected_goals['BP_cost'].sum()
+```
+
+with results
+
+```
+expected_goals['SHP_cost'].sum()
+Out[7]: 234.6733604254918
+
+expected_goals['PP_cost'].sum()
+Out[8]: 236.14378560943433
+
+expected_goals['BP_cost'].sum()
+Out[9]: 228.83717303756742
+```
+
+So, in theory, the bookmakers are able to predict with lesser accuracy the probability of winnings. However, we don't have much data to support the extreme event cases, thus I'd expect the bookmakers to have corrected for the lack of data.
+
+In the computation above I have not included the correction factors resulted from regression. When I introduce the factors manually, the results are impressively close:
+
+![odds_models]({{site.url}}/assets/odds_and_models_9.png)
+
 
 
 
