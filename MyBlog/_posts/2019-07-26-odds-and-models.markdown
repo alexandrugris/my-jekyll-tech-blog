@@ -9,7 +9,7 @@ Experiments with sports prediction models. It starts from a multiplicative expec
 
 ### Analyzing Premier League 2018-2019 Matches
 
-We are going to use publicly available data, downloaded from [here](https://datahub.io/sports-data/english-premier-league#readme). In case the link disappears, here is a [local copy]({{site.url}}/assets/season-1819_csv.csv) of the csv file used for this analysis. The explanation for the columns can be found [here][local copy]({{site.url}}/assets/data_explanation.txt)
+We are going to use publicly available data, downloaded from [here](https://datahub.io/sports-data/english-premier-league#readme). In case the link disappears, here is a [local copy]({{site.url}}/assets/season-1819_csv.csv) of the csv file used for this analysis. The explanation for the columns can be found [here]({{site.url}}/assets/data_explanation.txt)
 
 ### Expected Goals - Multiplicative Model
 
