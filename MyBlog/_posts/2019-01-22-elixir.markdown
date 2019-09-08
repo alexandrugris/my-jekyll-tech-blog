@@ -5,7 +5,7 @@ date:   2019-01-22 13:15:16 +0200
 categories: programming
 ---
 
-Some fun programming over the weekend, reading a little bit about Elixir, a very beautiful and succint language. I hope, Elixir, someday we will meet for an exciting project together.
+Some fun programming over the weekend, reading a little bit about Elixir, a very beautiful and succinct language. I hope, Elixir, someday we will meet for an exciting project together.
 
 # The Basics
 
@@ -92,7 +92,7 @@ end
 Using pattern matching do execute parts of code:
 
 ```elixir
-defmodule MyCalnedar do
+defmodule MyCalendar do
 
     def describe_date(date) do:
 
@@ -100,7 +100,7 @@ defmodule MyCalnedar do
             {1, _, _} -> "First day of the month!"
             {25, 12, _} -> "Merry Christmas!"
             {25, month, _} -> "Only #{12 - month} months until Christmas"
-            {31, 10, _} -> "Happy Helloween!"
+            {31, 10, _} -> "Happy Halloween!"
             {_, month, _} when month <= 12 -> "Just an average day"
             {_, _, _} -> "Invalid month"
         end
@@ -175,4 +175,4 @@ defmodule Tree do
 end
 ```
 
-Interesting to note how succint the code is.
+Interesting to note how succinct the code is.
