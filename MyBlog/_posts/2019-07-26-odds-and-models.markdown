@@ -113,7 +113,7 @@ What we get is this:
 
 Disclaimer: I know that I am making an error here, because I am including in the source data set the same match that I am trying to predict, which leads to a circular relationship. In a production-ready analysis, at least this match should have been excluded from the source.
 
-The last 3 columns expand for further analysis the actual match result. These results look nice, but let's compare them to the Bet Brain HDA average index for these odds. Unfortunately, there is quite a bit of a difference. A good place to start betting is to have a look at those odds which, in our model, are higher than the bookmakers odds. Bookmaker odds might be skewed down by their risk management so we might find and edge there. 
+The last 3 columns expand for further analysis the actual match result. These results look nice, but let's compare them to the Bet Brain HDA average index for these odds. There is quite a bit of a difference. A good place to start betting is to have a look at those odds which, in our model, are lower than the bookmaker's. Despite the margin embedded in them, the bookmaker's odds might still be skewed up by their risk management systems, so there is a chance we might find and edge.
 
 Here are the distribution of probabilities:
 
@@ -155,8 +155,8 @@ for s in ['H', 'D', 'A']:
 
 - There is a strong correlation between our model and the bookmakers models.
 - Our predicted probability tends to grow slightly faster than the bookmaker predicted probability.
-- We can transform now our model through this function to predict what the bookmakers might say. Where our transformed odds are still higher than the bookmaker's, we can be pretty sure it is worth investigating further if we don't have a value bet.
-- For other applications, we can predict the bookmaker's value to fill in the blanks for missing data-points in scraped data, if we wish to rely on such a thing.
+- We can transform now our model through this function to predict what the bookmakers might say, to fill in the blanks for missing data-points in scraped data, if our application relies on such a thing.
+- Where our odds are lower than the bookmaker's, it is worth investigating further if we might have a have a value bet.
 
 ### Predicting Home Draw Away Odds Based On Estimated Spread
 
@@ -191,7 +191,7 @@ atk_def_spread.columns = ['Home', 'Away', 'AtkH', 'DefH', 'AtkA', 'DefA', 'Sprea
 ```
 ![odds_models]({{site.url}}/assets/odds_and_models_4.png)
 
-Second step is to do regression analysis. We have chosen as predictor variables the atack and defece strengths of our opponent teams.
+Second step is to do regression analysis. We have chosen as predictor variables the attack and defece strengths of our opponent teams.
 
 ```python
 X_train = atk_def_spread[['AtkH', 'DefH', 'AtkA', 'DefA']]
@@ -277,7 +277,7 @@ expected_goals['PP_cost'].sum()
 expected_goals['BP_cost'].sum()
 ```
 
-with results
+with the following results:
 
 ```
 expected_goals['SHP_cost'].sum()
