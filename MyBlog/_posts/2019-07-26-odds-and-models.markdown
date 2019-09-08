@@ -5,7 +5,7 @@ date:   2019-07-26 13:15:16 +0200
 categories: statistics
 ---
 
-Experiments with sports prediction models.
+Experiments with sports prediction models. It starts from a multiplicative expected goals model, then it computes the odds for home draw away markets in two different ways, and then compare the performance of these odds to the bookmakers' odds.
 
 ### Analyzing Premier League 2018-2019 Matches
 
@@ -67,6 +67,8 @@ xGH, xGA = xg('Brighton', 'Tottenham')
 ```
 
 In this case, the result would be: `xGA=1.7696721143296168` and `xGH=0.7235778121818841`. While this model is crude, it is a good starting point into our data exploration.
+
+### Predicting Odds Based on The Poisson Distribution
 
 We are going to use now the observation that goals in a football match are roughly Poisson distributed, to compute any goal-based markets. In our case, we are going to look at the Home Draw Away markets. The same approach can be used to reverse engineer the expected goals from existing bookmakers odds, the Home Draw Away and Over Under markets.
 
@@ -149,12 +151,110 @@ for s in ['H', 'D', 'A']:
 
 ![odds_models]({{site.url}}/assets/odds_and_models_3.png)
 
-### Conclusions to our first model
+### Conclusions To Our First Model
 
 - There is a strong correlation between our model and the bookmakers models.
 - Our predicted probability tends to grow slightly faster than the bookmaker predicted probability.
 - We can transform now our model through this function to predict what the bookmakers might say. Where our transformed odds are still higher than the bookmaker's, we can be pretty sure it is worth investigating further if we don't have a value bet.
 - For other applications, we can predict the bookmaker's value to fill in the blanks for missing data-points in scraped data, if we wish to rely on such a thing.
+
+### Predicting Home Draw Away Odds Based On Estimated Spread
+
+The knowledge that in football games goals are Poisson distributed is awesome! It allows us to compute the probability for any number of goals, thus it allows us to calculate any market we want. We can apply the same distribution, with more or less accurate results to red cards and yellow cards, assists, shots, shots on target. 
+
+But what if we didn't have this knowledge? What if the the Poisson-based model returns questionable results? 
+
+We are going to use a different approach now which aims to estimate the spread (home - away goals difference) by regressing against the actual past match results and then use the distribution of residuals to estimate the probability of one team winning over the other.
+
+The spread estimation is still based on the expected goals computed earlier, so we are reusing the same data.
+
+First step is to prepare the data.
+
+```python
+def attack_defence_spread(row):
+    
+    hm = row['HomeTeam']
+    aw = row['AwayTeam']
+    hmg = row['FTHG']
+    awg = row['FTAG']
+    
+    atk_h, def_h = attack_defence(hm)
+    atk_a, def_a = attack_defence(aw)
+    
+    spread = hmg - awg
+    
+    return (hm, aw, atk_h, def_h, atk_a, def_a, spread)
+    
+
+atk_def_spread = data.apply(attack_defence_spread, axis=1, result_type='expand')
+atk_def_spread.columns = ['Home', 'Away', 'AtkH', 'DefH', 'AtkA', 'DefA', 'Spread']
+```
+![odds_models]({{site.url}}/assets/odds_and_models_4.png)
+
+Second step is to do regression analysis. We have chosen as predictor variables the atack and defece strengths of our opponent teams.
+
+```python
+X_train = atk_def_spread[['AtkH', 'DefH', 'AtkA', 'DefA']]
+Y_train = atk_def_spread[['Spread']]
+
+regressor = LinearRegression()
+regressor.fit(X_train, Y_train)
+
+# check R^2
+print(regressor.score(X_train, Y_train))
+
+# check residuals
+y_pred = regressor.predict(X_train)
+e = Y_train  - y_pred
+e.hist()
+```
+
+When we analyse the residuals we are happy to notice they look very much normally distributed around the 0 value: 
+
+```
+In [62]: e.mean()
+Out[62]: 
+Spread    1.168656e-17
+dtype: float64
+```
+
+![odds_models]({{site.url}}/assets/odds_and_models_5.png)
+
+However, the results of the regression are a little bit counter intuitive:
+
+![odds_models]({{site.url}}/assets/odds_and_models_6.png)
+
+Now we are going to do the last step of this analysis and we are going to compute the odds of home draw away based on the residuals. We are going to use cumulative distribution function in this case which, by definition, is `p(A <= x) = cdf(x)`. Since our distribution of residuals is normal, we will use the `norm.cdf` function.
+
+```python
+atk_def_spread['Predicted Spread'] = y_pred # for eyeballing our predicted spread
+
+from scipy.stats import norm as norm
+atk_def_spread['Predicted Spread'] = y_pred
+## compute prob of winning
+atk_def_spread['Computed Home Prob'] = 1 - norm.cdf(0, loc=y_pred, scale=y_pred.std())
+```
+
+![odds_models]({{site.url}}/assets/odds_and_models_7.png)
+
+### Comparing New Odds to Bookmaker's Odds
+
+The scatter plot: 
+
+![odds_models]({{site.url}}/assets/odds_and_models_8.png)
+
+The regression parameters: 
+
+ - `'intercept': -0.021273267737595025`
+ - `'slope': 0.8639928039354018`
+ - `'score': 0.8632736293163973`
+
+Which basically means a rather similar quality model to the Poisson based. 
+
+
+
+
+
 
 
 
