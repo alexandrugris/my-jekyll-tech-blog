@@ -232,9 +232,9 @@ To handle reducer restarts, partitioning logic is made known to the reducer, so 
 
 ### Alternative Approach
 
-An alternative approach that can be used for prototyping and a relatively solid MVP is to use something like MongoDB Streams (or Firebase, or RethinkDB) to listen to changes to a collection where the states are stored and modified in place. Each document is the atomic unit of change. A customer can subscribe to 1 to many documents.  All changes are propagated to all publishers and the publisher decides who are the correct recipients.
+An alternative approach that can be used for prototyping and a relatively solid MVP is to use something like MongoDB Streams (or Firebase, or RethinkDB) to listen to changes to a collection where the states are stored and modified in place. Each document is the atomic unit of change. A customer can subscribe to one to many documents.  All changes are propagated to all publishers and the publisher decides which are the correct recipients.
 
-This take on the architecture allows a simpler model where the developers are freed from managing complex problems, like persistence, synchronization and restores, reducing the number of dependencies and simplifying operations (Redis, Kafka).
+This take on the architecture allows a simpler model where the developers are freed from managing complex problems, like persistence, synchronization and restores, while reducing the number of dependencies and simplifying operations.
 
 
 
