@@ -1,0 +1,396 @@
+---
+layout: post
+title:  "MMalloc"
+date:   2019-01-06 13:15:16 +0200
+categories: programming
+---
+
+A small, few hours project, which started from the idea of creating an allocator for persistent memory that can be used to load existing memory structures from disk on process restart. It never got that far in the few hours spent on it, but it was fun to write so here it goes. Clearly, not something that I would ever put in a production project, as any memory corruption would propagate after process restart, but the idea of a location independent allocator is fun nevertheless.
+
+### Header File:
+
+heap.c - comments are somewhat self explanatory
+
+```cpp
+//
+//  heap.h
+//  mmalloc
+//
+//  Created by Alexandru Gris on 1/6/19.
+//  Copyright © 2019 Alexandru Gris. All rights reserved.
+//
+
+#ifndef heap_h
+#define heap_h
+
+#include <assert.h>
+
+/* Index generates the amount of objects that can be stored in this allocator; eg. typeof(Index) == unsigned char => 256
+AllocUnit generates the minimum size an object can have; e.g. typeof(AllocUnit) == int, minimum block that can be allocated is int and, together with the char above, we can address a maximum of 256 * sizeof(int) bytes.
+alloc_size is the size of the block, number of AllocUnits in this block
+MaxBlockCountType -> how many AllocUnits are in this block. Can be set to lower than AllocUnit; AllocUnit will allow a single allocation for the whole memory */
+
+template<class AllocUnit, class Index, class MaxBlockCountType = AllocUnit> struct mem_loc{
+    
+    MaxBlockCountType alloc_size;
+    Index alloc_index;
+    
+    mem_loc(MaxBlockCountType s = 0, Index i = 0) : alloc_size(s), alloc_index(i) {}
+    
+    bool valid() const{
+        return alloc_size > 0;
+    }
+    
+    void* ptr(void* base) const{
+        return static_cast<unsigned char*>(base) + alloc_index * sizeof(AllocUnit);
+    }
+    
+    void invalidate(){
+        alloc_size = 0;
+        alloc_index = 0;
+    }
+    
+};
+
+template <class S, class P> class mem_heap{
+    
+private:
+    mem_loc<S, P>* mem = nullptr;
+    int mem_size = 0;
+    int heap_size = 0;
+    
+public:
+    
+    typedef struct mem_loc<S, P> block;
+    
+    mem_heap(unsigned char* buffer, int _size) :
+        mem(reinterpret_cast<block*>(buffer)),
+        mem_size(_size / sizeof(block)),
+        heap_size(0){
+            
+        }
+    
+    ~mem_heap(){
+        mem_size = 0;
+        heap_size = 0;
+        mem = nullptr;
+    }
+    
+    int bubble_up(int c_heap, const block &block){
+        int p_heap = parent(c_heap);
+        
+        while(c_heap > 0 && block.alloc_size < v(p_heap)){
+            mem[c_heap] = mem[p_heap];
+            c_heap = p_heap;
+            p_heap = parent(c_heap);
+        }
+        
+        mem[c_heap] = block;
+        
+        return c_heap;
+    }
+    
+    /**
+     * Returns false if the memory allocated for the heap is exceeded.
+     */
+    bool add_free(const block& block){
+        
+        if(!block.valid())
+            return true;
+        
+        heap_size++;
+        
+        if(heap_size > mem_size)
+            return false;
+        
+        bubble_up(heap_size - 1, block);
+        
+        assert(is_heap());
+        return true;
+    }
+    
+    int src_subtree(int k, int size){
+        
+        if(k >= heap_size) return heap_size;
+        
+        if(mem[k].alloc_size >= size)
+            return k;
+        
+        int k_left = src_subtree(lft_child(k), size);
+        int k_right = src_subtree(rght_child(k), size);
+        
+        if (k_left == heap_size && k_right == heap_size)
+            return heap_size;
+        
+        if (k_left == heap_size)
+            return k_right;
+        
+        if (k_right == heap_size)
+            return k_left;
+        
+        return v(k_left) < v(k_right)? k_left : k_right;
+        
+    }
+    
+    int lft_child(int r){
+        return (r << 1) + 1;
+    }
+    
+    int rght_child(int r){
+        return (r << 1) + 2;
+    }
+    
+    int parent(int r){
+        return (r - 1) >> 1;
+    }
+    
+    const S& v(int r){
+        return mem[r].alloc_size;
+    }
+    
+    bool has_lft(int r){
+        return lft_child(r) < heap_size;
+    }
+    
+    bool has_rght(int r){
+        return rght_child(r) < heap_size;
+    }
+    
+    bool last(int r){
+        return r == heap_size - 1;
+    }
+    
+    bool is_leaf(int r){
+        return (r < heap_size) && !has_lft(r);
+    }
+    
+    bool is_heap(int r = 0){
+        
+#ifdef __DEBUG
+        if(is_leaf(r))
+            return true;
+        
+        if(v(r) <= v(lft_child(r)) && !has_rght(r))
+           return true;
+        
+        return is_heap(lft_child(r)) && is_heap(rght_child(r));
+#else
+        return true;
+#endif
+        
+    }
+    
+    const mem_loc<S, P> alloc(int size){
+        
+        int k = src_subtree(0, size);
+        
+        if (k == heap_size)
+            return mem_loc<S, P>(); // invalid
+
+        auto ret = mem[k];
+        int lst = --heap_size;
+        
+        k = bubble_up(k, mem[lst]);
+        
+        while (!is_leaf(k)){
+            
+            int mn = (has_rght(k) && v(rght_child(k)) < v(lft_child(k)))? rght_child(k) : lft_child(k);
+            
+            if(v(mn) > v(k))
+                break;
+            
+            mem[k] = mem[mn];
+            k = mn;
+        }
+        
+        mem[k] = mem[lst];
+        
+#ifdef __DEBUG
+        mem[heap_size].alloc_size = -1;
+        assert(is_heap());
+#endif
+        
+        return ret;
+    }
+    
+};
+
+template<class AllocUnit, class Index, class Type> class mem_loc_t : public mem_loc<AllocUnit, Index>{
+    
+public:
+    
+    mem_loc_t(const mem_loc<AllocUnit, Index>&  m){
+        this->alloc_size = m.alloc_size;
+        this->alloc_index = m.alloc_index;
+    }
+    
+    Type* ptr(unsigned char* base){
+        return reinterpret_cast<Type*> (mem_loc<AllocUnit, Index>::ptr(base));
+    }
+};
+
+
+template<class AllocUnit, class Index> class allocator{
+    
+private:
+    
+    mem_heap<AllocUnit, Index> heap;
+    
+    unsigned char* mem;
+    int mem_size;
+    int mem_idx;
+    
+public:
+    
+    allocator (unsigned char* _mem, int _mem_size, unsigned char* _heap, int _heap_size)
+            : heap(_heap, _heap_size),
+              mem(_mem),
+              mem_size(_mem_size),
+              mem_idx(0)
+    {
+        assert(_mem != nullptr && _mem_size > 0 && _heap != nullptr && _heap_size > 0);
+    }
+    
+    template<class O, class... CtorP> mem_loc_t<AllocUnit, Index, O> alloc(const CtorP&... params, int cnt = 1){
+        
+        // TODO: if cnt > 1 add a new int to the front of the allocated array so that I can call delete[] on them.
+        
+        int size_in_alloc_units = bytes_to_alloc_units(sizeof(O) * cnt);
+        auto r = heap.alloc(size_in_alloc_units);
+        
+        if (!r.valid() || (r.alloc_size >= ((6 * size_in_alloc_units) >> 2) && mem_idx <= (mem_size << 1)))
+            r = alloc_extend_heap(size_in_alloc_units);
+        
+        // invoke constructors
+        auto loc = mem_loc_t<AllocUnit, Index, O>(r);
+        
+        O* arr = loc.ptr(mem);
+        
+        for (int i = 0; i < cnt; i ++){
+            new(arr + i)O(params...);
+        }
+        
+        return loc;
+    }
+    
+    mem_loc<AllocUnit, Index> alloc_extend_heap(int size_in_alloc_units){
+        
+        int size_in_bytes = alloc_units_to_bytes(size_in_alloc_units);
+        
+        if(mem_idx + size_in_bytes > mem_size)
+            return mem_loc<AllocUnit, Index>(); // nullptr
+        
+        unsigned char* ptr = mem + mem_idx;
+        mem_idx += size_in_bytes;
+        
+        return mem_loc<AllocUnit, Index>(size_in_alloc_units, debase(ptr));
+    }
+    
+    int bytes_to_alloc_units(int bytes){
+        return bytes / sizeof(AllocUnit) + 1;
+    }
+    
+    int alloc_units_to_bytes(int alloc_units){
+        return alloc_units * sizeof(AllocUnit);
+    }
+    
+    Index debase(unsigned char* ptr){
+        return (ptr - mem) / sizeof(AllocUnit);
+    }
+    
+    template<class O>void free(mem_loc_t<AllocUnit, Index, O>& l){
+        
+        // TODO: call destructors, if array, implement also []
+        // Warning - now only calls the destructor for the first element
+        l.ptr(mem)->~O();
+        
+        heap.add_free(l);
+        l.invalidate();
+    }
+        
+};
+
+
+#endif /* heap_h */
+```
+
+### Usage
+
+main.cpp
+
+```cpp
+//
+//  main.cpp
+//  mmalloc
+//
+//  Created by Alexandru Gris on 1/5/19.
+//  Copyright © 2019 Alexandru Gris. All rights reserved.
+//
+
+#define __DEBUG
+
+#include <iostream>
+#include "heap.h"
+
+int main(int argc, const char * argv[]) {
+    
+
+    unsigned char* mem = new unsigned char[1024];
+    
+    {
+        using namespace std;
+        
+        mem_heap<int, unsigned char*> h(mem, 1024);
+        
+        // here we test the mem_heap class
+        // we add some free blocks to see that, indeed, the correct size is found
+        h.add_free(decltype(h)::block(10, nullptr));
+        h.add_free(decltype(h)::block(20, nullptr));
+        h.add_free(decltype(h)::block(30, nullptr));
+        h.add_free(decltype(h)::block(5, nullptr));
+        h.add_free(decltype(h)::block(25, nullptr));
+        h.add_free(decltype(h)::block(25, nullptr));
+        h.add_free(decltype(h)::block(24, nullptr));
+        h.add_free(decltype(h)::block(7, nullptr));
+
+        auto ret = h.alloc(10);
+        cout << ret.alloc_size << endl;
+        
+        ret = h.alloc(6);
+        cout << ret.alloc_size << endl;
+        
+        ret = h.alloc(23);
+        cout << ret.alloc_size << endl;
+        
+        ret = h.alloc(10);
+        cout << ret.alloc_size << endl;
+        
+    }
+    
+    {
+        // here we test the actual allocator
+        ::allocator<unsigned char, unsigned char> a(mem, 768, mem + 768, 256);
+        
+        auto m1 = a.alloc<int>(10);
+        auto m2 = a.alloc<long long>(1);
+        
+        a.free(m1);
+        a.free(m2);
+        
+        auto m3 = a.alloc<char>();
+        auto m4 = a.alloc<char>(256);
+        
+        a.free(m1);
+        a.free(m2);
+        a.free(m3);
+        a.free(m4);
+
+        auto m5 = a.alloc<char>(5);
+        a.free(m5);
+        
+    }
+    
+    delete[] mem;
+    return 0;
+}
+```

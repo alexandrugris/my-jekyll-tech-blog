@@ -4,7 +4,9 @@ title: Social Media
 permalink: /sm/
 ---
 
-Management blog (currently on blogspot): [http://www.alexandrugris.ro](http://www.alexandrugris.ro)
+Management blog: [http://blog.alexandrugris.ro](http://blog.alexandrugris.ro)
+
+![Management Blog]({{site.url}}/assets/management_blog.png)
 
 Linked-In profile: [https://www.linkedin.com/in/alexandrugris](https://www.linkedin.com/in/alexandrugris)
 

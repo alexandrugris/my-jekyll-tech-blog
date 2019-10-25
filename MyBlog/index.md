@@ -5,15 +5,8 @@
 layout: home
 ---
 
-![This is me](assets/me.png){: .face-alex-gris }
+![This is me](assets/alexandrugris.png){: .face-alex-gris }
 
-This blog is a complement to [www.alexandrugris.ro](http://www.alexandrugris.ro) and is dedicated to technology. It started from my private notebook where I jot down interesting stuff I read on tech, so that I have a reference point for later use. Then, I thought, hey, why not make it public? So here it is: “From The Trenches - The Code”.
+## Welcome to my technology blog. 
 
-Who am I?
-
-My name is Alexandru Gris. Most of my professional life I have spent working in the videogames industry, with [Ubisoft Entertainment](https://www.ubisoft.com/en-GB/) for about 10 years. 
-During my career there, I had various positions: engine developer, lead programmer, producer and, finally, studio production manager (Head Of Game Development). I love technology, I love building stuff while working with smart, creative people. 
-I have a deep interest in software architecture, clean code, leadership, organization design, entrepreneurial thinking and high quality project management.
-
-I curretly work as CTO for the [sports book product](https://everymatrix.com/oddsmatrix) at [EveryMatrix](https://everymatrix.com/). Just before, I was the department head (director of engineering) for the Romanian Mail And Media Business Unit from [1and1](https://www.1und1.de/), a major European Internet company, which owns the [Web.de](https://web.de) and [GMX](https://gmx.de) portals.
-
+Sometimes I take a few hours over the weekends or in airports to test and try new things. I love technology and the randomness of the topics below is largely driven by my curiosity and experiments I made during these periods. All the code is written by me and its only purpose is learning, experimentation and fun. When analyzing data, I either use public sources or generate it myself to prove an algorithm. 

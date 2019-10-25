@@ -3,3 +3,4 @@ _site_release
 .sass-cache
 .jekyll-metadata
 Thumbs.db
+.DS_Store

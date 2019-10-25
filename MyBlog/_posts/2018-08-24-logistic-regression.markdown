@@ -92,7 +92,7 @@ In the second iteration of the file, I have modified the regression so that it o
 
 *Note:*
 
-The factor we are minimizing, `ce = -(y * ln(p) + (1 - y) * ln(1-p))`, where y is the observed value (0 or 1) and `p` is the probability given by our model, is called *cross entropy*. 
+The factor we are minimizing, `ce = -(y * ln(p) + (1 - y) * ln(1-p))`, where y is the observed value (0 or 1) and `p` is the probability given by our model, is called *cross entropy*. [Awesome explanation here](https://www.quora.com/Whats-an-intuitive-way-to-think-of-cross-entropy) 
 
 ### Linear Regression and Logistic Regression
 
