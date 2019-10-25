@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd MyBlog
-bundle exec jekyll build --destination ".\_site_release"
+bundle exec jekyll build --destination "_site_release"
 
 
 

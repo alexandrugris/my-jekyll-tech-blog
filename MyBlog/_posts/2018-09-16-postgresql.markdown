@@ -690,10 +690,4 @@ select get_team_by_prefix('Dynamo Kyi'); -- will return Dinamo Kiev, followed by
 select get_team_by_prefix('New York Ran'); -- will return Rangers New York
 ```
 
-
 ![Running the queries]({{site.url}}/assets/postgres_3.png)
-
-### Conclusion
-
-Postres is a very powerful database.
-
