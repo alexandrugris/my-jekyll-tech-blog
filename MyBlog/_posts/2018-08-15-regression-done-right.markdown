@@ -168,7 +168,7 @@ Given the multiple regression line from above, the points `(xi, yi)` for which w
 
 Now, what we have is a coefficient `ci` for each of the factors. The question is, is each of these factors relevant? Differently said, if `ci == 0`, that factor would be irrelevant. Now we need to see if `ci == 0` is probable enough so that it cannot be discarded that is, if the `ci` for the whole population would actually be 0 (null hypothesis), how probable would it be for us to observe the value obtained from performing the regression?
 
-To answer the question above we compute what is called *the t-statistic*. `t-statistic(ci) = ci / SE(ci)`. The `t-statistic` measures how many standard errors we are away from the mean if the mean were 0, that is if the `ci` coefficient for the entire population were 0.
+To answer the question above we compute what is called *the t-statistic*. `t-statistic(ci) = ci / SE(ci)`. The `t-statistic` measures how many standard errors we are away from the mean if the mean were 0, that is if the `ci` coefficient for the entire population were 0. `SE(ci) = sqrt((sum(ej^2) / (k-2)) / sum( (xj - x_mean)^2 ))` where `k` is the number of observations, samples in the dataset, `ei` are the residuals, `y_predicted - y_observed`, and `j` going from `1` to `k`. [here](http://reliawiki.org/index.php/Simple_Linear_Regression_Analysis)
 
 From this we extract the following rule of thumb:
 
