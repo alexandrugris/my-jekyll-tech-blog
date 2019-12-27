@@ -196,7 +196,7 @@ from statsmodels.formula.api import ols
 import statsmodels.api as sm
 
 # add the intercept
-X_ = sm.add_constant(X,prepend=False)
+X_ = sm.add_constant(X, prepend=False)
 
 model = sm.OLS(y, X_)
 results = model.fit()
@@ -384,7 +384,7 @@ It also is quite obvious that the results of the regression are not far from the
 
 Coefficients are a little bit strange though: `17.674954 -0.244873 -1.934692  0.933654  0.383172 -0.031911 -1.19284`. A high intercept and a negative correlation with the number of incidents. The number of incidents is selected to be Poisson distributed with a mean of 5, no matter the code complexity. This, together with a high margin of error in the way the Inverse Poisson  was computed in Excel which leads to a predisposition towards lower numbers, might be interpreted as "as the code complexity increases, the team becomes less confident in its ability, but still finishes faster than their too pessimistic estimates". The extra average added by the incidents is included in the intercept, while the predisposition for lower numbers is included in the negative factor for the incidents.
 
-The next steps would be:
+The next steps are:
 
  - Compute the SE for the coefficients
  - Analyse the T-Statistic
