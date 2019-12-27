@@ -144,6 +144,24 @@ Things to check for in a multiple linear regression:
 - F-statistic
 - Standard errors of coefficients
 
+Here is how to compute adjusted R^2 for a multiple regression:
+
+```python
+X = data[data.columns[0:-1]]
+y = data[data.columns[-1]]
+
+lr = LinearRegression()
+lr.fit(X, y)
+r2 = lr.score(X, y)
+
+n = len(X) # sample size
+p = len(X.columns) # number of explanatory variables
+adj_r2 = 1 - (1-r2) * (n - 1)/ (n - p - 1)
+
+print(f"r2={r2}")
+print(f"adjusted r2={adj_r2}")
+```
+
 ### Dummy variables for categorical data
 
 Let's consider a 2-category model, let's say male and female. For this we introduce two dummy variables (c1 and c2), one for intercept and one for slope. The variable for intercept (c1) will be `0` if male and `1` if female, while the variable for slope will be `0` if male and `x` if female. If we want do to a regression, the regression line would look like:
@@ -168,7 +186,40 @@ Given the multiple regression line from above, the points `(xi, yi)` for which w
 
 Now, what we have is a coefficient `ci` for each of the factors. The question is, is each of these factors relevant? Differently said, if `ci == 0`, that factor would be irrelevant. Now we need to see if `ci == 0` is probable enough so that it cannot be discarded that is, if the `ci` for the whole population would actually be 0 (null hypothesis), how probable would it be for us to observe the value obtained from performing the regression?
 
-To answer the question above we compute what is called *the t-statistic*. `t-statistic(ci) = ci / SE(ci)`. The `t-statistic` measures how many standard errors we are away from the mean if the mean were 0, that is if the `ci` coefficient for the entire population were 0. `SE(ci) = sqrt((sum(ej^2) / (k-2)) / sum( (xj - x_mean)^2 ))` where `k` is the number of observations, samples in the dataset, `ei` are the residuals, `y_predicted - y_observed`, and `j` going from `1` to `k`. [here](http://reliawiki.org/index.php/Simple_Linear_Regression_Analysis)
+To answer the question above we compute what is called *the t-statistic*. `t-statistic(ci) = ci / SE(ci)`. The `t-statistic` measures how many standard errors we are away from the mean if the mean were 0, that is if the `ci` coefficient for the entire population were 0. 
+
+Here is an example on [how to compute](
+http://reliawiki.org/index.php/Multiple_Linear_Regression_Analysis) the `SE`:
+
+```python
+from statsmodels.formula.api import ols
+import statsmodels.api as sm
+
+# add the intercept
+X_ = sm.add_constant(X,prepend=False)
+
+model = sm.OLS(y, X_)
+results = model.fit()
+print(results.summary())
+
+"""
+We will consider to compute the t-test for income
+H0: income has no predictive power on the outcome of the regression
+
+Given ci as the coefficients of the regression, 
+t-statistic(ci) = ci / SE(ci)
+
+and 
+SE(ci) = sqrt(residuals_sigma^2 * diagonal((X.T * X)^-1))
+"""
+
+X_arr = X_.to_numpy()
+SE_arr = np.sqrt(results.resid.var() * np.linalg.inv(np.dot(X_arr.T, X_arr)).diagonal())
+SE = pd.DataFrame(SE_arr, index=X_.columns).T
+t_statistic = results.params['income'] / SE['income']
+
+# t-statistic is the same in both the library implementation and or implementation
+```
 
 From this we extract the following rule of thumb:
 
