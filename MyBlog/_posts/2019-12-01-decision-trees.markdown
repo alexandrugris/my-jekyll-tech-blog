@@ -28,4 +28,4 @@ The bias to given by the training set selection or feature choices are tackled b
 
 Building the decision tree is a recursive process. At each step a feature is selected and a value based on which to do the split. The selection is made such that the highest information gain is attained, that is, the set is best split across its categories, meaning each group as as homogenous as possible. 
 
-### TODO: analyze with decision trees the data from telco -> the one with telco from UCU - telco.csv in data folder
+### TODO: analyze with decision trees the data from telco -> the one with telco from  - telco.csv in data folder

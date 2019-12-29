@@ -214,8 +214,8 @@ Tells us if the samples come from a specified distribution. In python, we can us
 
 Unlike t-tests which compare only two means, ANOVA looks at several groups within a population to produce one score and one significance value. A t-test will tell you if there is a significant variation between two groups. We use ANOVA when the population is split in more than two groups.
 
-H0: all groups have the same mean
-H1: not all groups have the same mean
+- H0: all groups have the same mean
+- H1: not all groups have the same mean
 
 The F statistic in one-way ANOVA is a tool to help you answer the question “Is the variance between the means of two populations significantly different?"
 
@@ -252,14 +252,14 @@ This will group by the `group_by_column_df` the data frame containing all the sa
 
 For two-way ANOVA, we split the population in classes based on two categorical variables (e.g. gender and age over 35). Two-way ANOVA brings 3 null hypotheses which are tested all at once:
 
-H0: The means of all gender groups are equal
-H1: The mean of at least one gender group is different
+- H0: The means of all gender groups are equal
+- H1: The mean of at least one gender group is different
 
-H0: The means of the age groups are equal
-H1: The mean of at least one the age group is different
+- H0: The means of the age groups are equal
+- H1: The mean of at least one the age group is different
 
-H0: There is no interaction between the gender and age 
-H1: There is interaction between the gender and age
+- H0: There is no interaction between the gender and age 
+- H1: There is interaction between the gender and age
 
 ```python
 import pandas as pd
