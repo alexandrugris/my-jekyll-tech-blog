@@ -53,6 +53,8 @@ For linear least squares regression with an intercept term and a single explanat
 
 Similarly to the Pearson coefficient which is defined for the values of `X` and `Y`, we define the Spearman correlation coefficient but instead of values we take the ranks. Spearman is more robust, thus less sensitive to outliers.
 
+*Chi2 Analysis*
+
 For nominal (categorical) values, we can also introduce a measure of dependency and correlation. We use the Chi2 statistic to measure the independence of two categorical variables. The *Chi2 test* works on contingency tables. 
 
 ```python
@@ -126,7 +128,6 @@ A good estimator has low variance and low bias, preferably 0. Bias is the differ
 *Hypothesis Testing*
 
 H0 - null hypothesis, it is considered true until proven false. It is usually in the form 'there is no relationship' or 'there is no effect'.
-
 H1 - alternative hypothesis, it asserts that there is a relationship or a significant effect.
 
 Hypothesis testing does not prove the H1, but rather says there is a low probability (usually under 5%) that H0 can occur. There is still a possibility, usually under 5%, that H0 still occurs, but it is considered low. The p-values, which are used in hypothesis testing, represent the probability that we observe H1 given that H0 is true. The 5% above is called significance level and it depends on the application.
@@ -210,3 +211,65 @@ If sample (X, Y) come from a 2 dimensional normal distribution, `Corr(X, Y) == 0
 Tells us if the samples come from a specified distribution. In python, we can use `stats.kstest`
 
 *One-way ANOVA*
+
+Unlike t-tests which compare only two means, ANOVA looks at several groups within a population to produce one score and one significance value. A t-test will tell you if there is a significant variation between two groups. We use ANOVA when the population is split in more than two groups.
+
+H0: all groups have the same mean
+H1: not all groups have the same mean
+
+The F statistic in one-way ANOVA is a tool to help you answer the question “Is the variance between the means of two populations significantly different?"
+
+```
+F-statistic = Variance between groups / Variance within groups
+```
+
+Given `K` the number of groups, `N` the total number of samples in all groups, and `ni` the number of samples in each group, we have N = sum(ni, i=1..k)
+
+```
+variance_between_groups = sum((mean_group_i - mean_all)^2 ,i=1..K) / (N-K)
+variance_within_groups = sum(sum((xj-mean_group_i)^2, j=1..ni ), i=1..K ) / (K-1)
+```
+
+For one-way ANOVA, a single categorical variable is used to split the population into these groups. ANOVA assumes the populations are normal. A one-way ANOVA will tell you that at least two groups were different from each other. But it won’t tell you which groups were different.
+
+```python
+stats.f_oneway(sample1, sample2, sample3)
+```
+
+Next step is to use the *Tukey Honest Significant Difference* (Tuckey HSD) test to tell which group is different. 
+
+```python
+from statsmodels.stats.multicomp import MultiComparison
+mult_comp = MultiComparison(all_samples_column_df, group_by_column_df)
+result = mult_comp.tukeyhsd()
+print(result)
+```
+
+This will group by the `group_by_column_df` the data frame containing all the samples and will output the pairwise comparison. The `Reject` column will tell us whether the difference in mean between the groups is statistically significant.
+
+
+*Two-way ANOVA*
+
+For two-way ANOVA, we split the population in classes based on two categorical variables (e.g. gender and age over 35). Two-way ANOVA brings 3 null hypotheses which are tested all at once:
+
+H0: The means of all gender groups are equal
+H1: The mean of at least one gender group is different
+
+H0: The means of the age groups are equal
+H1: The mean of at least one the age group is different
+
+H0: There is no interaction between the gender and age 
+H1: There is interaction between the gender and age
+
+```python
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+from statsmodels.stats.anova import anova_lm
+import matplotlib.pyplot as plt
+
+formula = 'cnt ~ C(age) + C(gender) + C(age):C(gender)'
+#formula = 'cnt ~ C(age) * C(gender)'
+model = ols(formula, data).fit()
+results = anova_lm(model, typ=2)
+```
