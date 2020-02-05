@@ -275,7 +275,7 @@ I have generated some data to create a regression model [here]({{site.url}}/asse
 
 The data is chosen in such a way that it presents multicollinearity and categorical components.
 
-First step is to see if maybe a simple regresion based on the average estimation given by developers is enough. We notice than, while the trend in task duration correlates with both average estimation and the code complexity, neither are good predictors - rather low R^2 in both cases as well as two divergent trends in the first chart. Both elements hint towards more factors needed to be included in the regression.
+First step is to see if maybe a simple regression based on the average estimation given by developers is enough. We notice than, while the trend in task duration correlates with both average estimation and the code complexity, neither are good predictors - rather low R^2 in both cases as well as two divergent trends in the first chart. Both elements hint towards more factors needed to be included in the regression.
 
 ![Exploratory analysis - regression against one variable]({{site.url}}/assets/regression_12.png)
 
