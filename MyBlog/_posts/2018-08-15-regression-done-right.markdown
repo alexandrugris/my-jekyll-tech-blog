@@ -297,7 +297,7 @@ After doing our analysis, we will take into consideration the following factors:
 - Worked D
 - Number of incidents
 
-we don't include also the `Worked R, D` slope dummy because they highly lag 1 autorrelate to `Frontend task` and `Backend task`. 
+we don't include also the `Worked R, D` slope dummy because they highly lag 1 autocorrelate to `Frontend task` and `Backend task`. 
 
 ### Python code
 
