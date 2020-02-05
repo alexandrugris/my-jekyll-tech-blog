@@ -200,7 +200,34 @@ Assumptions of the t-test:
 - Samples are representative
 - Samples randomly drawn
 
-T tests work well for two group comparison, for multiple groups one needs to use *ANOVA*. 
+T-tests work well for two group comparison, for multiple groups one needs to use *ANOVA*. 
+Below is an example on how to compute the t-statistic manually. We consider an example of a multiple regression, with predictor variable in `X` and dependent variable in `y`.
+
+Given c_i as the coefficients of a regression model,  `t-statistic(c_i) = c_i / SE(c_i)` and 
+`SE(c_i) = sqrt(residuals_sigma^2 * diagonal((X.T * X)^-1)).` `SE(c_i)` is the  standard error of coefficient `c_i`.
+
+```python
+import statsmodels.api as sm
+
+# add the intercept
+X_ = sm.add_constant(X,prepend=False)
+
+model = sm.OLS(y, X_)
+results = model.fit()
+print(results.summary())
+
+"""
+We will consider to compute the t-test for the coefficient of `income`
+H0: income has no predictive power on the outcome of the regression
+"""
+
+X_arr = X_.to_numpy()
+
+SE_arr = np.sqrt(results.resid.var() * np.linalg.inv(np.dot(X_arr.T, X_arr)).diagonal())
+SE = pd.DataFrame(SE_arr, index=X_.columns).T
+
+t_statistic = results.params['income'] / SE['income']
+```
 
 *Test for correlation / dependence*
 
@@ -208,7 +235,13 @@ If sample (X, Y) come from a 2 dimensional normal distribution, `Corr(X, Y) == 0
 
 *Kolmogorov-Smirnov Goodness of Fit test*
 
-Tells us if the samples come from a specified distribution. In python, we can use `stats.kstest`
+Tells us if the samples come from a specified distribution. In python, we can use `stats.kstest`.
+For instance, assuming the variable `samples` contains an array drawn from an unknown distribution,
+we can test if the unknown distribution is normal using the following test:
+
+```python
+stats.kstest(samples, 'norm').pvalue <= 0.05
+```
 
 *One-way ANOVA*
 
@@ -230,7 +263,7 @@ variance_between_groups = sum((mean_group_i - mean_all)^2 ,i=1..K) / (N-K)
 variance_within_groups = sum(sum((xj-mean_group_i)^2, j=1..ni ), i=1..K ) / (K-1)
 ```
 
-For one-way ANOVA, a single categorical variable is used to split the population into these groups. ANOVA assumes the populations are normal. A one-way ANOVA will tell you that at least two groups were different from each other. But it won’t tell you which groups were different.
+For one-way ANOVA, a single categorical variable is used to split the population into these groups. ANOVA assumes the populations are normal. A one-way ANOVA will tell you that at least two groups were different from each other, but it won’t tell you which groups were different.
 
 ```python
 stats.f_oneway(sample1, sample2, sample3)
