@@ -238,6 +238,37 @@ How good, overall, is our model? That is, if *all* our regression parameters wer
 
 If all `ci == 0`, then the total variance of the residuals in this case would be the total variance of Y, which is the absolute maximum variance the model can have.  If our model were to bring value, then the variance of the residuals would be much lower than the total variance of Y. Just like the *t-statistic*, the *f-statistic* measures how far from the maximum variance our residual variance is, that is how far `Var(Residuals) / Var(Y)` is from 1.
 
+### Stepwise selection for model features
+
+We use the tests before to get which model coefficients are truly relevant for our model. The actual model determined gradually, starting from all features available (usually) and reducing one by one the features which don't have enough relevance. In the example below we also plot the Akaike Information Criterion (AIC) to show how it evolves while features are gradually pruned.
+
+```python
+# stepwise selection
+
+all_coefs_are_relevant = False
+X_ = sm.add_constant(X, prepend=False)
+
+to_plot = []
+
+while not all_coefs_are_relevant:
+    model = sm.OLS(y, X_)
+    results = model.fit()
+    
+    all_coefs_are_relevant = results.pvalues.max() <= 0.05
+    
+    to_plot.append(results.aic)
+    
+    print(f'Iteration AIC={results.aic}, continue={not all_coefs_are_relevant}')
+    
+    if not all_coefs_are_relevant:
+        X_ = X_[results.pvalues[results.pvalues < results.pvalues.max()].index.values]
+    
+results.summary()
+
+plt.plot(to_plot)
+plt.show()
+```
+
 ### Worked example
 
 I have generated some data to create a regression model [here]({{site.url}}/assets/task-data.xlsx). The data assumes a team of 3 people working on a software module, with 3 types of tasks: front-end, backend and data. As time passes, the complexity of the code base increase thus also estimations tend to increase. The data includes a measure for code complexity, the type of task, initial estimation given by each developer, which developer worked on each task (there is an affinity for developers for task types, but not 100%) and what was the final duration. We want a model which aims to predict the final duration of a new task.
