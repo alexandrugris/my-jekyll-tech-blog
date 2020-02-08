@@ -7,8 +7,8 @@ This blog is a complement to [http://blog.alexandrugris.ro](http://blog.alexandr
 
 Who am I?
 
-My name is Alexandru Gris. Most of my professional life I have spent working in the videogames industry, with [Ubisoft Entertainment](https://www.ubisoft.com/en-GB/) for about 10 years. 
-During my career there, I had various positions: engine developer, lead programmer, producer and, finally, studio production manager (Head Of Game Development). I love technology, I love building stuff while working with smart, creative people. 
+My name is Alexandru Gris. For a relatively long time worked in the video-games industry, with [Ubisoft Entertainment](https://www.ubisoft.com/en-GB/). 
+My career evolved from software developer, lead programmer, producer and production director. I love technology, I love building stuff while working with smart, creative people. 
 I have a deep interest in software architecture, clean code, leadership, organization design, entrepreneurial thinking and high quality project management.
 
 I currently work as CTO in the sports betting industry.

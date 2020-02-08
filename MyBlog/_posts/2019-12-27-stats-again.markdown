@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Stats Again"
-date:   2019-12-01 13:15:16 +0200
+date:   2019-12-24 13:15:16 +0200
 categories: statistics
 ---
 A summary of statistics notions not found anywhere else in this blog. This post touches among other skewness, chi2 analysis, hypothesis testing, goodness of fit, Lasso and Ridge regression.
@@ -371,7 +371,7 @@ plt.show()
 
 ![Lasso feature selection]({{site.url}}/assets/stats_1.png)
   
-Before finishing, here is how to automatically compute the `lambda` regularization parameter automatically by using the Akaike Information Criterion and then Cross Validation.
+Before finishing, here is how to automatically compute the `lambda` regularization parameter by using the Akaike Information Criterion and then by employing Cross Validation.
 
 ```python
 
