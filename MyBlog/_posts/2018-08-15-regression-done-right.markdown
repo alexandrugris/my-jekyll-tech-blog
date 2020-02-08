@@ -275,6 +275,8 @@ plt.plot(to_plot)
 plt.show()
 ```
 
+In Python, another way to perform feature selection is by employing this class from [SKLearn](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectKBest.html). It has options for selecting features for both regression and classification tasks.
+
 ### Worked example
 
 I have generated some data to create a regression model [here]({{site.url}}/assets/task-data.xlsx). The data assumes a team of 3 people working on a software module, with 3 types of tasks: front-end, backend and data. As time passes, the complexity of the code base increase thus also estimations tend to increase. The data includes a measure for code complexity, the type of task, initial estimation given by each developer, which developer worked on each task (there is an affinity for developers for task types, but not 100%) and what was the final duration. We want a model which aims to predict the final duration of a new task.

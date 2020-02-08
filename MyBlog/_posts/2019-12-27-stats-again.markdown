@@ -4,7 +4,7 @@ title:  "Stats Again"
 date:   2019-12-24 13:15:16 +0200
 categories: statistics
 ---
-A summary of statistics notions not found anywhere else in this blog. This post touches among other skewness, chi2 analysis, hypothesis testing, goodness of fit, Lasso and Ridge regression.
+A summary of statistics notions not found anywhere else in this blog. This post touches among others descriptive statistics, hypothesis testing, goodness of fit, Lasso and Ridge regression.
 
 ### Descriptive Statistics
 
@@ -320,7 +320,7 @@ Lasso and Ridge regression add a penalization term to the loss function (the obj
 - *Lasso regression:* `cost_function = sum((yi - sum(b_i*x_i) ** 2) + lambda * sum(abs(b_i))`
 - *Ridge regression:* `cost_function = sum((yi - sum(b_i*x_i) ** 2) + lambda * sum(abs(b_i**2))`
 
-The Lasso additional term is called *L1 regularization* while for the Ridge it is called *L2 regularization*. For a given regression, both L1 and L2 can be applied simultaneously.
+The Lasso additional term is called *L1 regularization* while for the Ridge it is called *L2 regularization*. For a given regression, both L1 and L2 can be applied simultaneously, in a method called [ElasticNet](https://en.wikipedia.org/wiki/Elastic_net_regularization).
 
 The idea for both is to shrink coefficients in order to minimize overfitting. Lasso regression allows for automatic removal of some features during the minimization process. This is not true for the Ridge regression which preserves all coefficients but in a shrunk form. Both aims to reduce the effort put in model selection and allow for more explanatory variables in the regression equation,
 even in the case of multicollinearity. 
