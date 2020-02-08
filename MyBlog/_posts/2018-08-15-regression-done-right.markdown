@@ -108,17 +108,23 @@ We will use logging in this example. Steps below:
 Results inspection:
 
 Low `R^2`, lag 1 autocorrelation of only `0.08`, highly independent of X, seem rather normally distributed:
+
 ![Log residuals]({{site.url}}/assets/regression_7.png)
 
 Reverting to initial scale (before the percentage returns transformation), residuals show a tendency to accumulate errors towards the right extreme.
+
 ![Final residuals]({{site.url}}/assets/regression_11.png)
 
-Plots of originally observed Y vs X and regressed Y vs X show good capture of the fundamental `X^2` coefficient as well as a good fit
+Plots of originally observed Y vs X and regressed Y vs X show good capture of the fundamental `X^2` coefficient as well as a good fit:
+
 ![Observed data]({{site.url}}/assets/regression_8.png)
+
 and
+
 ![Regressed data]({{site.url}}/assets/regression_10.png)
 
 And finally, observed Y vs Y regressed show a strong linear relatinon of slope almost 1, but with visibly increasing errors towards the right extreme:
+
 ![Y observed vs Y regressed]({{site.url}}/assets/regression_9.png)
 
 ### Conclusions - simple linear regression
@@ -225,7 +231,7 @@ From this we extract the following rule of thumb:
 
 *The value of each coefficient divided by its standard error should ideally be greater than 3. If the ratio slips below 1, we should remove the variable from the regression. [Wikipedia 1](https://en.wikipedia.org/wiki/Simple_linear_regression#Confidence_intervals) and [Wikipedia 2](https://en.wikipedia.org/wiki/Simple_linear_regression#Numerical_example)*
 
-Closely related to the *t-statistic* is the *p-value* which quantifies the probability that we obtain for `ci` a value greater or equal to what we obtained through regression, provided that `ci` were actually 0. That means, we look for a very low *p-value* which corresponds to a high *t-statistic* in order to determine the relevance of this particular factor in the model. Equivalent to a *t-statistic* of 3 is a *p-value* of roughly `0.05%` (3 deviations from the mean, two-sided p-value).
+From the *t-statistic* we compute the *p-value*, which quantifies the probability that we obtain for `ci` a value greater or equal to what we obtained through regression, provided that `ci` were actually 0. That means, we look for a very low *p-value* which corresponds to a high *t-statistic* in order to determine the relevance of this particular factor in the model. Equivalent to a *t-statistic* of 3 is a *p-value* of roughly `0.05%` (3 deviations from the mean, two-sided p-value).
 
 ### The F-statistic
 
