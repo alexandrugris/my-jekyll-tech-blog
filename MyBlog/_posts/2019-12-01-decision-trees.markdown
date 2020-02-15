@@ -92,12 +92,13 @@ For building the tree there are 3 general cases, each building on each other:
 
 The algorithm goes as follows:
 
-1. Compute the uncertainty at the root node
+0. Split the dataset in 3 parts: training, parameter-tuning and test
+1. Compute the uncertainty at the root node (the node we want to split)
 2. Find the feature that has the highest uncertainty 
 3. Find the splitting point
-4. Repeat
+4. Repeat until each node is pure or when the accuracy computed on the parameter-tuning dataset does not improve anymore. 
 
-We are going to analyze the following [dataset](({{site.url}}/assets/telco.csv)), where the predicted variable is `churn`. 
+We are going to analyze the following [dataset](({{site.url}}/assets/telco.csv)), where the predicted variable is `churn`. The first step is to select which feature to split by:
 
 ```python
 import pandas as pd
@@ -108,7 +109,7 @@ df_categorical = df[['marital', 'ed', 'gender', 'retire']]
 y = df['churn']
 ```
 
-Entropy (uncertainty) at the root:
+Entropy (uncertainty) at the root node:
 
 ```python
 import numpy as np
@@ -149,6 +150,16 @@ Given the results below, we would choose feature `ed` for split as it gives the 
 Broken down into individual steps, for the variable `ed` the intermediate results from each step are shown in the image below:
 
 ![Entropy gain]({{site.url}}/assets/decision_trees_3.png)
+
+The next step is to find the right splitting point. We are going to use a measure called Gini Inpurity to split the node in two partitions, each as pure a possible.
+
+We define the Gini Inpurity as follows:
+
+```
+gini impurity = 1 - sum(p_i^2), where p_i is the probability associated with each class
+```
+
+For example, a group made of 50% males and 50% females would have a Gini Impurity of 0.5, which is the highest possible in this case. A group made only of males would have a Gini Impurity of 0, which makes it a pure node. In our case, the probabilities are the counts for the elements of each class divided by the total number of elements in the node.
 
         
     
