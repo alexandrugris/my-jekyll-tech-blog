@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Decision Trees"
-date:   2019-12-01 13:15:16 +0200
+date:   2020-02-10 13:15:16 +0200
 categories: machine learning
 ---
 A short introduction to decision trees (CART). Decision trees are a supervised machine learning technique used for classification and regression problems. Since the launch of XGBoost, it has been the preferred way of tackling problems at machine learning competitions and not only, because of easy setup, learning speed, straightforward tuning parameters, easy to reason about results and, above all, very good results. Arguably, with current implementations, decision trees outperform many of the other machine learning techniques.
