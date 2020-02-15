@@ -68,11 +68,91 @@ Here is a little bit of terminology associated with the decision trees:
 
 - Gradient boosting: a way of building subsequent trees by weighting down the points for which the tree classified correctly and weighting up the misclassified points. In the end result, trees which performed poorly in classification will have a lower voting weight than trees that performed well.
 
+- Post pruning: the opposite of splitting, cutting the nodes that don't bring enough information, to avoid overfitting. 
+
 ### Building the tree
 
-Building the decision tree is a recursive process. At each step a feature is selected and a value based on which to do the split. The selection is made such that the highest information gain is attained, that is, the set is best split across its categories, meaning each group as as homogenous as possible. 
+Building the decision tree is a recursive process. At each step a feature is selected and a value from the selected feature based on which to do the split. The selection is made such that the highest information gain is attained, meaning each group as as homogenous as possible. 
+
+Nodes are split based on their “impurity”. Impurity is a measure of how badly the observations at a given node fit the model.
+
+In a regression tree, for example, the impurity may be measured by the residual sum of squares within that node - as we've seen in the example above. 
+
+In a classification tree, there are various ways of measuring the impurity, such as the misclassification error, the Gini index, and the entropy.
+
+For building the tree there are 3 general cases, each building on each other:
+
+- All independent (`X`) and dependent (`y`) variables are categorical.
+- There is a mix of categorical and continuous independent variables (`X`) but the dependent variable is categorical (`y`).
+- The dependent variable is continuous (`y`).
+
+### All independent and dependent variables are categorical
+
+The algorithm goes as follows:
+
+1. Compute the uncertainty at the root node
+2. Find the feature that has the highest uncertainty 
+3. Find the splitting point
+4. Repeat
+
+We are going to analyze the following [dataset](({{site.url}}/assets/telco.csv)), where the predicted variable is `churn`. 
+
+```python
+import pandas as pd
+
+df = pd.read_csv('../data/telco.csv', sep='\t')
+
+df_categorical = df[['marital', 'ed', 'gender', 'retire']]
+y = df['churn']
+```
+
+Entropy (uncertainty) at the root:
+
+```python
+import numpy as np
+
+def entropy(s):
+    x = s.value_counts().values / s.count()
+    return np.sum(-x * np.log2(x))
+
+y_entropy = entropy(y)
+```
+
+Calculating the entropy reduction if we split by each feature:
+
+```python
+for c in df_categorical.columns:
+
+    ct = pd.crosstab(df_categorical[c], y, normalize='index')
+    
+    # compute entropy for each of classes 
+    entp = pd.DataFrame(np.sum(-np.log2(ct.values) * ct.values, axis=1))
+    entp.index = ct.index
+    entp = entp.T[sorted(entp.T.columns)].values.flatten()
+    
+    # compute weights for each of the classes
+    w = pd.DataFrame(df_categorical[c].value_counts() / df_categorical[c].count()).T
+    w = w[sorted(w.columns)].values.flatten()
+    
+    # normalize for size of the population to get the weighted entropy
+    weighted_entropy = np.dot(entp, w)
+    
+    print(f'Entropy for {c} is {weighted_entropy}, reduction in entropy is {y_entropy - weighted_entropy}')
+```
+
+Given the results below, we would choose feature `ed` for split as it gives the highest entropy decrease.
+
+![Feature selection]({{site.url}}/assets/decision_trees_2.png)
+
+Broken down into individual steps, for the variable `ed` the intermediate results from each step are shown in the image below:
+
+![Entropy gain]({{site.url}}/assets/decision_trees_3.png)
+
+        
+    
 
 
-### Splitting
 
-### TODO: analyze with decision trees the data from telco -> the one with telco from  - telco.csv in data folder
+
+
+
