@@ -4,7 +4,7 @@ title:  "Stats Again"
 date:   2019-12-24 13:15:16 +0200
 categories: statistics
 ---
-A summary of statistics notions not found anywhere else in this blog. This post touches among others descriptive statistics, hypothesis testing, goodness of fit, Lasso and Ridge regression.
+A summary of statistics notions not found anywhere else on this blog. The post touches among others: some descriptive statistics measures, hypothesis testing, goodness of fit, Lasso and Ridge regression.
 
 ### Descriptive Statistics
 
@@ -55,20 +55,62 @@ Similarly to the Pearson coefficient which is defined for the values of `X` and 
 
 *Chi2 Analysis*
 
-For nominal (categorical) values, we can introduce a measure of dependency and correlation. We use the `Chi2 statistic` to measure the independence of two categorical variables. The *Chi2 test* works on contingency tables:
+For nominal (categorical) values, we can introduce a measure of dependency and correlation. We use the `Chi2 statistic` to measure the independence of two categorical variables. The *Chi2 test* works on `r rows x c columns` contingency tables and assesses wether the null hypothesis of independence among variables is reasonable.
+
+An example for its use would be to test how well different headlines for a website generate more clicks. Let's assume an experiment with N headlines which generated either a click or a no-click. A contingency table to describe the problem would contain on the column axes the N headlines and on the rows axes click or no-click, with the counts for each in the table.
+
+The table and the calculations below come from the `Practical Statistics for Data Scientists` book:
+
+```python
+import pandas as pd
+import numpy as np
+
+# generate some data:
+headings = ['H 1'] * (14 + 986) + ['H 2'] * (8+992) + ['H 3'] * (12 + 988)
+clicks_no_clicks = ['C'] * 14 + ['NC'] * 986 + ['C'] * 8 + ['NC'] * 992 + ['C'] * 12 + ['NC'] * 988
+
+df = pd.DataFrame()
+
+df['Headings'] = headings
+df['Clicks'] = clicks_no_clicks
+
+contingency = pd.crosstab(df['Headings'], df['Clicks']).T
+
+# Expected values given the null hypothesis, 
+# that all are independent trials drawn from the same distribution
+expected = contingency.mean(axis=1).values.repeat(3).reshape((2,3))
+
+# Pearson's residuals
+R = (contingency.values - expected) / np.sqrt(expected)
+
+R = R.flatten()
+chi_stat = np.dot(R, R)
+
+from scipy.stats import chi2
+p_value = (1-chi2.cdf(chi_stat, df=(3-1) * (2-1)))
+```
+
+Or, more straightforward, same results:
 
 ```python
 from scipy.stats import chi2_contingency
 
 # first create the contingency table based on the two categorical variables
-df_for_test = pd.crosstab(df['categorical_variable_1'], df['categorical_variable_2'])
+df_for_test = pd.crosstab(df['Headings'], df['Clicks']).T
 chi2, p_value, degrees_of_freedom, expected_values = chi2_contingency(df_for_test.values)
 ```
+
+![Chi2]({{site.url}}/assets/stats_2.png)
+
 
 The return values are described below:
 - `expected_values` - how would the data look like if it were independent
 - `chi2` - the test statistic, the higher it is, the lower the `p-value`, the probability that the values are independent
 - `degrees_of_freedom` - `dof = observed.size - sum(observed.shape) + observed.ndim - 1` the degrees of freedom for the `Chi2 distribution` from which the `p-value` is computed given the test statistic.
+
+*Note:*
+
+The p-values can be computed through Monte Carlo simulation, by simply sampling `N` times `M` samples with the same distribution as the expected values and counting how many times the squared sum of Pearon's residuals (`R`) exceed the value obtained from our sample. That is the `p-value`.
 
 ### Binomial and Hypergeometric Distributions
 
@@ -396,3 +438,5 @@ model_cv = LassoLarsCV(cv=20)
 model_cv.fit(X, y)
 print(f"Selected lambda CV = {model_cv.alpha_}")
 ```
+
+In a future post I will write about feature selection for Machine Learning.
