@@ -439,4 +439,4 @@ model_cv.fit(X, y)
 print(f"Selected lambda CV = {model_cv.alpha_}")
 ```
 
-In a future post I will write about feature selection for Machine Learning.
+In a future post I will write more about feature selection for Machine Learning.
