@@ -161,7 +161,85 @@ gini impurity = 1 - sum(p_i^2), where p_i is the probability associated with eac
 
 For example, a group made of 50% males and 50% females would have a Gini Impurity of 0.5, which is the highest possible in this case. A group made only of males would have a Gini Impurity of 0, which makes it a pure node. In our case, the probabilities are the counts for the elements of each class divided by the total number of elements in the node.
 
-        
+Let's do just that.
+
+```python
+gini = pd.DataFrame(df_categorical['ed'])
+gini['churn'] = y
+
+gini = pd.crosstab(gini['ed'], gini['churn'])
+
+columns = list(gini.columns)
+probs_columns = ['P_' + c for c in columns]
+
+# compute the probability for each class
+for c in columns:
+    gini['P_' + c] = gini[c] / gini[columns].sum(axis=1) 
+    
+# sort by the dependant variable probability in each class
+# to get as pure a node as possible
+gini = gini.sort_values(probs_columns, ascending=False)
+
+# we take each class in the independent variable,
+# now sorted by their probabilities,
+# and try to split by it - compute impurity
+sorted_rows = list(gini.index.values)
+
+left_node = []
+right_node = list(sorted_rows)
+
+def impurity(node_set):
+    counts_depedent_var = gini[columns].loc[node_set].sum(axis=0)
+    # to type less
+    cnts = counts_depedent_var
+    # probs
+    cnts = cnts / cnts.sum()
+    # sqr
+    cnts = cnts * cnts
+    return 1 - cnts.sum()
+    
+def no_of_observations(node_set):
+    return gini[columns].loc[node_set].sum().sum()
+
+total_no_of_observations = no_of_observations(sorted_rows)
+    
+for c in sorted_rows[:-1]:
+    left_node.append(c)
+    right_node.pop(0)
+    
+    # simply follows the 1 - sum(p_i^2) formula
+    gini_left = impurity(left_node)
+    gini_right = impurity(right_node)
+    
+    # computing the weighted impurity,
+    # with the number of observations in each node
+    total_impurity = (gini_left * no_of_observations(left_node) + gini_right * no_of_observations(right_node)) / total_no_of_observations
+                    
+    print(f"Impurity in {left_node} = {gini_left}")
+    print(f"Impurity in {right_node} = {gini_right}")
+    print(f"Total impurity = {total_impurity}")
+    
+    print("-------")
+```
+
+The combination that has the least overall weighted impurity is the combination that will be chosen in the left node and right node. In our case, the combination that will split by education is this:
+
+```
+Impurity in ['Did not complete high school', 'High school degree', 'Some college'] = 0.34319999999999995
+Impurity in ['College degree', 'Post-undergraduate degree'] = 0.48
+Total impurity = 0.38423999999999997
+```
+
+Let's observe a little bit the data in between steps.
+
+Gini dataframe, after initial setup and sorting by probabilities:
+
+![gini dataframe]({{site.url}}/assets/decision_trees_4.png)
+
+Impurity calculated in the loop, for each combination of possible values in the left-right nodes:
+
+![gini dataframe]({{site.url}}/assets/decision_trees_5.png)
+
     
 
 
