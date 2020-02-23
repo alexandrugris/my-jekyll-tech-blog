@@ -218,9 +218,9 @@ for c in sorted_rows[:-1]:
     print(f"Impurity in {left_node} = {gini_left}")
     print(f"Impurity in {right_node} = {gini_right}")
     print(f"Total impurity = {total_impurity}")
-    ```
+```
 
-The combination that has the least overall weighted impurity is the combination that will be chosen in the left node and right node. In our case, the combination that will split by education is this:
+The combination that has the least overall weighted impurity will be chosen for the split. In our case, the combination that will split by education is this:
 
 ```
 Impurity in ['Did not complete high school', 'High school degree', 'Some college'] = 0.34319999999999995
