@@ -4,7 +4,7 @@ title:  "Domain Driven Design Notes"
 date:   2017-11-27 13:15:16 +0200
 categories: architecture
 ---
-A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application has complex business functionality. It will not help with big data, performance or hardware specific optimisations.
+A very high level introduction to Domain Driven Design (DDD). DDD is a useful technique if the application has complex business functionality. It will not help with big data, performance or hardware specific optimizations.
 
 ### Notes
 
@@ -45,23 +45,23 @@ As Martin Flowler notes in his wiki, CQRS complicates the  architecture and code
 
 - *Ubiquitous Language:* a common language, with very precise terms, that the business and the technical agree to use together. Ubiquitous language follows the meaning and the wording from the business and the same wording can have different meanings in different bounded contexts. The ubiquitous language is used everywhere: conversation, class names, method names and it is not be replaced even with synonyms.
 
-- *Anemic Domain Model:* model with classes focused on state management, not with too much functionality. Usually maps directly to storage and is useful for CRUD operations. For DDD it is an antiparttern because then the logic is delegated to domain services and this creates an artificial decouping which breaks encapsulation and generates more code, brittle, with harder to enforce invariants.
+- *Anemic Domain Model:* model with classes focused on state management, not with too much functionality. Usually maps directly to storage and is useful for CRUD operations. For DDD it is an antiparttern because then the logic is delegated to domain services and this creates an artificial decoupling which breaks encapsulation and generates more code, brittle, with harder to enforce invariants.
 
-- *Rich Domain Model:* model focused on business rules and behaviors, prefered for DDD
+- *Rich Domain Model:* model focused on business rules and behaviors, preferred for DDD
 
 - *Entity:* a mutable class with identity, used for tracking and persistence
 
 - *Value Objects:* an immutable class whose identity is given by the combinations its members (e.g. TimeRange)In DDD it is preferred to try to model first in terms of Value Objects and then switch to Entities. 
 
-- *Services:* a collection of behaviours (functionality) that does not belown elsewhere in the domain
+- *Services:* a collection of behaviors (functionality) that does not belogn elsewhere in the domain
 
-- *Aggregate:* a cluster of associated objects that we treat as a unit for purposes of data changes (e.g. a Product which is assembled from a set of Parts). In DDD, we forbit direct access to parts of the aggregate and we only allow access through the *Aggregate Root*. A good case for one specific class to be the aggregate root is to check if on delete it generates a cascade. If so, it might be a good candidate for being the aggregate root of the cascaded object tree. Another critical criteria for choosing the right *Aggregate Root* is for it to naturally enforce invariants. In other words, the *Aggregate* is a transactional graph of objects while the *Aggregate Root* is the entry point to the graph, with the role of assuring its integrit.
+- *Aggregate:* a cluster of associated objects that we treat as a unit for purposes of data changes (e.g. a Product which is assembled from a set of Parts). In DDD, we forbid direct access to parts of the aggregate and we only allow access through the *Aggregate Root*. A good case for one specific class to be the aggregate root is to check if on delete it generates a cascade. If so, it might be a good candidate for being the aggregate root of the cascaded object tree. Another critical criteria for choosing the right *Aggregate Root* is for it to naturally enforce invariants. In other words, the *Aggregate* is a transactional graph of objects while the *Aggregate Root* is the entry point to the graph, with the role of assuring its integrity.
 
 - *Invariant:* a condition that must be true for the system to be in a valid / consistent state
 
-- *Repository:* persistent storage pattern. Only the aggregate roots should be available for querying directly from the repository. Repositories are a collection of objects of a certain type, with more ellaborate querying capabilities. For simple CRUD repositories, one can create a generic implementation for the pattern but, for more complex business rules, it is recommended to have a dedicated repository for each *Aggregate Root*
+- *Repository:* persistent storage pattern. Only the aggregate roots should be available for querying directly from the repository. Repositories are a collection of objects of a certain type, with more elaborate querying capabilities. For simple CRUD repositories, one can create a generic implementation for the pattern but, for more complex business rules, it is recommended to have a dedicated repository for each *Aggregate Root*
 
-- *Domain Event:* a class that encapsulates the occurence of an event in a domain model, a good pattern for keeping the classes in a domain open for extension and closed for modification. A preferred naming convetinon is *"Entity_PastAction_Event"* (e.g. "UserLoggedInEvent")
+- *Domain Event:* a class that encapsulates the occurrence of an event in a domain model, a good pattern for keeping the classes in a domain open for extension and closed for modification. A preferred naming convention is *"Entity_PastAction_Event"* (e.g. "UserLoggedInEvent")
 
 - *Anticorruption Layer:* code that keeps the bounded context insulated from other bounded contexts or external applications or services
 
@@ -77,7 +77,7 @@ Steps:
 
 ### Testing the domain
 
- When experimenting with the model, it might be feasible not to write tests at first. A lot of refactoring goes on in the beginning and TDD would only make refarctoring harder. However, once the code becomes pretty stable and we ar happy with our abstractions, we can add remaining tests and switch back to TDD. 
+ When experimenting with the model, it might be feasible not to write tests at first. A lot of refactoring goes on in the beginning and TDD would only make refactoring harder. However, once the code becomes pretty stable and we ar happy with our abstractions, we can add remaining tests and switch back to TDD. 
 
 ### Entities and Value Objects
 
@@ -89,7 +89,7 @@ It makes sense to have a base class for entities and a base class for value obje
 
 Because the Value Objects do not have a lifetime different from that of the Entity that holds them (and they don't have an ID), they should be serialized in the same table as the Entity itself. A good analogy is with an integer; we would not create a separate table to store integers. 
 
-The example below is from a hypothetical DDD snack machine application implementation. Please note the type of code each class contains. Low level algorthms in Value Objects and higher level orchestration in the Entity. Entities can be uniquely identified and restored from the database. A lot of logic is stored inside Value Objects like, for instance, the management of banknotes and coins inside the machine.
+The example below is from a hypothetical DDD snack machine application implementation. Please note the type of code each class contains. Low level algorithms in Value Objects and higher level orchestration in the Entity. Entities can be uniquely identified and restored from the database. A lot of logic is stored inside Value Objects like, for instance, the management of banknotes and coins inside the machine.
 
 ```java
 public class SnackMachine extends Entity<UUID> {
@@ -246,7 +246,7 @@ a = a + d; // MoneyCollection::addMoney
 a = a - d; // MoneyCollection::substract
 ```
 
-In such cases, a decision must be taken: do we refactor to keep the value object immutable, in this case paying the price of a small array allocation and copy, or do we hide the dirty details behind a clean facade? Beside the (small) perfomance hit, here is also visible a certain mismatch between a theoretical concept and the comfort with which it can be expressed in our programming language.
+In such cases, a decision must be taken: do we refactor to keep the value object immutable, in this case paying the price of a small array allocation and copy, or do we hide the dirty details behind a clean facade? Beside the (small) performance hit, here is also visible a certain mismatch between a theoretical concept and the comfort with which it can be expressed in our programming language.
 
 *ID generation and serialization*
 
@@ -258,10 +258,10 @@ A clean design does not allow ORM-specific code to pollute the domain objects. T
 
 Aggregates are a design pattern that helps us simplify the domain model by gathering several entities under a single abstraction:
 
-- Classes outside the aggregate cannot access the entities within the aggegate except through its root.
-- An aggregate is a conhesive whole. It represents a cohesive notion of the domain model.
+- Classes outside the aggregate cannot access the entities within the aggregate except through its root.
+- An aggregate is a cohesive whole. It represents a cohesive notion of the domain model.
 - Every aggregate has a set of invariants that it maintains during its lifetime. These invariants guarantee the aggregate is always in a consistent state.
-- Application services retreive aggregates from the database, perform actions on them and then persist them to the database as a transaction. 
+- Application services retrieve aggregates from the database, perform actions on them and then persist them to the database as a transaction. 
 - The invariants that spread across several aggregates should not be expected to be consistent all the time, but rather become eventually consistent.
 
 In our example, let's consider that each `SnackMachine` has a set of slots that are filled with products. The user selects the slot (1-10, let's say) and the product that is topmost is returned. This introduces two new abstractions: `Slot` and `Product`. Unlike `MoneyCollection`, each machine can have a different number of slots and in each slot several products:
@@ -334,9 +334,9 @@ public class SnackMachineRepository extends Repository<UUID, SnackMachine>{
 }
 ```
 
-In a CQRS application, there would be two repositories. One for handling commands (changes to the state of the system) and one for handling reads (read-only). These two repositories might reference two different undelying databases, each modelled so that it does its job best (updates vs reads).
+In a CQRS application, there would be two repositories. One for handling commands (changes to the state of the system) and one for handling reads (read-only). These two repositories might reference two different underlying databases, each modelled so that it does its job best (updates vs reads).
 
-Below you can see an example of a splitted repository:
+Below you can see an example of a split repository:
 
 ```java
 public class SnackMachineCommandsRepository extends Repository<UUID, SnackMachine>{
@@ -369,7 +369,7 @@ It is recommended that bounded contexts have:
 - separate namespaces (or separate deployment units or processes)
 - separate database schemas or separated databases
 
-The greater the isolation is, the easier it is to maintain proper bounderies. However, higher isolation comes at the price of higer development cost and solution complexity.
+The greater the isolation is, the easier it is to maintain proper boundaries. However, higher isolation comes at the price of higher development cost and solution complexity.
 
 ### Shared Kernel
 
@@ -377,7 +377,7 @@ Assuming that we want to introduce a new bounded context, the `ATM`, to our appl
 
 When deciding what to put in a shared kernel, keep in mind the following:
 
-- Business logic should not be reused in most cases as it alwasy evolves on separate trajectories. E.g. the sales perspective of what a product is is different from the perspective of customer support.
+- Business logic should not be reused in most cases as it always evolves on separate trajectories. E.g. the sales perspective of what a product is is different from the perspective of customer support.
 - Infrastructure / utility code could be reused, but should be duplicated if the changes from a team impact negatively the performance of another team.
 
 Overall, try to avoid reusing code between bounded contexts as much as possible.
@@ -390,7 +390,7 @@ A domain event is an event that is significant for the domain. Its job is to:
 - Facilitates communication between bounded contexts
 - Can also be used for collaboration between entities within a single bounded context
 
-Naming suggestion: as specific as possble: Subject (who) + Past Tense Verb (the action that occured) + Event. For instance `MoneyDepositedEvent`. 
+Naming suggestion: as specific as possible: Subject (who) + Past Tense Verb (the action that occurred) + Event. For instance `MoneyDepositedEvent`. 
 
 Try to include as little information as possible in an event, preferably serializable and immutable, and independent of the domain model classes. This is because events may, at one point, pass the process boundaries when the application is distributed and because we don't want the order in which the event is handled to matter. We don't want to give the receivers the option to mutate the event. A good guideline is to only use primitive types when declaring a domain event.
 
@@ -415,7 +415,7 @@ A better example:
 class Person extends Entity<long> {} 
 
 // specific
-// passes only the relevat information
+// passes only the relevant information
 // immutable in the sense that one cannot easily alter the person if receives this event
 class BirthdayChangedEvent { 
     private long ID; 
@@ -428,7 +428,7 @@ class BirthdayChangedEvent {
 }
 ```
 
-Including the `ID` is debatable: can the `Person` be reteived by its ID by the downstream consumer? Is this event intended for the local bounded context or for consumption in another bounded context? If the answer is the latter, we may want to include different identification information in the event.
+Including the `ID` is debatable: can the `Person` be retrieved by its ID by the downstream consumer? Is this event intended for the local bounded context or for consumption in another bounded context? If the answer is the latter, we may want to include different identification information in the event.
 
 ### Event Transport
 
@@ -535,14 +535,14 @@ public class DDDInJavaMain {
 
 ### The Unit Of Work Problem
 
-This simple pattern for sending and handling events when they occur has a *major architectural issue* - it breaks the Unit Of Work pattern. For instance, what happens when we need to do a rollback before the Unit Of Work transaction is committed? Or, for some reason, the commit fails? As events have aready been submitted, it is impossible to roll them back as their processing causes ripples inside our Bounded Domain but also inside others, causing the system as a whole to enter an invalid state. 
+This simple pattern for sending and handling events when they occur has a *major architectural issue* - it breaks the Unit Of Work pattern. For instance, what happens when we need to do a rollback before the Unit Of Work transaction is committed? Or, for some reason, the commit fails? As events have already been submitted, it is impossible to roll them back as their processing causes ripples inside our Bounded Domain but also inside others, causing the system as a whole to enter an invalid state. 
 
 A better way exits to preserve intact the Unit Of Work: split the event pipeline in *creation* (when the event occurs) and *dispatch* (after the UoW is committed successfully to the database). In the meantime, hold the events in an temporary list, on a per-unit-of-work instance or, if all commits are done through the aggregate roots, as it should be, on a per-aggregate root instance. If we take the aggregate root path, a good place to store the logic for queuing the events and dispatching them when the save transaction succeeds is the `AggregateRoot` base class.
 
 ## Events vs Commands
 
 - *Commands*: something you want do happen but might not happen.
-- *Events:* something that already happend. 
+- *Events:* something that already happened. 
 
 Commands are best named with present tense, imperative form, like `AddNewBookToLibraryCmd` or `ExtractMoneyCmd`. A command might not complete successfully. You don't need to store commands, although it is a good practice to log them for the purpose of debugging. 
 

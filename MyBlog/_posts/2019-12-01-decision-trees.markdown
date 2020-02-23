@@ -403,7 +403,7 @@ For each feature,
 *If the feature is categorical:*
 
 1. Compute the average response value for each category in the selected feature
-2. Sort categories ascending by the average response value
+2. Sort categories in an ascending order by the average response value
 3. Start with one category in the left node and all the remaining categories in the right node
 4. Add category by category to the left node and compute the mean squared error for the split
 5. Select the split with the highest decrease in the mean squared error
