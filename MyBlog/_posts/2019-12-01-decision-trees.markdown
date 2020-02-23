@@ -390,19 +390,24 @@ Unlike the previous scenario with only categorical variables, if we have continu
 
 For this case, we don't have measures such as Gini Impurity or Entropy, as both of them depend on the response variable being categorical. Therefore, we can use the improvement in the Mean Squared Error as a measure of best split.
 
-*For the case of a continuous independent variable (feature):*
+The algorithm goes as follows.
+
+For each feature,
+
+*If the feature is continuous:*
 
 1. We sort by the independent variable
 2. For each increment of the independent variable we compute the MSE in the dependent variable
 3. We select the increment with the highest improvement in the MSE
 
-*For the case of a categorical independent variable (feature):*
+*If the feature is categorical:*
 
-1. Compute the average response value for each category
-2. Sort ascending by the average response value
-3. Start with an empty left node and all features in the right node
-4. Add feature by feature to the left node and compute the mean squared error for the split
+1. Compute the average response value for each category in the selected feature
+2. Sort categories ascending by the average response value
+3. Start with one category in the left node and all the remaining categories in the right node
+4. Add category by category to the left node and compute the mean squared error for the split
 5. Select the split with the highest decrease in the mean squared error
 
-After the steps above are performed for each feature, select the `(feature, split_point)` pair which gives the highest improvement in the `MSE` and then continue to split the tree recursively.
+After all the steps above are performed for each feature in the feature set, select the `(feature, split_point)` pair which gives the highest improvement in the `MSE` and then continue to split the tree recursively.
 
+As we can see, for decision trees we don't do any dummy variable encoding on the categorical dependent variables. We treat them as they are.
