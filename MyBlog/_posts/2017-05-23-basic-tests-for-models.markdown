@@ -78,6 +78,9 @@ The percentage of 0s correctly classified.
 ```python
 def specificity(tp, fp, fn, tn):
     return tn / (tn + fn)
+
+specificity(10, 100, 1000, 10000)
+Out[181]: 0.9090909090909091
 ```
 
 ### ROC and AUROC (AUC)
