@@ -115,7 +115,7 @@ print(f"Predicted yes, actual yes: {sum((y==1) & (y_pred==1))}")
 
 Now, let's vary the threshold and plot the ROC curve.
 
-```
+```python
 def roc(threshold):
     
     y_pred = lr.predict_proba(X).T[1] >= threshold
