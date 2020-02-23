@@ -42,7 +42,7 @@ plt.show()
 ```
 ![Decision Tree Visualization]({{site.url}}/assets/decision_trees_1.png)
 
-The tree above is a regression tree, inputted with numeric features.
+The tree above is a regression tree, built with numeric features.
 
 - `X[n]` - the feature based on which the split has been made
 - `mse` - mean squared error in the node 
@@ -70,7 +70,7 @@ Here is a little bit of terminology associated with the decision trees:
 
 - Gradient boosting: a way of building subsequent trees by weighting down the points for which the tree classified correctly and weighting up the misclassified points. In the end result, trees which performed poorly in classification will have a lower voting weight than trees that performed well.
 
-- Post pruning: the opposite of splitting, cutting the nodes that don't bring enough information, to avoid overfitting. 
+- Pruning: the opposite of splitting, removing the nodes that don't bring enough information, to avoid overfitting. 
 
 ### Building the tree
 
@@ -78,9 +78,7 @@ Building the decision tree is a recursive process. At each step a feature is sel
 
 Nodes are split based on their “impurity”. Impurity is a measure of how badly the observations at a given node fit the model.
 
-In a regression tree, for example, the impurity may be measured by the residual sum of squares within that node - as we've seen in the example above. 
-
-In a classification tree, there are various ways of measuring the impurity, such as the misclassification error, the Gini index, and the entropy.
+For a regression tree the impurity is be measured by the residual sum of squares within that node - as we've seen in the example above. For a classification tree, there are various ways of measuring the impurity, such as the misclassification error, the Gini Impurity, and the Entropy.
 
 For building the tree there are 3 general cases, each building on each other:
 
@@ -88,15 +86,15 @@ For building the tree there are 3 general cases, each building on each other:
 - There is a mix of categorical and continuous independent variables (`X`) but the dependent variable is categorical (`y`).
 - The dependent variable is continuous (`y`).
 
-### All independent and dependent variables are categorical
+### All Independent and Dependent Variables Are Categorical
 
 The algorithm goes as follows:
 
 0. Split the dataset in 3 parts: training, parameter-tuning and test
 1. Compute the uncertainty at the root node (the node we want to split)
-2. Find the feature that has the highest uncertainty 
+2. Find the feature that provides the highest uncertainty reduction and decide to split by this feature
 3. Find the splitting point
-4. Repeat until each node is pure or when the accuracy computed on the parameter-tuning dataset does not improve anymore. 
+4. Repeat until each node is pure or until the accuracy computed on the parameter-tuning dataset does not improve anymore. 
 
 We are going to analyze the following [dataset](({{site.url}}/assets/telco.csv)), where the predicted variable is `churn`. The first step is to select which feature to split by:
 
@@ -109,7 +107,7 @@ df_categorical = df[['marital', 'ed', 'gender', 'retire']]
 y = df['churn']
 ```
 
-Entropy (uncertainty) at the root node:
+Entropy (uncertainty) at the root node. By definition, `entropy = sum(-p*log2(p))` where `p` is the probability of a class to appear in the given set.
 
 ```python
 import numpy as np
@@ -126,6 +124,8 @@ Calculating the entropy reduction if we split by each feature:
 ```python
 for c in df_categorical.columns:
 
+    # compute the counts for each category mapped to the predicted variable
+    # normalize per line to get the probability
     ct = pd.crosstab(df_categorical[c], y, normalize='index')
     
     # compute entropy for each of classes 
@@ -218,9 +218,7 @@ for c in sorted_rows[:-1]:
     print(f"Impurity in {left_node} = {gini_left}")
     print(f"Impurity in {right_node} = {gini_right}")
     print(f"Total impurity = {total_impurity}")
-    
-    print("-------")
-```
+    ```
 
 The combination that has the least overall weighted impurity is the combination that will be chosen in the left node and right node. In our case, the combination that will split by education is this:
 
@@ -245,8 +243,6 @@ Impurity calculated in the loop, for each combination of possible values in the 
 We are starting as follows:
 
 ```python
-
-
 #######################################################
 ### Gini Impurity for a continuous independent variable
 #######################################################
@@ -259,7 +255,6 @@ df_continuous = df[[continuous_var]]
 gini = pd.DataFrame(df_continuous[continuous_var])
 gini[dependent_var] = y
 gini.sort_values([continuous_var], ascending=True, inplace=True)
-
 ```
 
 ![Sorted by continuous independent variable]({{site.url}}/assets/decision_trees_6.png)
@@ -353,7 +348,61 @@ Out[147]:
 18     36   0.484056    0.302626        0.373747
 ```
 
-By assessing the first bar chart, we intuitively see that after 36 the churn seems to decrease.
+By assessing the first bar chart, we intuitively see that after `36`, the churn seems to decrease.
 
 - The impurity for both the left and the right node tend to decrease, but for the left node impurity decreases slower. This happens because the data set is not balanced and not very well separated, with less 'Yes'es than 'No's. 
+
+Now we can compute the entropy for the feature after the split:
+
+```python
+def entropy_split(pts):
+    counts = pd.crosstab(gini[continuous_var], gini[dependent_var])
+    
+    left = counts[counts.index <= pts]
+    right = counts[counts.index > pts]
+    
+    left_y_n = left.sum()
+    right_y_n = right.sum()
+    
+    left_cnt = left_y_n.sum()
+    right_cnt = right_y_n.sum()
+    
+    left_probs = left_y_n / left_cnt
+    right_probs = right_y_n / right_cnt
+    
+    entropy_left = (-left_probs * np.log2(left_probs)).sum()
+    entropy_right = (-right_probs * np.log2(right_probs)).sum()
+    
+    return ((entropy_left * left_cnt) + (entropy_right * right_cnt)) / (left_cnt + right_cnt)
+
+entropy_split(36) # entropy for feature if we were to split by it
+entropy_split(100) # entropy before the split, 100 means there's no split
+
+entropy_gain = entropy_split(100) - entropy_split(36)
+
+entropy_gain
+Out[179]: 0.04303762368425612
+```
+
+Unlike the previous scenario with only categorical variables, if we have continuous variables we have to reverse the tree building algorithm as we cannot compute the information gain for a feature before we find the splitting point. Therefore, we’ll first find out the point of splitting to the left node and right node, if we were to split on each of continuous the variables. Once the left and right nodes for each of the variables are figured, we’ll calculate the information gain obtained by the split and select the feature that gives us the highest information gain. We use that feature and that splitting point as our next step in the tree construction algorithm.
+
+### Continuous Dependent Variable - Regression Trees
+
+For this case, we don't have measures such as Gini Impurity or Entropy, as both of them depend on the response variable being categorical. Therefore, we can use the improvement in the Mean Squared Error as a measure of best split.
+
+*For the case of a continuous independent variable (feature):*
+
+1. We sort by the independent variable
+2. For each increment of the independent variable we compute the MSE in the dependent variable
+3. We select the increment with the highest improvement in the MSE
+
+*For the case of a categorical independent variable (feature):*
+
+1. Compute the average response value for each category
+2. Sort ascending by the average response value
+3. Start with an empty left node and all features in the right node
+4. Add feature by feature to the left node and compute the mean squared error for the split
+5. Select the split with the highest decrease in the mean squared error
+
+After the steps above are performed for each feature, select the `(feature, split_point)` pair which gives the highest improvement in the `MSE` and then continue to split the tree recursively.
 
