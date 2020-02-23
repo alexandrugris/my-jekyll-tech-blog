@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Decision Trees"
-date:   2020-02-10 13:15:16 +0200
+date:   2019-12-01 13:15:16 +0200
 categories: machine learning
 ---
 A short introduction to decision trees (CART). Decision trees are a supervised machine learning technique used for classification and regression problems. Since the launch of XGBoost, it has been the preferred way of tackling problems at machine learning competitions and not only, because of easy setup, learning speed, straightforward tuning parameters, easy to reason about results and, above all, very good results. Arguably, with current implementations, decision trees outperform many of the other machine learning techniques.
@@ -151,9 +151,9 @@ Broken down into individual steps, for the variable `ed` the intermediate result
 
 ![Entropy gain]({{site.url}}/assets/decision_trees_3.png)
 
-The next step is to find the right splitting point. We are going to use a measure called Gini Inpurity to split the node in two partitions, each as pure a possible.
+The next step is to find the right splitting point. We are going to use a measure called Gini Impurity to split the node in two partitions, each as pure a possible.
 
-We define the Gini Inpurity as follows:
+We define the Gini Impurity as follows:
 
 ```
 gini impurity = 1 - sum(p_i^2), where p_i is the probability associated with each class
@@ -182,7 +182,7 @@ gini = gini.sort_values(probs_columns, ascending=False)
 
 # we take each class in the independent variable,
 # now sorted by their probabilities,
-# and try to split by it - compute impurity
+# and split by it to compute impurity
 sorted_rows = list(gini.index.values)
 
 left_node = []
@@ -232,7 +232,7 @@ Total impurity = 0.38423999999999997
 
 Let's observe a little bit the data in between steps.
 
-Gini dataframe, after initial setup and sorting by probabilities:
+The gini dataframe, after initial setup and sorting by probabilities:
 
 ![gini dataframe]({{site.url}}/assets/decision_trees_4.png)
 
@@ -240,10 +240,120 @@ Impurity calculated in the loop, for each combination of possible values in the 
 
 ![gini dataframe]({{site.url}}/assets/decision_trees_5.png)
 
+### Gini Impurity for Continuous Independent Variables
+
+We are starting as follows:
+
+```python
+
+
+#######################################################
+### Gini Impurity for a continuous independent variable
+#######################################################
+
+continuous_var = 'age'
+dependent_var = 'churn'
+
+df_continuous = df[[continuous_var]]
+
+gini = pd.DataFrame(df_continuous[continuous_var])
+gini[dependent_var] = y
+gini.sort_values([continuous_var], ascending=True, inplace=True)
+
+```
+
+![Sorted by continuous independent variable]({{site.url}}/assets/decision_trees_6.png)
+
+In our case, the `age` looks more like a categorical variable with many classes, but we will treat it as a continuous variable. This is why, in the next step we uniquify it.
+
+```python
+# we are using np.unique to deduplicate identical values
+# for a purely continuous variable, it might be some sort of bucketing to
+# reduce the amount of gini calculations we perform
+sorted_rows = list(np.unique(gini[continuous_var].values))
+```
+
+Now, let's compute the impurity for each value. The impurity will be saved in the `df_splits` dataframe.
+
+```python
+def impurity(subset):
+    # for this subset, we want to see how many 'yes'es and 'no's we have
+    counts_depedent_var = subset.groupby(dependent_var).count()
+    # to type less
+    cnts = counts_depedent_var
+    # probs
+    cnts = cnts / cnts.sum()
+    # sqr
+    cnts = cnts * cnts
+    # return a float instead of a dataframe
+    return (1 - cnts.sum()).values[0]
     
+df_splits = {
+    
+        'Split': [],
+        'Gini left': [],
+        'Gini right': [],
+        'Total impurity': []
+    
+    }
+    
+for split_value in sorted_rows[:-1]:
+    
+    # since we've already sorted, in real production code
+    # we would have just incremented the counts in a linear fashion
+    # here we rely on the dataframe functionality and trade performance for less typing
 
+    subset_left = gini[gini[continuous_var] <= split_value]
+    subset_right = gini[gini[continuous_var] > split_value]
 
+    gini_left = impurity(subset_left)
+    gini_right = impurity(subset_right)
 
+    len_left = len(subset_left)
+    len_right = len(subset_right)
+    len_total = len_left + len_right
+    
+    total_impurity = (gini_left * len_left + gini_right * len_right) / len_total
+                    
+    print(f"Total impurity for split value of {split_value} = {total_impurity}")
+    
+    df_splits['Split'].append(split_value)
+    df_splits['Gini left'].append(gini_left)
+    df_splits['Gini right'].append(gini_right)
+    df_splits['Total impurity'].append(total_impurity)
+    
+df_splits = pd.DataFrame(df_splits)
+```
 
+Let's investigate a little bit the results now. We'll look at two things:
 
+```python
+# counts of age and churn
+counts = pd.crosstab(gini['age'], gini['churn'])
+```
+
+![counts of age and churn]({{site.url}}/assets/decision_trees_7.png)
+
+and
+
+```python
+df_splits[['Gini left', 'Gini right', 'Total impurity']].plot(figsize=(15, 15))
+```
+
+![counts of age and churn]({{site.url}}/assets/decision_trees_8.png)
+
+We observe the following:
+
+ - The total impurity (weighted sum between the left node impurity and the right node impurity) has a minimum. That is our best splitting point.
+
+ ```python
+df_splits[df_splits['Total impurity'] == df_splits['Total impurity'].min()]
+Out[147]: 
+    Split  Gini left  Gini right  Total impurity
+18     36   0.484056    0.302626        0.373747
+```
+
+By assessing the first bar chart, we intuitively see that after 36 the churn seems to decrease.
+
+- The impurity for both the left and the right node tend to decrease, but for the left node impurity decreases slower. This happens because the data set is not balanced and not very well separated, with less 'Yes'es than 'No's. 
 
