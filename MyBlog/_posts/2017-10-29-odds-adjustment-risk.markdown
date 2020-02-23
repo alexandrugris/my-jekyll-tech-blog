@@ -192,8 +192,8 @@ def place_bet_random(max_bet):
             yield [0, 0, money]
 
 
-def place_bet_max_stake(max_bet):
-    """Places a bet on the highest stake"""
+def place_bet_max_return(max_bet):
+    """Places a bet on the highest odds"""
 
     for i in range(0, number_of_bets):
         bet = [0, 0, 0]
@@ -203,9 +203,9 @@ def place_bet_max_stake(max_bet):
 
 
 def place_bet_diverse(max_bet  = lambda: 100.0):
-    """ A combination of the strategies above, with a probability of 1/20 to place bet on the max stake"""
+    """ A combination of the strategies above, with a probability of 1/20 to place bet on the max odds"""
 
-    pbms = place_bet_max_stake(max_bet)
+    pbms = place_bet_max_return(max_bet)
     pbr = place_bet_random(max_bet)
 
     for i in range(0, number_of_bets):
@@ -259,8 +259,8 @@ def accept_bet_risk(bet, probabilities):
     The risk computation is simple:
         - We have X buckets for X mutually exclusive outcomes - (for 1x2, 3 buckets: home-draw-away)
         - We add the payments to be made in case of winning the bet to the right bucket. payment = odds x stake
-        - We compute the exposure by substracting from the maximum bucket the sum of all the placed bets so far.
-        - If the exposure is higher than the maximum market exposure, we don't acccept the bet"""
+        - We compute the exposure by subtracting from the maximum bucket the sum of all the placed bets so far.
+        - If the exposure is higher than the maximum market exposure, we don't accept the bet"""
 
     global payments_per_outcome
     global alpha_beta
