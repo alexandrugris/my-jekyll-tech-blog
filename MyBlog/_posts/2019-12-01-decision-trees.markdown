@@ -412,5 +412,17 @@ After all the steps above are performed for each feature in the feature set, sel
 
 As we can see, for decision trees we don't do any dummy variable encoding on the categorical dependent variables. We treat them as they are. 
 
+### Gini Impurity vs Entropy for Classification Trees
+
 In our classification tree examples, we used the Gini impurity for deciding the split within a feature and entropy for feature selection. Most of the time it does not make a big difference which one is used and they can be used interchangeably and they lead to [similar trees](https://www.quora.com/In-a-decision-tree-how-do-we-select-which-attribute-to-split-the-data-by-at-each-level). Gini impurity is slightly faster to compute, so it is a good default, especially for in-feature split-point selection where there are more calculations. However, when they differ, Gini impurity tends to isolate the most frequent class in its own branch of the tree, while entropy tends to produce slightly more balanced trees. [SKLearn](https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html#sklearn.tree.DecisionTreeClassifier) allows both.
+
+From [Stackexchange](https://datascience.stackexchange.com/questions/10228/when-should-i-use-gini-impurity-as-opposed-to-information-gain)
+
+>As per parsimony principal Gini outperform entropy as of computation ease (log is obvious has more computations involved rather that plain multiplication at processor/Machine level).
+>
+> But entropy definitely has an edge in some data cases involving high imbalance.
+>
+>Since entropy uses log of probabilities and multiplying with probabilities of event, what is happening at background is value of lower probabilities are getting scaled up.
+>
+>If your data probability distribution is exponential or Laplace (like in case of deep learning where we need probability distribution at sharp point) entropy outperform Gini.
 

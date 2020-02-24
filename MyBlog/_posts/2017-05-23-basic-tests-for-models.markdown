@@ -154,5 +154,5 @@ Some ways to deal with imbalanced data are described below:
 - Up/down weight - add weights to the classification data, so that the probability for each class becomes roughly the same
 - Data generation - similar to bootstrapping, but each generated record is slightly different from its source. SMOTE is an algorithm that generates a new record for the record being up-sampled by using the K-nearest neighbors and assigning a randomly selected weight for each feature. 
 
-A classification problem could be turned to a regression problem if an expected value is assigned to each classification record. For instance, instead of trying to predict a credit default, we might want to predict the expected return of a given loan.
+A classification problem could be turned to a regression problem if an numeric expected value is assigned to each classification record. For instance, instead of trying to predict a credit default, we might want to predict the expected return of a given loan.
 
