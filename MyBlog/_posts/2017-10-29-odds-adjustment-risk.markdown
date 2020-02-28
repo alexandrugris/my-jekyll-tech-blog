@@ -127,7 +127,11 @@ The algorithm we are going to follow is described as follows:
 
 1. First we seed our cluster with the goals the players have performed in the past matches. We are going to consider a random rate for each player, as described by the following formula: `player_rates = np.random.poisson(1, size=no_of_players) * 0.24`
 
-2. We are going to compu
+2. We generate a sample of our subject's performance, in our example with a `lambda=0.2`.
+
+3. We compute the probability of his performance vector given the performance of the cluster.
+
+4. We use that probability to average between the cluster `lambda` (poisson average) and his `lambda`. The result is stored in the `learned_lambda` parameter. 
 
 ```python
 import numpy as np
@@ -135,17 +139,24 @@ import matplotlib.pyplot as plt
 from scipy import stats
 import scipy.special as misc
 
+# parametes of the cluster:
 no_of_matches = 20
 no_of_players = 11
+
+# parameters for our player
 no_of_matches_player_in_question = 10
+player_in_question_lambda = 0.2
 
-
+# generate the vector of player performances in the cluster
 player_rates = np.random.poisson(1, size=no_of_players) * 0.24
 players = np.array([np.random.poisson(rate, size=no_of_matches) for rate in player_rates])
 
-player_in_question = np.array(np.random.poisson(0.2, size=no_of_matches_player_in_question))
+# generate the performance of our player
+player_in_question = np.array(np.random.poisson(player_in_question_lambda, size=no_of_matches_player_in_question))
 
-
+# compute the probability of our performance, stored in the `array` variable
+# versus the cluster
+# we consider the cluster as poisson distributed, with lambda=cluster.mean()
 def prob(array):
     
     p = 1
@@ -153,14 +164,20 @@ def prob(array):
     
     array = np.array(array).flatten()
     
-    
-    for i in range(10): # max score
+    # for scores from 0 (no goal) to 10 goals (max score)
+    # compute the probability of observing that specific count
+    # the formula is very simple
+    # p_of_counts = K * (p(observing 0 goals)^number_of_zero_goals) * (p(observing 1 goals)^number_of_one goals)  * ...
+    # with K number of ways in which that specific count can be obtained:
+    # K = N! / (no_of_0! * no_of_1! * ... no_of_10!)
+    for i in range(10): 
         cnt = np.sum(array == i)
         p *= (stats.poisson.pmf(i, players.mean()) ** cnt)
         counts.append(cnt)
         
+    # just simple hack to make sure permutations don't overflow
+    # since 0's are the most predominant, we make that simplification first
     counts = sorted(counts, reverse=True)
-    
     n_fact = np.prod(np.arange(counts[0] + 1, len(array) + 1, 1))
     
     counts.pop(0)
@@ -170,7 +187,8 @@ def prob(array):
     
     return p * n_fact
 
-
+# find through random sampling what is the probability for the most probable arrangement
+# of goals to be observed given our number of matches in question
 def difference(array):
     cnt = max(len(players.flatten()) / len(array), 100)
     return np.max(np.array([
@@ -181,8 +199,14 @@ def difference(array):
 p = min(prob(player_in_question) / difference(player_in_question), 1)
 
 learned_lambda = p * players.mean() + (1-p) * player_in_question.mean()
-
 ```
+
+The simulated players cluster array:
+![Simulated player array]({{site.url}}/assets/bayes_5.png)
+
+The results of the our player in this context:
+![Results]({{site.url}}/assets/bayes_6.png)
+
 
 ### Sports Betting Vocabulary
 
