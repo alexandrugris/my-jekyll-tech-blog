@@ -129,9 +129,11 @@ The algorithm we are going to follow is described as follows:
 
 2. We generate a sample of our subject's performance, in our example with a `lambda=0.2`.
 
-3. We compute the probability of his performance vector given the performance of the cluster.
+3. Compute the lambda (rate) of goals for the cluster. We use MLE to find the lambda for the poisson distribution. Obviously, it is virtually identical to the mean of the set.
 
-4. We use that probability to average between the cluster `lambda` (poisson average) and his `lambda`. The result is stored in the `learned_lambda` parameter. 
+4. We compute the probability of his performance vector given the performance of the cluster.
+
+5. We use that probability to average between the cluster `lambda` (poisson average) and his `lambda`. The result is stored in the `learned_lambda` parameter. 
 
 ```python
 import numpy as np
@@ -154,6 +156,13 @@ players = np.array([np.random.poisson(rate, size=no_of_matches) for rate in play
 # generate the performance of our player
 player_in_question = np.array(np.random.poisson(player_in_question_lambda, size=no_of_matches_player_in_question))
 
+# poisson fit to find the rate of goals for the cluster using MLE
+def poisson_fit(lmbda, players):
+    return -np.sum(np.log(stats.poisson.pmf(players, lmbda)))
+    
+# start from the mean of the cluster which, obviously, is virtually identical to the MLE-fit value
+players_lambda = optimize.minimize(poisson_fit, players.mean(), args =(players)).x[0]
+
 # compute the probability of our performance, stored in the `array` variable
 # versus the cluster
 # we consider the cluster as poisson distributed, with lambda=cluster.mean()
@@ -172,7 +181,7 @@ def prob(array):
     # K = N! / (no_of_0! * no_of_1! * ... no_of_10!)
     for i in range(10): 
         cnt = np.sum(array == i)
-        p *= (stats.poisson.pmf(i, players.mean()) ** cnt)
+        p *= (stats.poisson.pmf(i, players_lambda) ** cnt)
         counts.append(cnt)
         
     # just simple hack to make sure permutations don't overflow
@@ -198,7 +207,10 @@ def difference(array):
 # compare the probability of getting the set of goals to the maximum probability a set of goals can have
 p = min(prob(player_in_question) / difference(player_in_question), 1)
 
-learned_lambda = p * players.mean() + (1-p) * player_in_question.mean()
+# same poisson MLE estimation for the rate (lambda) starting from the mean
+player_in_question_lambda = optimize.minimize(poisson_fit, player_in_question.mean(), args =(player_in_question)).x[0]
+
+learned_lambda = p * players.mean() + (1-p) * player_in_question_lambda
 ```
 
 The simulated players cluster array:
