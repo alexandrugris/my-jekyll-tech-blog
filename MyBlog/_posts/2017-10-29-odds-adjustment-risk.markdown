@@ -112,7 +112,7 @@ If alpha is much larger than beta, most of the weight is near 1.
 So let’s say we assume a coin toss experiment, with a probability of `p` for heads to appear. If we don’t want to take a stand on whether the coin is fair, we choose alpha and beta to both equal 1. Or maybe we have a strong belief that it lands heads 55% of the time, and we choose alpha equals 55, beta equals 45. The higher the numbers for alpha and beta are, the tighter the distribution is and a stronger belief we express. 
 When we flip our coin a several times and see `h` heads and `t` tails, Bayes’s theorem and additional mathemathics tell us that the posterior distribution for `p` is again a Beta distribution, with adjusted parameters `alpha + h` and `beta + t`. We will use this result when we will compute the odds adjustments later in this post, based on the possible returns of a series of bets.
 
-### A Counting Problem
+### A Counting Problem First
 
 Before getting to odds adjustments, we will solve another problem, but this time through counting. Let's assume we have a cluster of `N` players for which we have the results from the last `M` matches. Another player is classified as similar to these `N` players, but we only have his results for the last `P` matches, with `P < M*N`. What is the expected probability to score for this player? 
 
@@ -207,6 +207,21 @@ The simulated players cluster array:
 The results of the our player in this context:
 ![Results]({{site.url}}/assets/bayes_6.png)
 
+The example above is run with the following parameters:
+- The player in question is simulated with a poisson mean of `lambda=0.5` average goals per match. The simulated results contain plenty of zeros, but also some ones and twos: `array([1, 2, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0])`.
+- The average for the players in the cluster is `0.2318`.
+- After 12 matches, the probability to observe results similar to the cluster is `p=0.032489`.
+- Therefore, we conclude that the most probable lambda for our player, just by observing the result and without prior knowledge of his true lambda, is `0.49128`.
+
+Running the same simulation on a lower number of matches would give different results. Here are, for instance, the results for only 5 matches for the player in question (p is the probability the result belongs in the cluster):
+
+```
+p
+Out[66]: 0.8454545454545455
+
+player_in_question
+Out[67]: array([1, 0, 0, 0, 1])
+```
 
 ### Sports Betting Vocabulary
 
