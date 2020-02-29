@@ -110,30 +110,30 @@ The larger alpha and beta are, the narrower the distribution is. For example, if
 If alpha is much larger than beta, most of the weight is near 1.
 
 So let’s say we assume a coin toss experiment, with a probability of `p` for heads to appear. If we don’t want to take a stand on whether the coin is fair, we choose alpha and beta to both equal 1. Or maybe we have a strong belief that it lands heads 55% of the time, and we choose alpha equals 55, beta equals 45. The higher the numbers for alpha and beta are, the tighter the distribution is and a stronger belief we express. 
-When we flip our coin a several times and see `h` heads and `t` tails, Bayes’s theorem and additional mathemathics tell us that the posterior distribution for `p` is again a Beta distribution, with adjusted parameters `alpha + h` and `beta + t`. We will use this result when we will compute the odds adjustments later in this post, based on the possible returns of a series of bets.
+When we flip our coin a several times and see `h` heads and `t` tails, Bayes’s theorem and additional mathematics tell us that the posterior distribution for `p` is again a Beta distribution, with adjusted parameters `alpha + h` and `beta + t`. We will use this result when we will compute the odds adjustments later in this post, based on the possible returns of a series of bets.
 
 ### A Counting Problem First
 
 Before getting to odds adjustments, we will solve another problem, but this time through counting. Let's assume we have a cluster of `N` players for which we have the results from the last `M` matches. Another player is classified as similar to these `N` players, but we only have his results for the last `P` matches, with `P < M*N`. What is the expected probability to score for this player? 
 
-The problem is interesting because (a) player to score is rare event and (b) the number of relevant matches to the present a player plays in is rather limited, as his performance changes across seasons, teams etc. Therefore, a way to cluster and then use the cluster information enrich the data is highly recommended. 
+The problem is interesting because (a) player-to-score is rare event and (b) the number of recent relevant matches a player plays in is rather limited, as his performance changes across seasons, teams etc. Therefore, a way to cluster and then use the cluster information enrich the data is highly recommended. 
 
 Let's solve this problem. Some assumptions first:
 
 - The goals a player scores are rare events
 - The goals a player scores are distributed according to a Poisson distribution, with a `lambda` (rate parameter) relatively low. 
 
-The algorithm we are going to follow is described as follows:
+The algorithm we are going to follow is:
 
 1. First we seed our cluster with the goals the players have performed in the past matches. We are going to consider a random rate for each player, as described by the following formula: `player_rates = np.random.poisson(1, size=no_of_players) * 0.24`
 
-2. We generate a sample of our subject's performance, in our example with a `lambda=0.2`.
+2. We generate a sample of our subject's performance, in our example with a `player_in_question_lambda=0.5`.
 
-3. Compute the lambda (rate) of goals for the cluster. We use MLE to find the lambda for the poisson distribution. Obviously, it is virtually identical to the mean of the set.
+3. We compute lambda, the rate of goals for the cluster. We use MLE to find the lambda for the poisson distribution. Obviously, the result is virtually identical to the mean of the set, so this step could be skipped.
 
-4. We compute the probability of his performance vector given the performance of the cluster.
+4. We compute the probability of his performance, given the performance of the cluster.
 
-5. We use that probability to average between the cluster `lambda` (poisson average) and his `lambda`. The result is stored in the `learned_lambda` parameter. 
+5. We use that probability to interpolate between the cluster `lambda` (poisson average) and his `lambda`. The result is stored in the `learned_lambda` parameter. 
 
 ```python
 import numpy as np
@@ -147,7 +147,7 @@ no_of_players = 11
 
 # parameters for our player
 no_of_matches_player_in_question = 10
-player_in_question_lambda = 0.2
+player_in_question_lambda = 0.5
 
 # generate the vector of player performances in the cluster
 player_rates = np.random.poisson(1, size=no_of_players) * 0.24
