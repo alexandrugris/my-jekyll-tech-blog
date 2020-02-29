@@ -168,7 +168,7 @@ Out[197]: 1.1526039105430579
 
 ### Other Methods for Computing the Expected Goals
 
-In [Odds And Models]({{site.url}}/statistics/2019/07/26/odds-and-models.html), we used a factor-based system for determining the expected goals. We are going to use team rank based model for this. We will start with a basic model, `lambda = b0 + b1 * home_team_rank + b2 * away_team_rank`. For this iteration we will not consider separate variables for attack and defense strengths. Out of laziness, I will only do the in-sample analysis which has the potential to skew the results quite heavily.
+In [Odds And Models]({{site.url}}/statistics/2019/07/26/odds-and-models.html), we used a factor-based system for determining the expected goals. In this post we will take a different approach and create a team rank based model for the same thing. We will start with a basic model, `lambda = b0 + b1 * home_team_rank + b2 * away_team_rank`. Out of laziness, I will only do the in-sample analysis which has the potential to skew the results quite heavily.
 
 For ranking, we are going to use the power function and define the probability of one team winning as
 `p(x>y) = x / (x+y) = rank(t1) / (rank(t1) + rank(t2))`, where the ranks for each team are the variables we want to compute using MLE.
