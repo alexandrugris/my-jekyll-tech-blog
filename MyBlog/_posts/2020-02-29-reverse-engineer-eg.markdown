@@ -265,9 +265,7 @@ RegressionData = X[['HomeRank', 'AwayRank']]
 RegressionData['Intercept'] = 1
 ```
 
-For the next step we will do again a Poisson regression to get the expected goals lambda, but this time we will use the `statsmodel.api` package since we have already demonstrated above how Poisson regression works if we are to do it manually.
-
-We will predict for both home and away.
+For the next step we will do again a Poisson regression to get the expected goals lambda, but this time we will use the `statsmodel.api` package since we have already demonstrated above how Poisson regression works if we are to do it manually. We will predict for both home and away.
 
 ```
 import statsmodels.api as sm
