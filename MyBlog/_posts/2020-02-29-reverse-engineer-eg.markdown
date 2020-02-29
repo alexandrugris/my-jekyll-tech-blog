@@ -84,7 +84,7 @@ data['xGH_optim'] = xg['xGH']
 data['xGA_optim'] = xg['xGA']
 ```
 
-### Reverse Engineering Expected Goals Using Poisson Regression
+### Reverse Engineering Expected Goals From Bookmakers Odds Using The Poisson Regression
 
 The next step is to do exactly the same thing, but this time using Poisson regression. Poisson regression is very useful for things like counts. It aims to compute a set of regression coefficients such that `lambda = sum(regression_coef_i * predictor_variable_i)`. Poisson regression is solved through the Maximum Likelihood Estimate method, as shown below:
 
@@ -166,7 +166,7 @@ rmse_regress
 Out[197]: 1.1526039105430579
 ```
 
-### Other Methods for Computing the Expected Goals
+### Computing the Expected Goals Using Team Ranking
 
 In [Odds And Models]({{site.url}}/statistics/2019/07/26/odds-and-models.html), we used a factor-based system for determining the expected goals. In this post we will take a different approach and create a team rank based model for the same thing. We will start with a basic model, `lambda = b0 + b1 * home_team_rank + b2 * away_team_rank`. Out of laziness, I will only do the in-sample analysis which has the potential to skew the results quite heavily.
 
