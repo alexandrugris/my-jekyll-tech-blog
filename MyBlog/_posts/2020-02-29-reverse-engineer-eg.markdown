@@ -165,3 +165,139 @@ Out[196]: 1.162618442066351
 rmse_regress
 Out[197]: 1.1526039105430579
 ```
+
+### Other Methods for Computing the Expected Goals
+
+In [Odds And Models]({{site.url}}/statistics/2019/07/26/odds-and-models.html), we used a factor-based system for determining the expected goals. We are going to use team rank based model for this. We will start with a basic model, `lambda = b0 + b1 * home_team_rank + b2 * away_team_rank`. For this iteration we will not consider separate variables for attack and defense strengths. Out of laziness, I will only do the in-sample analysis which has the potential to skew the results quite heavily.
+
+For ranking, we are going to use the power function and define the probability of one team winning as
+`p(x>y) = x / (x+y) = rank(t1) / (rank(t1) + rank(t2))`, where the ranks for each team are the variables we want to compute using MLE.
+
+For defining the winning team, I tried two definitions of win:
+- `HomeWins = (X['FTHG'] > X['FTAG']).to_numpy().flatten()` - simply assign `1` to the variable if the home team wins or draws, to count for the home field advantage.
+- `HomeWins = np.clip(zscore((X['FTHG'] - X['FTAG']).to_numpy()), -0.5, 0.5) + 0.5` - spread a little bit the unclear wins while taking into account the home team advantage (zscore will normalize for home team advantage).
+
+I was surprised to observe that the second function produces more extreme results for the ranking, so we will keep the first definition of a win.
+
+```python
+# starting with fresh data
+data = pd.read_csv("season-1819_csv.csv") 
+
+# only keep in our dataframe the interesting variables
+X = data[['HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']]
+
+# power_function
+# p(x>y) = x / (x+y) = rank(t1) / (rank(t1) + rank(t2))
+
+# make sure we don't miss any team names
+teams = X['HomeTeam'].combine_first(X['AwayTeam']).unique()
+teams = pd.DataFrame(index=teams)
+
+# initialize the team ranks
+teams['Rank'] = 0.5
+
+# give an advantage to the away
+HomeWins = (X['FTHG'] > X['FTAG']).to_numpy().flatten()
+#HomeWins = np.clip(zscore((X['FTHG'] - X['FTAG']).to_numpy()), -0.5, 0.5) + 0.5
+                  
+def mle_prob(ranks):
+    
+    teams['Rank'] = ranks
+                    
+    h = teams.loc[X['HomeTeam']].to_numpy().flatten()
+    a = teams.loc[X['AwayTeam']].to_numpy().flatten()
+    
+    denom = h + a + 1e-5
+    
+    ph = h / denom
+    pa = a / denom
+    
+    r = -np.sum(np.log(ph * HomeWins + pa * (1-HomeWins)))
+    return r
+    
+# bounds between 0 and 1
+teams['Rank'] = minimize(mle_prob, list(teams['Rank']), bounds=Bounds([1e-5] * len(teams), [1] * len(teams))).x
+
+teams.sort_values('Rank', ascending=False)
+teams['LogRank'] = np.log(teams['Rank'])
+
+```
+
+The results for our ranks are as follows:
+
+```
+teams.sort_values('Rank', ascending=False)
+Out[183]: 
+                    Rank   LogRank
+Liverpool       1.000000  0.000000
+Man City        0.743936 -0.295801
+Arsenal         0.143627 -1.940538
+Chelsea         0.125926 -2.072060
+Tottenham       0.110863 -2.199463
+Man United      0.097941 -2.323390
+Wolves          0.086728 -2.444978
+Everton         0.076957 -2.564509
+Newcastle       0.076957 -2.564509
+Leicester       0.068357 -2.683007
+Watford         0.068357 -2.683007
+West Ham        0.060753 -2.800934
+Burnley         0.047952 -3.037547
+Crystal Palace  0.047952 -3.037547
+Bournemouth     0.037663 -3.279067
+Southampton     0.033260 -3.403410
+Brighton        0.033260 -3.403410
+Cardiff         0.029270 -3.531198
+Fulham          0.019328 -3.946205
+Huddersfield    0.014049 -4.265229
+```
+
+Since the obtained the rank values fall very quickly very fast, we logged them to get smoother results.
+
+![Team Ranks]({{site.url}}/assets/xg_2.png)
+
+```python
+# put data
+X['HomeRank'] = (teams.loc[X['HomeTeam']]['LogRank']).to_numpy()
+X['AwayRank'] = (teams.loc[X['AwayTeam']]['LogRank']).to_numpy()
+
+RegressionData = pd.DataFrame(index=X.index)
+
+RegressionData = X[['HomeRank', 'AwayRank']]
+RegressionData['Intercept'] = 1
+```
+
+For the next step we will do again a Poisson regression to get the expected goals lambda, but this time we will use the `statsmodel.api` package since we have already demonstrated above how Poisson regression works if we are to do it manually.
+
+We will predict for both home and away.
+
+```
+import statsmodels.api as sm
+
+poisson_model_h = sm.GLM(X['FTHG'], RegressionData, family=sm.families.Poisson())
+poisson_results_h = poisson_model_h.fit()
+
+X['RankBasedRegression_H'] = poisson_results_h.predict(RegressionData)
+
+poisson_model_a = sm.GLM(X['FTAG'], RegressionData, family=sm.families.Poisson())
+poisson_results_a = poisson_model_a.fit()
+
+X['RankBasedRegression_A'] = poisson_results_a.predict(RegressionData)
+
+rmse_regress_h = np.sqrt(mean_squared_error(X['FTHG'], X['RankBasedRegression_H']))
+rmse_regress_a = np.sqrt(mean_squared_error(X['FTAG'], X['RankBasedRegression_A']))
+```
+
+We can now observe the regression coefficients, the p-value for each coefficient showing that all features are relevant, as well as the RMSE for home and away expected goals vs real goals. The RMSE is better than the previous two models, but I expect this is due to the dataset as well as the in-sample regression test: 
+
+![RMSE and Regression Summary]({{site.url}}/assets/xg_4.png)
+
+And below the full view of the regression parameters and expected goals:
+
+![Expected Goals]({{site.url}}/assets/xg_5.png)
+
+Putting all 3 methods side by side, we can see that even this simple rank-based model, oblivious of bookmakers odds, has very good potential and probably can be improved further on.
+
+![Expected goals all side by side]({{site.url}}/assets/xg_6.png)
+
+
+
