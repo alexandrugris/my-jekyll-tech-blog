@@ -170,14 +170,13 @@ Out[197]: 1.1526039105430579
 
 In [Odds And Models]({{site.url}}/statistics/2019/07/26/odds-and-models.html), we used a factor-based system for determining the expected goals. In this post we will take a different approach and create a team rank based model for the same thing. We will start with a basic model, `lambda = b0 + b1 * home_team_rank + b2 * away_team_rank`. Out of laziness, I will only do the in-sample analysis which has the potential to skew the results quite heavily.
 
-For ranking, we are going to use the power function and define the probability of one team winning as
-`p(x>y) = x / (x+y) = rank(t1) / (rank(t1) + rank(t2))`, where the ranks for each team are the variables we want to compute using MLE.
+For ranking the teams, we are going to use the power function and define the probability of one team winning as `p(x>y) = x / (x+y) = rank(t1) / (rank(t1) + rank(t2))`, where the ranks for each team are the variables we want to compute using MLE.
 
-For defining the winning team, I tried two definitions of win:
-- `HomeWins = (X['FTHG'] > X['FTAG']).to_numpy().flatten()` - simply assign `1` to the variable if the home team wins or draws, to count for the home field advantage.
-- `HomeWins = np.clip(zscore((X['FTHG'] - X['FTAG']).to_numpy()), -0.5, 0.5) + 0.5` - spread a little bit the unclear wins while taking into account the home team advantage (zscore will normalize for home team advantage).
+For encoding the result of the winning team I tried two different definitions:
+- `HomeWins = (X['FTHG'] > X['FTAG']).to_numpy().flatten()` - simply assigns `1` to the variable if the home team wins or draws, to count for the home field advantage.
+- `HomeWins = np.clip(zscore((X['FTHG'] - X['FTAG']).to_numpy()), -0.5, 0.5) + 0.5` - spreads a little bit the unclear wins while taking into account the home team advantage (zscore will normalize for home team advantage).
 
-I was surprised to observe that the second function produces more extreme results for the ranking, so we will keep the first definition of a win.
+I was surprised to observe that the second function produces more extreme results for the ranking, so we will keep the first definition of a win for this exercise.
 
 ```python
 # starting with fresh data
