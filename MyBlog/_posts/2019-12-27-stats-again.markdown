@@ -440,3 +440,21 @@ print(f"Selected lambda CV = {model_cv.alpha_}")
 ```
 
 In a future post I will write more about feature selection for Machine Learning.
+
+### Log-regression Model
+
+Log regression models fall into 4 categories:
+
+- linear: `Y = b0 + b * X + error` - requires no transformation
+- linear-log: `Y = b0 + b * log(X) + error` - the explanatory variables are transformed by logs
+- log-linear: `log(Y) = b0 + b * X + error` - the dependent variable is transformed by log
+- log-log: `log(Y) = b0 + b * log(X) + error` - both dependent and independent variables are transformed
+
+In case the `Y` variable is transformed through a logarithm, determining the values for untransformed `Y` is not that straight forward and it requires further analysis of the residuals:
+
+```
+Given ln(Y_estimated) = b0 + b * X,
+Y_estimated = e ^ (b0 + b * X + 0.5 * sigma_sq)
+where sigma_sq is the variance of the log-regression residuals.
+```
+

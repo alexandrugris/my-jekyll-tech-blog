@@ -1,10 +1,10 @@
 ---
 layout: post
 title:  "Reverse Engineering Expected Goals"
-date:   2020-02-29 13:15:16 +0200
+date:   2020-02-29 09:15:16 +0200
 categories: statistics
 ---
-In this post we are going to look again a the 2018-2019 Premier League season and try to reverse engineer bookmakers odds to get the expected goals for each team. Then we are going to try to improve on these models and reduce our reliance on bookmakers odds.
+In this post we are going to look again a the 2018-2019 Premier League season and try to reverse engineer bookmakers odds to get the expected goals for each team. Then, we are going to try to improve on these models and reduce our reliance on bookmakers odds.
 
 We are going to use publicly available data, downloaded from [here](https://datahub.io/sports-data/english-premier-league#readme). In case the link disappears, here is a [local copy]({{site.url}}/assets/season-1819_csv.csv) of the csv file used for this analysis. The explanation for the columns can be found [here]({{site.url}}/assets/data_explanation.txt)
 
@@ -132,30 +132,9 @@ The results for the two methods are highlighted in the dataframe below:
 
 ![Expected Goals Reverse Engineered]({{site.url}}/assets/xg_1.png)
 
-Now let's look at the RMSE for the two methods:
+Now let's look at the RMSE for the two methods. For in-sample RMSE we obtain lower RMSE for the Poisson regression. However, the difference is very small:
 
 ```python
-
-# in sample RMSE
-rmse_optim = np.sqrt(np.sum((data['FTHG'] - data['xGH_optim']) ** 2 + (data['FTAG'] - data['xGA_optim']) ** 2) / len(data))
-rmse_regress = np.sqrt(np.sum((data['FTHG'] - data['xGH_regress']) ** 2 + (data['FTAG'] - data['xGA_regress']) ** 2) / len(data))
-
-# out of sample RMSE
-X['xGH_optim'] = data['xGH_optim']
-X['FTHG'] = data['FTHG']
-X_train_h, X_test_h, y_train_h, y_test_h = train_test_split(X, y_h)
-
-betas_h = poisson_regress(X_train_h[['BbAvH', 'BbAvD', 'BbAvA', 'BbAv>2.5', 'BbAv<2.5']], y_train_h)
-result = np.dot(X_test_h[['BbAvH', 'BbAvD', 'BbAvA', 'BbAv>2.5', 'BbAv<2.5']], betas_h)
-
-from sklearn.metrics import mean_squared_error
-rmse_optim = np.sqrt(mean_squared_error(X_test_h['FTHG'], X_test_h['xGH_optim']))
-rmse_regress = np.sqrt(mean_squared_error(X_test_h['FTHG'], result))
-```
-
-Let's look at the results now. For in-sample RMSE, we always have, based on this dataset, at least, lower RMSE for the Poisson regression. However, the difference is very small:
-
-```
 rmse_optim = np.sqrt(np.sum((data['FTHG'] - data['xGH_optim']) ** 2 + (data['FTAG'] - data['xGA_optim']) ** 2) / len(data))
 rmse_regress = np.sqrt(np.sum((data['FTHG'] - data['xGH_regress']) ** 2 + (data['FTAG'] - data['xGA_regress']) ** 2) / len(data))
 
@@ -165,9 +144,9 @@ rmse_regress
 Out[191]: 1.5836188549138615
 ```
 
-For out-of-sample RMSE, on the test dataset we usually have lower RMSE for Poisson regression, but this is not always the case. Again, the difference is small and we can consider the two methods roughly equivalent.
+For out-of-sample RMSE, we usually have lower RMSE for Poisson regression, but this is not always the case. Again, the difference is small and we can consider the two methods roughly equivalent.
 
-```
+```python
 X['xGH_optim'] = data['xGH_optim']
 X['FTHG'] = data['FTHG']
 X_train_h, X_test_h, y_train_h, y_test_h = train_test_split(X, y_h)
