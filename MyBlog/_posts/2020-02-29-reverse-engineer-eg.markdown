@@ -292,7 +292,7 @@ And below the full view of the regression parameters and expected goals:
 
 ![Expected Goals]({{site.url}}/assets/xg_5.png)
 
-Putting all 3 methods side by side, we can see that even this simple rank-based model, oblivious of bookmakers odds, has very good potential and probably can be improved further on.
+Putting all 3 methods side by side, we can see that even this simple rank-based model, oblivious of bookmakers odds, has very good potential and it is worth improving further on.
 
 ![Expected goals all side by side]({{site.url}}/assets/xg_6.png)
 
