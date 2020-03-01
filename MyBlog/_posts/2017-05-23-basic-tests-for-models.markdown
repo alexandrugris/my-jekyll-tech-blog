@@ -267,5 +267,5 @@ plot_precision_recall_curve(sgd_c, X_train, y_train == '5')
 
 The not so steep Precision-Recall curve:
 
-![PR-curve]({{site.url}}/assets/classification_3.png)
+![PR-curve]({{site.url}}/assets/classification_4.png)
 
