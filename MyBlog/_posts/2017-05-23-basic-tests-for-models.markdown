@@ -4,7 +4,7 @@ title:  "Classification"
 date:   2017-05-23 13:15:16 +0200
 categories: maths
 ---
-Very short and simple post about metrics used for validating classification models.
+A post about classification and metrics used for validating classification models.
 
 ### Confusion matrix
 
@@ -28,7 +28,7 @@ For the rest of the article, let's consider a classifier that has the following 
 accuracy(10, 100, 1000, 10000)
 Out[1]: 0.900990099009901
 ```
-Very high, but obviously the test is crap, as we will see with the following three metrics. The results are completely biased by the true negatives. An example of such a crap test with high accuracy could be 'you are CEO if your name is Jack'. Obviously, there are a lot of Jacks who are not CEOs.
+Very high, but obviously the test is bad, as we will see with the following three metrics. The results are completely biased by the true negatives. An example of such a bad test with high accuracy could be 'you are CEO if your name is Jack'. Obviously, there are a lot of Jacks who are not CEOs.
 
 ### Precision
 
@@ -155,4 +155,117 @@ Some ways to deal with imbalanced data are described below:
 - Data generation - similar to bootstrapping, but each generated record is slightly different from its source. SMOTE is an algorithm that generates a new record for the record being up-sampled by using the K-nearest neighbors and assigning a randomly selected weight for each feature. 
 
 A classification problem could be turned to a regression problem if an numeric expected value is assigned to each classification record. For instance, instead of trying to predict a credit default, we might want to predict the expected return of a given loan.
+
+### An Example Of All The Above
+
+We are going to look at the MINST dataset with hand written letters and build a classifier to recognize digit 5. We are going to use all the metrics defined above to evaluate our classifier. We are going to use SKLearn for all the steps.
+
+Importing the functions we are going to use:
+
+```python
+from sklearn.datasets import fetch_openml
+import matplotlib
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, cross_val_predict
+from sklearn.metrics import plot_roc_curve, confusion_matrix, precision_score, recall_score, f1_score, plot_precision_recall_curve, precision_recall_curve, roc_curve
+```
+
+Reading and inspecting the dataset. After getting the dataset, we will just plot a digit.
+
+```python
+X, y = fetch_openml('mnist_784', version=1, return_X_y=True)
+digit = X[32000].reshape(28, 28)
+plt.imshow(digit, cmap=matplotlib.cm.binary, interpolation="nearest") 
+```
+
+Splitting the dataset in train and test. As good ML engineers, we are going to look further only at the train dataset, and leave the test dataset untouched until the last stages of the project.
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(X, y)
+
+train_index_5 = y_train == '5'
+test_index_5 = y_test == '5'
+
+# observe a digit in the train dataset
+digit = X_train[1000].reshape(28, 28)
+plt.imshow(digit, cmap=matplotlib.cm.binary, interpolation="nearest") 
+```
+
+Train a classifier and predict a positive and a negative case, just for testing purposes. Success.
+
+```python
+from sklearn.linear_model import SGDClassifier
+
+# a classifier that has the capacity to handle large datasets efficiently
+sgd_c = SGDClassifier()
+sgd_c.fit(X_train, train_index_5)
+
+# predict one true:
+sgd_c.predict([X_train[train_index_5][0]])
+
+# predict one false
+sgd_c.predict([X[10]])
+```
+
+Compute the cross validation score. The results for accuracy seem pretty good. However, this is an imbalanced class, only approx `10%` of the digits are `5`, which would give a pure `False` classifier an accuracy of approx `90%`. Therefore, the `96%` score obtained below is not great.
+
+```python
+cv_score = cross_val_score(sgd_c, X_train, y_train == '5', cv=StratifiedKFold())
+#array([0.96414286, 0.94464286, 0.96785714, 0.96135714, 0.96757143])
+```
+
+Now we are going to look at the ROC curve and the Precision Recall curve and compare the two. We will look also at the classification metrics.
+
+The ROC curve first:
+
+```python
+# to get the false positive and true positive rates together with the thresholds for each
+# and analyze them programmatically, use the following method. 
+# This will allow the programmer to pick the desired threshold for the classifier
+fpr, tpr, thresholds = roc_curve(y_train=='5', sgd_c.decision_function(X_train))
+
+# Plot the curve and compute the AUC
+plot_roc_curve(sgd_c, X_train, y_train == '5')
+plt.show()
+
+# We can also plot our decision function
+plt.plot(sorted(sgd_c.decision_function(X_train)))
+plt.show()
+```
+
+The curve looks quite steep, which gives the impression of a good classifier. 
+![ROC-curve]({{site.url}}/assets/classification_3.png)
+
+But when we do the same with the precision-recall curve, we see the results are less outstanding. That is because we have a minority class we want to classify and the PR-curve is better suited for it. But before that, let's look at the `cross_val_predict` function and then compute the classification metrics described at the beginning of this article.
+
+```python
+# splits internally the train set in k folds and outputs the result for
+# each number in the set based on the test fold. That is, when a result is predicted
+# the train method has not seen that data
+cv_p = cross_val_predict(sgd_c, X_train, y_train=='5', cv=StratifiedKFold())
+
+# the confusion matrix
+confusion_matrix(y_train=='5', cv_p)
+
+# when it claims an image is a 5, how many times it is a 5 
+precision_score(y_train=='5', cv_p)
+
+# how many 5s it detects
+recall_score(y_train=='5', cv_p)
+
+# the f1 score
+f1_score(y_train=='5', cv_p)
+```
+
+And finally the precision recall curve and, similarly to the ROC curve, the function to programmatically access the precisions and recalls for each threshold allowing for a manual selection of the classifier decision boundary.
+
+```python
+# plot precision / recall curve
+precisions, recalls, thresholds = precision_recall_curve(y_train == '5', sgd_c.decision_function(X_train))
+plot_precision_recall_curve(sgd_c, X_train, y_train == '5')
+```
+
+The not so steep Precision-Recall curve:
+
+![PR-curve]({{site.url}}/assets/classification_3.png)
 

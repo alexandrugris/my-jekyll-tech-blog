@@ -4,7 +4,9 @@ title:  "Reverse Engineering Expected Goals"
 date:   2020-02-29 09:15:16 +0200
 categories: statistics
 ---
-In this post we are going to look again a the 2018-2019 Premier League season and try to reverse engineer bookmakers odds to get the expected goals for each match. Then, we are going to try to improve on these models and reduce our reliance on bookmakers odds. In the process, I will present two ways of implementing the Poisson regression in Python - one from scratch and one based on the the `statsmodel` library. 
+In this post we are going to look again at the 2018-2019 Premier League season and try to reverse engineer bookmakers odds in order to obtain the expected goals for each match. Then, we are going to try to improve on these models and reduce our reliance on bookmakers odds. In the process, I will present two ways of implementing the Poisson regression in Python - one from scratch and one based on the the `statsmodel` library. 
+
+The expected goals is a very important number for compiling odds because, if plugged into the Poisson distribution, it gives is the possibility to compute any goal-based markets.
 
 We are going to use publicly available data, downloaded from [here](https://datahub.io/sports-data/english-premier-league#readme). In case the link disappears, here is a [local copy]({{site.url}}/assets/season-1819_csv.csv) of the csv file used for this analysis. The explanation for the columns can be found [here]({{site.url}}/assets/data_explanation.txt)
 
