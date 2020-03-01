@@ -191,6 +191,9 @@ digit = X_train[1000].reshape(28, 28)
 plt.imshow(digit, cmap=matplotlib.cm.binary, interpolation="nearest") 
 ```
 
+![A random image from the dataset]({{site.url}}/assets/classification_5.png)
+
+
 Train a classifier and predict a positive and a negative case, just for testing purposes. Success.
 
 ```python
