@@ -1,14 +1,14 @@
 ---
 layout: post
-title:  "Principal Component Analisys"
+title:  "Dimensionality Reduction"
 date:   2018-08-22 13:15:16 +0200
 categories: statistics
 ---
-This is a continuation on my previous post on linear regression. It talks about finding a set of axes (dimensions) along which to regress in such a way as to preserve the most relevant data while avoiding multicollinearity and reducing the amount of dimensions.
+This post is about dimensionality reduction. It starts with PCA, a method for finding a set of axes (dimensions) along which to perform regression such that the most relevant information in data is preserved, while multicollinearity is avoided. It then applies PCA and K-Means to a dataset of Premier League player performances, in order to obtain relevant groupings despite randomness in data.
 
-### PCA
+### PCA (Principal Component Analysis)
 
-Mathematical optimization problem to find the direction line along which the distance between projected data points is the greatest, that is it has the largest variance. We choose this direction because the largest amount of information about the value of each point is preserved in this projection. The second principal component is an axis perpendicular to the first axis and so on, for multi-dimensional coordiante spaces. This choice of axes not only preserves the most amount of information, but also avoids multicollinearity, as the principal compoments are perpendicular to each other.
+PCA is mathematical optimization problem. It aims to find the direction line along which the distance between projected data points is the greatest, that is it has the largest variance. We choose this direction because the largest amount of information about the value of each point is preserved in this projection. The second principal component is an axis perpendicular to the first axis and so on, for multi-dimensional coordinate spaces. This choice of axes not only preserves the most amount of information, but also avoids multicollinearity, as the principal components are always perpendicular to each other.
 
 The problem can be rephrased as: given a set of highly correlated factors, `[X1 ... Xn]`, find a equal number of factors, `[F1 ... Fn]`, completely uncorrelated to each other, sorted so that `Var(F1) > ... > Var(Fn)`, on which we are able to describe our regression problem as `Y = A + B1 * F1 + ... Bn * Fn`. These factors satisfy the equality `Var(F) == Var(X)`, meaning we don't lose information when we do the decomposition along these new axes. 
 
@@ -16,11 +16,11 @@ The problem can be rephrased as: given a set of highly correlated factors, `[X1 
 
 The linear algebra problem that helps us find these factors is called *eigenvalue decomposition* and can be phrased as:
 
-> Find `F1 = a1X1 + ... + anXn` such that `Var(F1)` is maximised and the coefficients `a1 .. an` satisfy the contraint `a1^2 + ... + an^2 = 1`. `F1` is the principal component 1, `v1 = [a1,...,an]` is called *eigenvector 1* and `e1 = Var(F1)` is called the *eigenvalue* of the principal component `F1`.
+Find `F1 = a1X1 + ... + anXn` such that `Var(F1)` is maximized and the coefficients `a1 .. an` satisfy the constraint `a1^2 + ... + an^2 = 1`. `F1` is the principal component 1, `v1 = [a1,...,an]` is called *eigenvector 1* and `e1 = Var(F1)` is called the *eigenvalue* of the principal component `F1`.
 
-> Principal component `F2 = b1(X1 - F1) + ... + bn(Xn - F1)` is subject to the same constraints. Like this, we have defined a recurrent problem which allows us to find all `Fn` components.
+Principal component `F2 = b1(X1 - F1) + ... + bn(Xn - F1)` is subject to the same constraints. Like this, we have defined a recurrent problem which allows us to find all `Fn` components.
 
-Results from decomposition are:
+Results from this decomposition are:
 
 - *eigenvalues:* tell us how much of the variance can be explain by this particular component
 
@@ -33,9 +33,9 @@ Now, dividing each eigenvalue `ei=Var(Fi)` to the total variance of F, `Var(F) =
 
 More information [here](https://en.wikipedia.org/wiki/Eigendecomposition_of_a_matrix)
 
-### Eigenvalue decomposition
+### Eigenvalue Decomposition
 
-The following Python code uses the power method together with deflation for computing the eigenvectors and eigenvalues for a *square* matrix `A`.
+The following Python code uses the power method together with deflation for computing the eigenvectors and eigenvalues for a square matrix `A`.
 
 ```python
 import numpy as np
@@ -45,7 +45,10 @@ def vector_norm(v):
 
 def dominant_eigenvector(A):
     
-    """ Returns the principal eigen vector and its corresponding eigen value. uses the power method technique """
+    """ 
+    Returns the principal eigenvector and its corresponding eigenvalue. 
+    Uses the power method technique.
+    """
     
     # check that A is square
     assert(A.shape[0] == A.shape[1])
@@ -90,12 +93,12 @@ def eigen_decomposition(A):
     return (lambdas, vectors)
 ```
 
-Correctness is very simple to check. Do the following:
+The correctness is very simple to check. Just do the following:
 
 1. Check that `A * lambda == lambda * v` - condition for eigenvector
-2. Check that all vectors are perpendicular to eachother: `np.dot(v1, v2) == 0` - condition for all the eigenvectors
+2. Check that all vectors are perpendicular to each other: `np.dot(v1, v2) == 0` - condition for all the eigenvectors
 
-### Principal factor determination
+### Principal Factor Determination
 
 Let's setup a test bed of linear-dependent variables. We will want to predict `Y` based on `A` - see below:
 
@@ -153,14 +156,14 @@ Covar_AA = covar_mtx(A, A)
 lmbdas, v = eigen_decomposition(Covar_AA)
 ```
 
-We can quickly check that the two `v's` are perpedicular to each other, by doing 
+We can quickly check that the two `v's` are perpendicular to each other, by doing 
 
 ```
 np.dot(v[0], v[1])
 Out[209]: -9.731923600320158e-11
 ```
 
-We call the following function which computes the principal factors (vector `F` described in the *PCA* section) based on the initial matrix `A` and the eigenvalues vector `v`.
+Now we can call the following function which computes the principal factors (vector `F` described in the *PCA* section) based on the initial matrix `A` and the eigenvalues vector `v`.
 
 ```python
 def factors(A, vectors):
@@ -190,15 +193,15 @@ Out[227]: [10333.056921412048, 199.78928639278513]
 
 This also shows that the fist factor contributes `98%` to the total variance, so we can use it alone in regression.
 
-### Final regression and check
+### Final Regression and Check
 
-We will simply plot `Fs[0]` vs `Y` and `Fs[1]` vs `Y`. Obviously, much more from the variation is explained by `Fs[0]` than `Fs[1]`:
+We will simply plot `Fs[0]` vs `Y` and `Fs[1]` vs `Y`. Obviously, much more of the variation is explained by `Fs[0]` than `Fs[1]`:
 
 ![Analysis]({{site.url}}/assets/pca_1.png)
 
-### Normalization of data
+### Normalization of Data
 
-If end up with the principal `F` factor explaining less of the variance any of the `X` initial factors, we must standardize our data. That is, from which the mean was substracted and then we divided them by their standard deviation. For our `A` matrix, the matrix of all `X` factors, the function is as follows:
+If we end up with the principal `F` factor explaining less of the variance any of the `X` initial factors, we must standardize our data. For our `A` matrix, the matrix of all `X` factors, the function is as follows:
 
 ```python
 def standardize(A):
@@ -218,32 +221,156 @@ However, there are more points to consider:
 
 2. [PCA on correlation or covariance?](https://stats.stackexchange.com/questions/53/pca-on-correlation-or-covariance)
 
->Using the correlation matrix standardises the data. In general they [corr vs covar] give different results. Especially when the scales are different.
-
-If we use the correlation matrix, we don't need to standardize the data before.
-
->Hence, my answer is to use covariance matrix when variance of the original variable is important, and use correlation when it is not.
+> Using the correlation matrix standardizes the data. In general they [corr vs covar] give different results, especially when the scales are different. If we use the correlation matrix, we don't need to standardize the data before. Hence, my answer is to use the covariance matrix when the variance of the original variable is important, and use correlation when it is not.
 
 And
 
->The argument against automatically using correlation matrices is that it is quite a brutal way of standardising your data. The problem with automatically using the covariance matrix, which is very apparent with that heptathalon data, is that the variables with the highest variance will dominate the first principal component (the variance maximising property).
+>The argument against automatically using correlation matrices is that it is quite a brutal way of standardizing your data. The problem with automatically using the covariance matrix, which is very apparent with that heptathalon data, is that the variables with the highest variance will dominate the first principal component (the variance maximizing property).
 
-*DO NOT FORGET!* standardize not only the `X` factors, but also the `Y` vector, the results. This way, after we do the multiple regression on the PCA `F` factors, we have an inverse transform to get back to the scale of `Y`, the original data.
 
-### Additional notes:
+### Additional Notes:
 
 1. Eigenvalues and eigenvectors are directly baked into numpy: [np.linalg.eig](https://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.eig.html)
 
-2. Many other numeric algorithms are aleady baked into numpy: [np.linalg](https://docs.scipy.org/doc/numpy/reference/routines.linalg.html)
+2. Many other numeric algorithms are already baked into numpy: [np.linalg](https://docs.scipy.org/doc/numpy/reference/routines.linalg.html)
 
-3. Why use covariance (or correlation at all) - because we are interested in finding the axes which describe the highest variation of data:
-
->Finding the eigenvectors and eigenvalues of the covariance matrix is the equivalent of fitting those straight, principal-component lines to the variance of the data. Why? Because eigenvectors trace the principal lines of force, and the axes of greatest variance and covariance illustrate where the data is most susceptible to change.
-
-And then
-
->Because the eigenvectors of the covariance matrix are orthogonal to each other, they can be used to reorient the data from the x and y axes to the axes represented by the principal components. You re-base the coordinate system for the dataset in a new space defined by its lines of greatest variance.
 
 [PCA](https://skymind.ai/wiki/eigenvector)
 
 So basically, just like a space transform in a 3D space, by multiplying the observed data with the coordinate system which describes best its covariance / correlation, we bring that data into the coordinate space where each axis represent, in decreasing order, its highest variation. Matrix multiplication is simply a linear (coordinate space) transformation.
+
+### Example on Premier League Season
+
+We are going to use the datasets downloaded from [here](https://footystats.org/download-stats-csv). The purpose of the example is to group players in similar clusters, so that we can use them to enrich scarce data. That is, we know that players don't score in every match and that there are relatively few matches in a season. We want to group players by similarity in order to obtain a better (enriched) model for player to score probability. These clusters could further be used to predict other measures like team-expected-goals or to predict player relevance in a certain team. Obviously, this is not a fully developed model, it is intended just to show how these two techniques can be used together. 
+
+For the actual clustering we will use KMeans. However, KMeans is not suited to dummy data, not even z-scored, and it is even worse if the counts are not balanced. 
+
+There are latent correlations within the data as well. These correlations will tend to increase the importance of certain features as well as pollute the distance metric, leading to less relevant clustering. Therefore, we will use PCA to reduce this dimensionality, as well as decrease the errors in the distance function introduced by the dummy variables.
+
+```python
+import pandas as pd
+import numpy as np
+from scipy.stats import zscore
+from sklearn.cluster import KMeans
+
+# https://footystats.org/download-stats-csv
+pd_players = pd.read_csv("./england-premier-league-players-2018-to-2019-stats.csv")
+
+# index by player
+pd_players = pd_players.set_index('full_name')
+# we know the league and the season
+pd_players = pd_players.drop( ['league', 'season', 'nationality'] ,axis=1)
+
+# these are filled with wrong values
+# not very relevant for our task
+pd_players = pd_players.drop( ['rank_in_league_top_attackers', 
+                               'rank_in_league_top_midfielders', 
+                               'rank_in_league_top_defenders', 
+                               'rank_in_club_top_scorer'], axis=1)
+
+# keep only the overall
+# the home and away should be used for clustering 
+# when pitching teams against each other
+pd_players = pd_players[['age', 
+                         'position', 
+                         'Current Club', 
+                         'minutes_played_overall', 
+                         'appearances_overall', 
+                         'goals_overall', 
+                         'assists_overall', 
+                         'penalty_goals', 
+                         'penalty_misses', 
+                         'clean_sheets_overall', 
+                         'conceded_overall', 
+                         'yellow_cards_overall', 
+                         'red_cards_overall']]
+
+
+players_with_dummies_not_zscored = pd.get_dummies(pd_players)
+players_with_dummies = players_with_dummies_not_zscored.apply(zscore)
+
+# here we add some weights for the goal scored
+w = np.array([1.0] * len(players_with_dummies.columns))
+
+# increase a little bit the weight for non-club features
+np.put(w, np.arange(0, 15), 1.1) 
+
+# since we are looking mostly at goals, 
+# we want the clustering to focus on goals as the main success measure
+# the other dimensions being used mostly for smoothing out the outliers
+
+w[3] = 3.0 # goals
+w[11] = 1.3 # position
+w[12] = 1.3 # position
+w[13] = 1.3 # position
+w[14] = 1.3 # position
+
+players_with_dummies = players_with_dummies.apply(lambda x: x * w, axis=1)
+```
+
+This is how the data looks after preprocessing:
+
+![How the data looks now]({{site.url}}/assets/pca_2.png)
+
+Now we are going to use PCA with a relatively low explained variance threshold, so that data is smoothed out and we only keep the most relevant features.
+
+```python
+from sklearn.decomposition import PCA
+
+pca = PCA(0.75) # explained variance - 80%
+pca.fit(players_with_dummies)
+
+# number of features
+# len(pca.explained_variance_ratio_)
+# explained variance ratio
+# sum(pca.explained_variance_ratio_)
+
+# preserve the columns and index of the dataset
+columns = players_with_dummies.columns
+index = players_with_dummies.index
+
+players_with_dummies = pca.transform(players_with_dummies)
+```
+
+We see in the picture below the explained variance of `75%` as well as the reduction of features from `35` to `17`.
+
+![Explained variance]({{site.url}}/assets/pca_3.png)
+
+Now we are going to perform clustering on the reduced feature set, as well as transform back the cluster values from the PCA features to the original features.
+
+```python
+
+# we will split in 10 clusters
+players = KMeans(n_clusters=10)
+players.fit(players_with_dummies)
+
+# transform the clusters to original features
+clusters = pca.inverse_transform(players.cluster_centers_)
+clusters = pd.DataFrame(clusters, columns=columns)
+
+# inverse weights
+clusters = clusters.apply(lambda x: x * 1/w, axis=1)
+# inverse the zscore
+clusters = clusters * players_with_dummies_not_zscored.std(axis=0) + players_with_dummies_not_zscored.mean(axis=0)
+# set to 0 all annomalies, values less than 0
+clusters[clusters < 0] = 0
+```
+
+The centers of our clusters:
+
+![Explained variance]({{site.url}}/assets/pca_4.png)
+
+And each player assigned to its cluster, with predicted goals for the season:
+
+```python
+pd_players['Cluster'] = players.labels_
+pd_players['Predicted Goals'] = (clusters.loc[pd_players['Cluster']])['goals_overall'].to_numpy()
+pd_players['Predicted Appearances'] = (clusters.loc[pd_players['Cluster']])['appearances_overall'].to_numpy()
+pd_players['Predicted Goal Rate'] = pd_players['Predicted Goals'] / pd_players['Predicted Appearances']
+```
+
+Our players sorted descending by the number of goals, showing the correlation with the predicted goals from the cluster:
+
+![Predicted goals]({{site.url}}/assets/pca_5.png)
+
+The technique above is far from perfect, but it does show some relevant groups of players and could be used further as a feature in a regression or to predict the performance of teams of players. 
