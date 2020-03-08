@@ -245,7 +245,7 @@ We are going to use the datasets downloaded from [here](https://footystats.org/d
 
 For the actual clustering we will use KMeans. However, KMeans is not suited to dummy data, not even z-scored, and it is even worse if the counts are not balanced. 
 
-There are latent correlations within the data as well. These correlations will tend to increase the importance of certain features as well as pollute the distance metric, leading to less relevant clustering. Therefore, we will use PCA to reduce this dimensionality, as well as decrease the errors in the distance function introduced by the dummy variables.
+There are latent correlations within the data as well. These correlations tend to increase the importance of certain features as well as pollute the distance metric, leading to less relevant clustering. Therefore, we will use PCA to reduce this dimensionality, as well as decrease the errors in the distance function introduced by the dummy variables.
 
 ```python
 import pandas as pd
