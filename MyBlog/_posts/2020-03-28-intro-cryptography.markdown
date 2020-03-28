@@ -2,7 +2,7 @@
 layout: post
 title:  "Introduction to Cryptography"
 date:   2020-03-28 09:15:16 +0200
-categories: machine learning
+categories: cryptography
 ---
 A very brief introduction to cryptography.
 
