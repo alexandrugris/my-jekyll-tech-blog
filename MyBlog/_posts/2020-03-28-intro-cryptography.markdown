@@ -4,11 +4,11 @@ title:  "Introduction to Cryptography"
 date:   2020-03-28 09:15:16 +0200
 categories: cryptography
 ---
-A very brief introduction to cryptography.
+A very brief introduction to cryptography.This post covers one-time pads, a little bit of random numbers and the Diffie-Hellman algorithm. 
 
 ### One-Time Pads
 
-A very basic algorithm but virtually unbreakable if properly implemented. The idea is simple: given a message and a shared secret, we create an encrypted message based on the formula `encrypted[i] = original[i] + shared_secret[i]`. If the `shared_secret` is purely random and the key is not intercepted, the algorithm is virtually impossible to crack.
+[One-time pad](https://en.wikipedia.org/wiki/One-time_pad) is a very basic algorithm but virtually unbreakable if properly implemented. The idea is simple: given a message and a shared secret, we create an encrypted message based on the formula `encrypted[i] = original[i] + shared_secret[i]`. If the `shared_secret` is purely random and the key is not intercepted, the algorithm is virtually impossible to crack.
 
 However, in practice, we are limited by the following:
 
@@ -100,7 +100,7 @@ It is very important to observe that the seed is the only source of randomness (
 
 ### Diffie-Hellman
 
-Since the one-time pads are so sensitive to sharing the secret, the question we immediately ask ourselves is how do we transmit secrets over a medium without sharing the secret itself?
+Since the one-time pads are so sensitive to sharing the secret, the question we immediately ask ourselves is how do we transmit secrets over a medium without sharing the secret itself? This question is answered by the [Diffie-Hellman key exchange](https://en.wikipedia.org/wiki/Diffie–Hellman_key_exchange) algorithm.
 
 We observe the following:
 
@@ -278,14 +278,14 @@ Since we want for someone in the middle to be as hard as possible to guess which
 
 [*Fermat's Little Theorem*](https://en.wikipedia.org/wiki/Fermat%27s_little_theorem) tells us that `INITIAL_BASE^(n-1) % n==1` when `n` is prime and `INITIAL_BASE` is not a multiple of `n`. 
 
-Now, even if `(INITIAL_BASE^(n-1) mod n) == 1`, it might be that `1` is also reached for factors of `n-1`. For example, if we set `INITIAL_BASE = 3,  n = 23`, we have ones also for `11`.
+Now, even if `(INITIAL_BASE^(n-1) mod n) == 1`, it might be that `1` is also reached for factors of `n-1`. For example, if we set `INITIAL_BASE = 3,  n = 23`, we have ones also for `11`. In practice, `INITIAL_BASE` can be a small number, good choices being `2, 3, 5, 7`.
 
 ![Example]({{site.url}}/assets/crypto_1.png)
 
 This example demonstrate three points:
 
-- Why we need to choose a large prime number for `n` (in our case, the `COUNT` variable)
-- Why factoring `n-1` is important (the factors are the points where loops might start)
+- Why we need to choose a large prime number for `n` (in our case, the `COUNT` variable, usually selected as a prime `n=2*q+1`, where [q is another large prime](https://en.wikipedia.org/wiki/Sophie_Germain_prime))
+- Why factoring `n-1` is important (the factors are the points where loops might start, hence the `n=2*q+1` selection)
 - Why Diffie-Hellman does not protect against man-in-the-middle. There's nothing stopping an attacker to set himself/herself as a middleman between the two communicators. There's no means for each of the parties communicating to validate their identity to each other. 
 
 By today's standards, a 2048 bit prime number is the minimal recommended requirement to effectively protect against a brute-force attack and asymmetric encryption is the standard in cryptography.
