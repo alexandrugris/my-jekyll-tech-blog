@@ -36,7 +36,7 @@ However, in practice, we are limited by the following:
         byte[] ret = new byte[msgb.length];
 
         for(int i = 0; i < msgb.length; i++){
-            ret[i] = (byte) f.apply (msgb[i], keyb[i%keyb.length]);
+            ret[i] = f.apply (msgb[i], keyb[i%keyb.length]);
         }
         return new String (ret);
 
@@ -48,7 +48,7 @@ However, in practice, we are limited by the following:
 
     static String decode(String msg, String key){
         int n = COUNT;
-        return parse (msg, key, (m, k) ->(byte)  ((m-k>=0)? (m-k+'A') : (m-k+n+'A')));
+        return parse (msg, key, (m, k) ->(byte)((m-k>=0)? (m-k+'A') : (m-k+n+'A')));
     }
 ```
 
@@ -246,23 +246,23 @@ So let's crack our code:
         int[] actor2PublicMessage, 
         String encodedMessage){
 
-        var indices = new int[actor1PublicMessage.length];
+        var crackedInternalRandoms = new int[actor1PublicMessage.length];
 
         // STEP 1: 
         // for each element in the public message from the first actor,
         // find a number for which the initialPowModulo is equal to the observed value
         // the O(n^2) algorithm:
-        for(int i =0; i < indices.length; i++) {
+        for(int i =0; i < crackedInternalRandoms.length; i++) {
             for (int j = 0; j < COUNT; j++) {
                 if (Actor.initialPowModulo (j) == actor1PublicMessage[i]) {
-                    indices[i] = j;
+                    crackedInternalRandoms[i] = j;
                     break;
                 }
             }
         }
 
-        // STEP 2: create an actor with these indices as the internal password
-        var actor3 = new Actor (indices);
+        // STEP 2: create an actor with these randoms as the internal password
+        var actor3 = new Actor (crackedInternalRandoms);
 
         // STEP 3: use this fake internal password and the observed responses from 
         // the second actor to re-create the shared password
@@ -271,7 +271,6 @@ So let's crack our code:
         // STEP 4: decode the message
         return actor3.decodeMessage (encodedMessage);
     }
-
 ```
 
 Since we want for someone in the middle to be as hard as possible to guess which was the initial hidden random number we started with, we want to force them to run through the longest number of trials and errors, thus we want the longest possible sequence of non-1s results, that is we want `1` to be reached again when `x==n-1`, while avoiding premature cycles. 
