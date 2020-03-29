@@ -94,3 +94,12 @@ When sending a message, the following order of operations must be kept:
 Compression reduces redundancy in the message. If encryption is applied before compression, due to diffusion which is aimed at masking redundant patterns, compression becomes ineffective. Error correction adds redundancy to the message. Thus, if applied it the same step as the encryption, as the DES algorithm did, it decreases the encryption strength. If applied before, it loses its meaning as accidental information loss can occur during transmission, not at encryption time.
 
 ### Asymmetric Algorithms
+
+The principle of asymmetric algorithms is simple. The emitter keeps a function `ciphertext = f(text)` to himself while giving the recipient its inverse `text = f-1(ciphertext)`. In more practical terms, I want to give you a an encrypting exponent `e` and a modulus `m` so that you can `message^e % m = ciphertext` while I can `ciphertext^d % m = message`, where `d` is the decrypting exponent. 
+
+The principle of exponentiation in the modulo has been discussed in the previous post. In short, exponentiation in the modulo has the following interesting properties:
+- the result "jumps around", so it is very hard to predict the root
+- the exponentiation operation can be performed very fast 
+
+
+
