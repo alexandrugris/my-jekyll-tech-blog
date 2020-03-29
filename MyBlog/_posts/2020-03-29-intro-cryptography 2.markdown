@@ -83,7 +83,7 @@ Below is a very basic implementation of this concept, with a single XOR round an
     }
 ```
 
-One of the early implementations were DES, currently considered obsolete due to the short key length. Another newer is AES, which is run with keys 128, 192 or 256 bits. AES runs on blocks of 16 bytes and applies a series of rounds to to confuse the key, including operations like shifting rows, mixing rows, XOR-ing, side lookups. AES256 is considered strong enough to encrypt government secrets.
+One of the early implementations was `DES`, currently considered obsolete due to the short key length. A newer one is `AES`, which is run with keys 128, 192 or 256 bits. `AES` runs on blocks of 16 bytes and applies a series of rounds to to confuse the key, including operations like shifting rows, mixing rows, XOR-ing, side lookups. `AES-256` is considered strong enough to encrypt government secrets.
 
 When sending a message, the following order of operations must be kept:
 
@@ -91,7 +91,7 @@ When sending a message, the following order of operations must be kept:
 2. Encryption
 3. Error correction
 
-Compression reduces redundancy in the message. If encryption is applied before compression, due to diffusion which is aimed at masking redundant patterns, compression becomes ineffective. Error correction adds redundancy to the message. Thus, if applied it the same step as the encryption, as the DES algorithm did, it decreases the encryption strength. If applied before, it loses its meaning as accidental information loss can occur during transmission, not at encryption time.
+Compression reduces redundancy in the message. If encryption is applied before compression, due to diffusion which is aimed at masking redundant patterns, compression becomes ineffective. Error correction adds redundancy to the message. Thus, if applied it the same step as the encryption, as the `DES` algorithm did, it decreases the encryption strength. If applied before, it loses its meaning as accidental information loss can occur during transmission, not at encryption time.
 
 ### Asymmetric Algorithms
 
@@ -185,7 +185,7 @@ for (int j = 0; j < COUNT; j++) {
 
 Each extra bit added to the `COUNT` variable doubles the amount of work the algorithm is required to perform. Therefore, the complexity of cracking the code is `O(2^no_of_bits_in_modulo)`. 
 
-In 2014 a paper has been published with an algorithm that would bring the discrete logarithm problem to significantly sub-exponential complexity. However, since in Diffie-Hellman the modulo is prime and in RSA it is a product of two prime numbers, the suggested heuristics from the paper does not (yet) apply.
+In 2014 a paper has been published with an algorithm that would bring the discrete logarithm problem to significantly sub-exponential complexity. However, since in `Diffie-Hellman` the modulo is prime and in `RSA` it is a product of two prime numbers, the suggested heuristics from the paper does not (yet) apply.
 
 ### Authenticity
 
@@ -205,7 +205,7 @@ If we want to validate that indeed a message comes from a specific person, we do
 
 The weakness is the hash function. If the hash function is easily reversible, a potential attacker could craft a message that has the same hash as the original message and pass it along with the originally encrypted hash. The message, at the recipient, would pass the validation.
 
-Because of this, we need cryptographically strong hash functions. These functions work on the same principles as the CBC described earlier in this chapter. MD5, the first designed hash function, is no longer recommended for use, same for SHA-1 which came later. SHA-2 (SHA-256 and SHA-512) and SHA-3 are currently the gold standard in cryptography.
+Because of this, we need cryptographically strong hash functions. These functions work on the same principles as the CBC described earlier in this chapter. `MD5`, the first designed hash function, is no longer recommended for use, same for `SHA-1` which came later. `SHA-2` (`SHA-256` and `SHA-512`) and `SHA-3` are currently the gold standard in cryptography.
 
 There is still an attack vector open - an attacker can generate a large number of messages that I am likely to sign and a similarly large number of messages that I would not likely sign. This increases the probability that he/she will find a pair of (likely-to-sign, unlikely-to-sign) and thus use my signature to validate his malicious message. Because of this, the protocol for using signatures requires that we never sign a message received from a 3rd party without altering it a little bit before, to generate another hash.
 
