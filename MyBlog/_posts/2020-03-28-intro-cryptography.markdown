@@ -251,7 +251,7 @@ So let's crack our code:
         // STEP 1: 
         // for each element in the public message from the first actor,
         // find a number for which the initialPowModulo is equal to the observed value
-        // the O(n^2) algorithm:
+        // O(pass length * modulo = pass length * 2^no_of_bits_in_modulo_prime_number) algorithm:
         for(int i = 0; i < crackedInternalRandoms.length; i++) {
             for (int j = 0; j < COUNT; j++) {
                 if (Actor.initialPowModulo (j) == actor1PublicMessage[i]) {
@@ -283,7 +283,7 @@ Now, even if `(INITIAL_BASE^(n-1) mod n) == 1`, it might be that `1` is also rea
 
 This example demonstrate three points:
 
-- Why we need to choose a large prime number for `n` (in our case, the `COUNT` variable, usually selected as a prime `n=2*q+1`, where [q is another large prime](https://en.wikipedia.org/wiki/Sophie_Germain_prime))
+- Why we need to choose a large prime number for `n`, in our case the `COUNT` variable, usually selected as a prime `n=2*q+1`, where [q is another large prime](https://en.wikipedia.org/wiki/Sophie_Germain_prime)
 - Why factoring `n-1` is important (the factors are the points where loops might start, hence the `n=2*q+1` selection)
 - Why Diffie-Hellman does not protect against man-in-the-middle. There's nothing stopping an attacker to set himself/herself as a middleman between the two communicators. There's no means for each of the parties communicating to validate their identity to each other. 
 

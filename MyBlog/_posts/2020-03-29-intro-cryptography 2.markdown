@@ -99,7 +99,8 @@ The principle of asymmetric algorithms is simple. The emitter keeps a function `
 
 The principle of exponentiation in the modulo has been discussed in the previous post. In short, exponentiation in the modulo has the following interesting properties:
 - the result "jumps around", so it is very hard to predict the root
-- the exponentiation operation can be performed very fast 
+- the exponentiation operation can be performed fast 
+- its inverse, the logarithm problem, is very time consuming
 
 The code below exemplifies the algorithm. The modulo exponentiation function is described in the previous post. Important to note that each chunk of message we can encrypt with this process must be lower than `modulo`.
 
