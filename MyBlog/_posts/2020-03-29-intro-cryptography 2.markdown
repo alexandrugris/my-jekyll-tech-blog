@@ -4,7 +4,7 @@ title:  "Introduction to Cryptography (Part 2)"
 date:   2020-03-29 09:15:16 +0200
 categories: cryptography
 ---
-This is the second part of Introduction to Cryptography. 
+This is the second part of Introduction to Cryptography. The post covers symmetric encryption with cypher block chaining, the principles behind DES and AES, asymmetric encryption with RSA and a little bit on validating authenticity.
 
 ### Symmetric Encryption with Cypher Block Chaining (CBC)
 
@@ -108,7 +108,7 @@ But how do we get the encrypting/decrypting exponent pairs and the modulo? The m
 1. We select the modulo `m = p * q` where `p` and `q` are two (large) prime numbers.
 2. The formula for inverse assumes that `(message^e)^d % m = message` which is equivalent to `message ^ (e * d) % m = message`
 3. Because we selected `m = p * q`, we obtain `message^(e * d) % p = message^(e * d) % q = message`, which is true when `message < p` and `message < q`.
-4. This is equivalent to saying `message^(e * d - 1) * message % p = message` which looks very much like the [*Fermat's Little Theorem*](https://en.wikipedia.org/wiki/Fermat%27s_little_theorem) which tells us `m^(p-1) % p = 1` when `p` is prime and `m` is not a multiple of `p`
+4. This is equivalent to saying `message^(e * d - 1) * message % p = message` which looks very much like the [*Fermat's Little Theorem*](https://en.wikipedia.org/wiki/Fermat%27s_little_theorem) which tells us that `m^(p-1) % p = 1` when `p` is prime and `m` is not a multiple of `p`
 5. If we select `e * d = k * (p-1)` where `k` is a constant and plug it in point 4, we obtain `(message^(p-1))^k * message % p = message` which is equivalent to `1^k * message % p = message` which is equivalent to `message % p = message`. 
 6. If we proceed in an identical manner on the `q` side, we get `e * d - 1 = k * (p-1) * (q-1)`. So we need to find `k` and `d`, both integers, which satisfy the above equation.
 
