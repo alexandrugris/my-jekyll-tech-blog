@@ -101,5 +101,115 @@ The principle of exponentiation in the modulo has been discussed in the previous
 - the result "jumps around", so it is very hard to predict the root
 - the exponentiation operation can be performed very fast 
 
+The code below exemplifies the algorithm. The modulo exponentiation function is described in the previous post. Important to note that each chunk of message we can encrypt with this process must be lower than `modulo`.
+
+But how do we get the encrypting/decrypting exponent pairs and the modulo? The maths goes like this:
+
+1. We select the modulo `m = p * q` where `p` and `q` are two (large) prime numbers.
+2. The formula for inverse assumes that `(message^e)^d % m = message` which is equivalent to `message ^ (e * d) % m = message`
+3. Because we selected `m = p * q`, we obtain `message^(e * d) % p = message^(e * d) % q = message`, which is true when `message < p` and `message < q`.
+4. This is equivalent to saying `message^(e * d - 1) * message % p = message` which looks very much like the [*Fermat's Little Theorem*](https://en.wikipedia.org/wiki/Fermat%27s_little_theorem) which tells us `m^(p-1) % p = 1` when `p` is prime and `m` is not a multiple of `p`
+5. If we select `e * d = k * (p-1)` where `k` is a constant and plug it in point 4, we obtain `(message^(p-1))^k * message % p = message` which is equivalent to `1^k * message % p = message` which is equivalent to `message % p = message`. 
+6. If we proceed in an identical manner on the `q` side, we get `e * d - 1 = k * (p-1) * (q-1)`. So we need to find `k` and `d`, both integers, which satisfy the above equation.
+
+Let's do just that:
+
+```java
+    private static int encryptMessage(int msg, int encryptingExponent, int modulo) throws Exception {
+        // if msg == modulo, exponentiation returns 0 => message is compromised
+        // from there on, it loops again through the same values => impossible to construct the msg
+        if(msg >= modulo)
+            throw new Exception ("Cannot encrypt messages larger than modulo");
+
+        return Actor.powModulo (msg, encryptingExponent, modulo);
+    }
+
+    private static int decryptMessage(int encryptedMessage, int decryptingExponent, int modulo){
+        return Actor.powModulo (encryptedMessage, decryptingExponent, modulo);
+    }
+
+    private static int getDecryptingExponent(int e, int p, int q) throws Exception {
+        
+        // here we search blindly for this k, 
+        // a better algorithm can be found in wikipedia 
+        // (RSA and Extended Euclidean Algorithm)
+
+        int f = (p - 1) * (q - 1);
+
+        for (int k = 1; k < 100; k++) {
+            int fk_plus_1 = f * k + 1;
+            int d = fk_plus_1 / e;
+            if (d * e == fk_plus_1)
+                return d; // return only integer divisors
+        }
+
+        throw new Exception ("Cannot find inverse exponent");
+    }
+
+    public static void test_asymmetricEncryption() throws Exception{
+
+        int msg = 10;   // [SECRET] my secret message
+
+        int p = 17;     // factor of modulo, large prime - [SECRET]
+        int q = 19;     // factor of modulo, large prime - [SECRET]
+        int modulo = p * q; // msg should be less than modulo for encryption to work [PUBLIC]
+
+        int encryptingExponent = 13; // my public key [PUBLIC]
+
+        // my private key [SECRET]
+        int decryptingExponent = getDecryptingExponent(encryptingExponent, p, q); /
+
+        // [PUBLIC]
+        int encryptedMsg = encryptMessage (msg, encryptingExponent, modulo);
+
+        // [SECRET]
+        int decryptedMsg = decryptMessage(encryptedMsg, decryptingExponent, modulo);
+
+        if (msg != decryptedMsg)
+            throw new Exception ("Error decrypting the message");
+    }
+```
+
+The algorithm above is a very rudimentary implementation of the [*RSA* algorithm](https://en.wikipedia.org/wiki/RSA_(cryptosystem)).
+
+We've see in the previous post that, in order to solve the discrete logarithm problem and crack the Diffie-Hellman encryption, we need to perform a scan over the whole set of possible values, from `0` to `modulo` (variable `COUNT` is the `modulo` in our case):
+
+```java
+for (int j = 0; j < COUNT; j++) {
+    if (Actor.initialPowModulo (j) == actor1PublicMessage[i]) {
+        crackedInternalRandoms[i] = j;
+        break;
+    }
+}
+```
+
+Each extra bit added to the `COUNT` variable doubles the amount of work the algorithm is required to perform. Therefore, the complexity of cracking the code is `O(2^no_of_bits_in_modulo)`. 
+
+In 2014 a paper has been published with an algorithm that would bring the discrete logarithm problem to significantly sub-exponential complexity. However, since in Diffie-Hellman the modulo is prime and in RSA it is a product of two prime numbers, the suggested heuristics from the paper does not (yet) apply.
+
+### Authenticity
+
+If we want to validate that indeed a message comes from a specific person, we do the following:
+
+*Person A, originator:*
+
+1. Hash the message with a hash function.
+2. Encrypt the hash with the hash with his / her private key
+3. Send the encrypted hash along with the message
+
+*Person B, recipient:*
+
+1. Hash the message with the same hash function
+2. Decrypt the received message with Person A's public key
+3. Compare the two hashes - they should be identical.
+
+The weakness is the hash function. If the hash function is easily reversible, a potential attacker could craft a message that has the same hash as the original message and pass it along with the originally encrypted hash. The message, at the recipient, would pass the validation.
+
+Because of this, we need cryptographically strong hash functions. These functions work on the same principles as the CBC described earlier in this chapter. MD5, the first designed hash function, is no longer recommended for use, same for SHA-1 which came later. SHA-2 (SHA-256 and SHA-512) and SHA-3 are currently the gold standard in cryptography.
+
+There is still an attack vector open - an attacker can generate a large number of messages that I am likely to sign and a similarly large number of messages that I would not likely sign. This increases the probability that he/she will find a pair of (likely-to-sign, unlikely-to-sign) and thus use my signature to validate his malicious message. Because of this, the protocol for using signatures requires that we never sign a message received from a 3rd party without altering it a little bit before, to generate another hash.
+
+
+
 
 
