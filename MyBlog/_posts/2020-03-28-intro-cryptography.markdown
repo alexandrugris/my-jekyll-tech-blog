@@ -252,7 +252,7 @@ So let's crack our code:
         // for each element in the public message from the first actor,
         // find a number for which the initialPowModulo is equal to the observed value
         // the O(n^2) algorithm:
-        for(int i =0; i < crackedInternalRandoms.length; i++) {
+        for(int i = 0; i < crackedInternalRandoms.length; i++) {
             for (int j = 0; j < COUNT; j++) {
                 if (Actor.initialPowModulo (j) == actor1PublicMessage[i]) {
                     crackedInternalRandoms[i] = j;
