@@ -12,4 +12,4 @@ My career evolved from software developer, lead programmer, producer and product
 
 I currently work as CTO in the sports betting industry. I have recently acquired a new interest: statistics and machine learning, thus some of the posts on this blog are related to that. 
 
-![certificate_stats](assets/certificate_stats.png)}
+![certificate_stats](../assets/certificate_stats.png)
