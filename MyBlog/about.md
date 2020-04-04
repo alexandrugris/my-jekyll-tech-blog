@@ -7,7 +7,7 @@ This blog is a complement to [http://blog.alexandrugris.ro](http://blog.alexandr
 
 *Who am I?*
 
-My name is Alexandru Gris. For a relatively long time I worked in the video-games industry, at [Ubisoft Entertainment](https://www.ubisoft.com/en-GB/). Then I switched to Internet software and then the Sports Betting industry.
+My name is Alexandru Gris. I worked in the video-games industry for a relatively long time, at [Ubisoft Entertainment](https://www.ubisoft.com/en-GB/). Then I switched to Internet software and then the Sports Betting industry.
 
 My career evolved from software developer, lead programmer, producer and production director, technologist and CTO. I love building stuff while working with smart, creative people.  I have a strong interest in software architecture, clean code, leadership, organization design, entrepreneurial thinking and high quality project management. I have recently acquired a new interest: statistics and machine learning, thus some of the posts on this blog are related to that. 
 
