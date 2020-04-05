@@ -4,25 +4,25 @@ title:  "Introduction to Cryptography (Part 3)"
 date:   2020-04-04 09:15:16 +0200
 categories: cryptography
 ---
-This is the third part of Introduction to Cryptography. The post covers APIs.
+This is the third part of Introduction to Cryptography. The post covers the Java APIs that implement the same algorithms that we spoke about in the previous post, symmetric and asymmetric encryption, as well as signatures.
 
-### APIs
+### Java APIs
 
-I am going to exemplify here the concepts from the previous posts using the Java Cryptography Extensions (JCE). Most programming languages have similar cryptographic support. 
+I am going to exemplify here the concepts from the previous posts using the Java Cryptography Extensions (JCE). Most programming languages have similar cryptographic support. JCE revolves around the following classes:
 
-- KeyGenerator - key generator for symmetric encryption
-- SecretKey - the generated symmetric key 
-- SecureRandom - cryptographically secure random number generator
-- IvParameterSpec - initialization vector for the algorithm (remember that the Cypher Block Chaining (CBC) requires an init vector)
-- KeyPairGenerator - key generator for asymmetric encryption
-- PublicKey - the public key
-- PrivateKey - the private key
-- Cipher - perform the work of the symmetric / asymmetric encryption
-- Signature - performs the work of the signature algorithm
-- CipherInputStream - input stream for decrypting
-- CipherOutputStream - result of the algorithm stored as an output stream
+- `KeyGenerator` - key generator for symmetric encryption
+- `SecretKey` - the generated symmetric key 
+- `SecureRandom` - cryptographically secure random number generator
+- `IvParameterSpec` - initialization vector for the algorithm (remember that the Cypher Block Chaining (CBC) requires an init vector)
+- `KeyPairGenerator` - key generator for asymmetric encryption
+- `PublicKey` - the public key
+- `PrivateKey` - the private key
+- `Cipher` - perform the work of the symmetric / asymmetric encryption
+- `Signature` - performs the work of the signature algorithm
+- `CipherInputStream` - input stream for decryption
+- `CipherOutputStream` - output stream for encryption
 
-Current Java implementation, Java 14, supports the following algorithms: [link](https://docs.oracle.com/en/java/javase/14/docs/specs/security/standard-names.html)
+The current Java implementation, Java 14, supports the following algorithms: [link](https://docs.oracle.com/en/java/javase/14/docs/specs/security/standard-names.html)
 
 ```java
 /**
@@ -78,7 +78,7 @@ static String decryptAES(byte[] encrypted, String algorithm, SecretKey sk, IvPar
 }
 
 /**
- * Starts here
+ * Start here
  */
 static void test_symmetricJCE() 
             throws NoSuchAlgorithmException, 
@@ -112,11 +112,13 @@ static void test_symmetricJCE()
 }
 ```
 
-![Equal strings]({{site.url}}/assets/crypto3_1.png)
+In the picture below we can observe that the secret key is just an array of bytes, similar to what we have seen when we implemented the algorithm from scratch, in the previous post.
 
-It is important to note that, if two messages start with the same bytes, the first bytes in the encrypted string will be the same if we use the same initialization vector. Therefore, it is good practice to change the initialization vector with each message.
+![Secret Key]({{site.url}}/assets/crypto3_2.png)
 
-For the asymmetric encryption, the process is very similar. The only differences are the methods we call on the `Cipher` class. Since `Cipher` works iteratively on blocks, to encrypt / decrypt with `RSA` which is not a block cipher, we need to invoke `Cipher::doFinal()` on the cipher, as if the whole message is a single block. Example below.
+It is important to note that, if two messages start with the same bytes, the first bytes in the encrypted string for both of them will be the same, if we use the same initialization vector. Therefore, it is good practice to change the initialization vector with each message.
+
+For the asymmetric encryption, the process is very similar. The only differences are in the methods we call on the `Cipher` class. Since `Cipher` works iteratively on blocks, to encrypt / decrypt with `RSA` which is not a block cipher, we need to invoke `Cipher::doFinal()` on the cipher, as if the whole message is a single block. Example below.
 
 ```java
 private static void test_asymmetricJCE() throws 
@@ -145,11 +147,22 @@ private static void test_asymmetricJCE() throws
 }
 ```
 
-Several important notes:
+In the picture below we can see the public / private key pair expanded. We observe the same elements that we spoke about when we implemented the algorithm from scratch, in the previous post:
+
+- `p` and `q` my private two large prime numbers 
+- `n = p*q`, the modulo, shared
+- `e`, the public exponent - shared (encrypting) - the requirement for this is to be relatively prime to `p-1` and `q-1`. A commonly used exponent is `65537` since it is a prime number all together .
+- `d`, the private exponent - shared (decrypting) - 
+
+![Public / Private Key Pair]({{site.url}}/assets/crypto3_3.png)
+
+*Several important notes:*
 
 - `KeyPairGenerator::generateKeyPair()` might take several seconds. Therefore, it is better to store / read the keys from a secure key store.
 
-- The RSA algorithm is generally slow so, in practice, it is used to encrypt - transmit - decrypt a key that will be used further used with a symmetric encryption algorithm. In our case, we would have encrypted the `SecretKey` from the first example, transmit it over the wire, then use that `SecretKey` to encrypt the rest of the communication.
+- The RSA algorithm is generally slow so, in practice, it is used to `encrypt -> transmit -> decrypt` a key that will be used further with a symmetric encryption algorithm. In our case, we would have had encrypted the `SecretKey` from the first example, transmit it over the wire, then use that `SecretKey` to encrypt the rest of the communication.
+
+Now, let's use the private / public key pair to sign a message:
 
 ```java
 private static void test_signaturesJCE() throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
