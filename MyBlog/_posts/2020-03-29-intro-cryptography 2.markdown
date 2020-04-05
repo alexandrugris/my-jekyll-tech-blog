@@ -6,9 +6,9 @@ categories: cryptography
 ---
 This is the second part of Introduction to Cryptography. The post covers symmetric encryption with cypher block chaining, the principles behind DES and AES, asymmetric encryption with RSA and a little bit on validating authenticity.
 
-### Symmetric Encryption with Cypher Block Chaining (CBC)
+### Symmetric Encryption with Cipher Block Chaining (CBC)
 
-CBC is a very simple concept. It acknowledges the practical impossibility of sending a purely random, equal in size to the message, secret of the one-time pads and addresses it. It splits the message into predefined size blocks, then encrypts each block individually, taking into account the ciphertext generated for the previous blocks. 
+[Block cipher](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation) is a very simple concept. It acknowledges the practical impossibility of sending a purely random, equal in size to the message, secret of the one-time pads and addresses it. It splits the message into predefined size blocks, then encrypts each block individually. Cipher Block Chaining takes the concept even further by taking into account the ciphertext generated for the previous blocks when encrypting the current block. 
 
 For Block Ciphers, Shannon introduced two measures:
 
@@ -25,62 +25,53 @@ Similarly, we want a small change in the text to lead to a large change in the c
 Below is a very basic implementation of this concept, with a single XOR round and with block chaining.
 
 ```java
-    private static byte[] initVector(int blockSize){
-        byte[] initVector = new byte[blockSize];
-        (new Random (42)).nextBytes (initVector); // given key
-        return initVector;
-    }
+private static byte[] initVector(int blockSize){
+    byte[] initVector = new byte[blockSize];
+    (new Random (42)).nextBytes (initVector); // given key
+    return initVector;
+}
 
-    private static byte[] encryptDecryptCBC(byte[] msg, byte[]key, boolean encrypt){
-        int blockSize  = key.length;
-        byte[] initVector = initVector (blockSize);
-
-        // for each block the encryption should be done as a series of rounds,
-        // but we are going to use a single XOR round for this example
-        byte[] currentBlock = new byte[blockSize];
-        for (int i = 0, j = 0; i<msg.length; i++){
-
-            // one simple XOR round and diffusion with previous block
-            byte v = (byte) (msg[i] ^ key[j] ^ initVector[j]);
-            currentBlock[j] = encrypt? v : msg[i];
-            msg[i] = v;
-
-            if (++j == blockSize){
-                initVector = currentBlock;
-                currentBlock = new byte[blockSize];
-                j = 0;
-            }
+private static byte[] encryptDecryptCBC(byte[] msg, byte[]key, boolean encrypt){
+    int blockSize  = key.length;
+    byte[] initVector = initVector (blockSize);
+    // for each block the encryption should be done as a series of rounds,
+    // but we are going to use a single XOR round for this example
+    byte[] currentBlock = new byte[blockSize];
+    for (int i = 0, j = 0; i<msg.length; i++){
+        // one simple XOR round and diffusion with previous block
+        byte v = (byte) (msg[i] ^ key[j] ^ initVector[j]);
+        currentBlock[j] = encrypt? v : msg[i];
+        msg[i] = v;
+        if (++j == blockSize){
+            initVector = currentBlock;
+            currentBlock = new byte[blockSize];
+            j = 0;
         }
-        return msg;
     }
+    return msg;
+}
 
-    private static byte[] encryptCBC(String s, String password){
+private static byte[] encryptCBC(String s, String password){
+    byte[] msg = s.getBytes (StandardCharsets.US_ASCII);
+    byte[] key = password.getBytes (StandardCharsets.US_ASCII);
+    return encryptDecryptCBC (msg, key, true);
+}
 
-        byte[] msg = s.getBytes (StandardCharsets.US_ASCII);
-        byte[] key = password.getBytes (StandardCharsets.US_ASCII);
+private static String decryptCBC(byte[] msg, String password){
+    byte[] key = password.getBytes (StandardCharsets.US_ASCII);
+    return new String(encryptDecryptCBC (msg, key, false));
+}
 
-        return encryptDecryptCBC (msg, key, true);
-    }
-
-    private static String decryptCBC(byte[] msg, String password){
-
-        byte[] key = password.getBytes (StandardCharsets.US_ASCII);
-        return new String(encryptDecryptCBC (msg, key, false));
-    }
-
-    /***
-     * Here it starts
-     */
-    public static void test_CypherBlockChaining() throws Exception {
-
-        String myMsg = "This is a message which is long";
-
-        byte[] msg = encryptCBC (myMsg, "Hello World");
-        String ret = decryptCBC (msg, "Hello World");
-
-        if(!ret.equals (myMsg))
-            throw new Exception ("Wrong Algorithm");
-    }
+/***
+ * Here it starts
+ */
+public static void test_CypherBlockChaining() throws Exception {
+    String myMsg = "This is a message which is long";
+    byte[] msg = encryptCBC (myMsg, "Hello World");
+    String ret = decryptCBC (msg, "Hello World");
+    if(!ret.equals (myMsg))
+        throw new Exception ("Wrong Algorithm");
+}
 ```
 
 One of the early implementations was `DES`, currently considered obsolete due to the short key length. A newer one is `AES`, which is run with keys 128, 192 or 256 bits. `AES` runs on blocks of 16 bytes and applies a series of rounds to to confuse the key, including operations like shifting rows, mixing rows, XOR-ing, side lookups. `AES-256` is considered strong enough to encrypt government secrets.
@@ -118,59 +109,48 @@ But how do we get the encrypting/decrypting exponent pairs and the modulo? The m
 Let's do just that:
 
 ```java
-    private static int encryptMessage(int msg, int encryptingExponent, int modulo) throws Exception {
-        // if msg == modulo, exponentiation returns 0 => message is compromised
-        // from there on, it loops again through the same values => impossible to construct the msg
-        if(msg >= modulo)
-            throw new Exception ("Cannot encrypt messages larger than modulo");
+private static int encryptMessage(int msg, int encryptingExponent, int modulo) throws Exception {
+    // if msg == modulo, exponentiation returns 0 => message is compromised
+    // from there on, it loops again through the same values => impossible to construct the msg
+    if(msg >= modulo)
+        throw new Exception ("Cannot encrypt messages larger than modulo");
+    return Actor.powModulo (msg, encryptingExponent, modulo);
+}
 
-        return Actor.powModulo (msg, encryptingExponent, modulo);
+private static int decryptMessage(int encryptedMessage, int decryptingExponent, int modulo){
+    return Actor.powModulo (encryptedMessage, decryptingExponent, modulo);
+}
+
+private static int getDecryptingExponent(int e, int p, int q) throws Exception {
+    
+    // here we search blindly for this k, 
+    // a better algorithm can be found in wikipedia 
+    // (RSA and Extended Euclidean Algorithm)
+    int f = (p - 1) * (q - 1);
+    for (int k = 1; k < 100; k++) {
+        int fk_plus_1 = f * k + 1;
+        int d = fk_plus_1 / e;
+        if (d * e == fk_plus_1)
+            return d; // return only integer divisors
     }
+    throw new Exception ("Cannot find inverse exponent");
+}
 
-    private static int decryptMessage(int encryptedMessage, int decryptingExponent, int modulo){
-        return Actor.powModulo (encryptedMessage, decryptingExponent, modulo);
-    }
-
-    private static int getDecryptingExponent(int e, int p, int q) throws Exception {
-        
-        // here we search blindly for this k, 
-        // a better algorithm can be found in wikipedia 
-        // (RSA and Extended Euclidean Algorithm)
-
-        int f = (p - 1) * (q - 1);
-
-        for (int k = 1; k < 100; k++) {
-            int fk_plus_1 = f * k + 1;
-            int d = fk_plus_1 / e;
-            if (d * e == fk_plus_1)
-                return d; // return only integer divisors
-        }
-
-        throw new Exception ("Cannot find inverse exponent");
-    }
-
-    public static void test_asymmetricEncryption() throws Exception{
-
-        int msg = 10;   // [SECRET] my secret message
-
-        int p = 17;     // factor of modulo, large prime - [SECRET]
-        int q = 19;     // factor of modulo, large prime - [SECRET]
-        int modulo = p * q; // msg should be less than modulo for encryption to work [PUBLIC]
-
-        int encryptingExponent = 13; // my public key [PUBLIC]
-
-        // my private key [SECRET]
-        int decryptingExponent = getDecryptingExponent(encryptingExponent, p, q); /
-
-        // [PUBLIC]
-        int encryptedMsg = encryptMessage (msg, encryptingExponent, modulo);
-
-        // [SECRET]
-        int decryptedMsg = decryptMessage(encryptedMsg, decryptingExponent, modulo);
-
-        if (msg != decryptedMsg)
-            throw new Exception ("Error decrypting the message");
-    }
+public static void test_asymmetricEncryption() throws Exception{
+    int msg = 10;   // [SECRET] my secret message
+    int p = 17;     // factor of modulo, large prime - [SECRET]
+    int q = 19;     // factor of modulo, large prime - [SECRET]
+    int modulo = p * q; // msg should be less than modulo for encryption to work [PUBLIC]
+    int encryptingExponent = 13; // my public key [PUBLIC]
+    // my private key [SECRET]
+    int decryptingExponent = getDecryptingExponent(encryptingExponent, p, q); /
+    // [PUBLIC]
+    int encryptedMsg = encryptMessage (msg, encryptingExponent, modulo);
+    // [SECRET]
+    int decryptedMsg = decryptMessage(encryptedMsg, decryptingExponent, modulo);
+    if (msg != decryptedMsg)
+        throw new Exception ("Error decrypting the message");
+}
 ```
 
 ![Running the code above]({{site.url}}/assets/crypto2_2.png)
