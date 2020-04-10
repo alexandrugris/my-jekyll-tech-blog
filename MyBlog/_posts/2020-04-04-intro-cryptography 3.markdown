@@ -4,7 +4,7 @@ title:  "Introduction to Cryptography (Part 3)"
 date:   2020-04-04 09:15:16 +0200
 categories: cryptography
 ---
-This is the third part of Introduction to Cryptography. The post covers the Java APIs that implement the same algorithms that we spoke about in the previous posts, symmetric and asymmetric encryption, as well as digital signatures.
+This is the third part of Introduction to Cryptography. The post covers the Java APIs that implement the same algorithms that we spoke about in the previous posts, symmetric and asymmetric encryption, as well as digital signatures. We also talk a little bit about password security and the principle behind rainbow tables.
 
 ### Java APIs, Encryption, Decryption, Signatures
 
