@@ -4,9 +4,9 @@ title:  "Introduction to Cryptography (Part 3)"
 date:   2020-04-04 09:15:16 +0200
 categories: cryptography
 ---
-This is the third part of Introduction to Cryptography. The post covers the Java APIs that implement the same algorithms that we spoke about in the previous post, symmetric and asymmetric encryption, as well as signatures.
+This is the third part of Introduction to Cryptography. The post covers the Java APIs that implement the same algorithms that we spoke about in the previous posts, symmetric and asymmetric encryption, as well as digital signatures.
 
-### Java APIs
+### Java APIs, Encryption, Decryption, Signatures
 
 I am going to exemplify here the concepts from the previous posts using the Java Cryptography Extensions (JCE). Most programming languages have similar cryptographic support. JCE revolves around the following classes:
 
@@ -187,5 +187,122 @@ private static void test_signaturesJCE() throws NoSuchAlgorithmException, Invali
     var ret = sigVerify.verify (sig);
 
     assert ret;
+}
+```
+
+### Authentication and Authorization
+
+The first thing to know about passwords is that you never store them in clear text. More precisely you don't even need to store the full password in any form. Since the verification is just one way, it is enough to store a password hash that is checked against every time the password is entered. The most basic form for checking whether a site keeps passwords in clear text is so see if they offer a password retrieval function. If they do, better close the account and never use that password again.
+
+A more common form of attack are leaked password hashes. We could use dictionary attacks to match hashes to known passwords and that would lead to dictionaries being extremely large. A method that trades the size of the dictionary for a bit of additional computation is the rainbow table. The principle is to compute a series of chains, pairs of `(starting password, ending hash)`. Each chain is, in fact, like (starting password -> hash -> new password -> hash ... -> ending hash), but, since we know the transform function from password to hash and then from hash to a new potential password, we don't need to store the intermediate results. We don't want to reverse the hash, but to try to find a collision. What is needed for rainbow table to work are (a) a leaked the password hash and (b) the algorithm used for obtaining that hash. The algorithm starts by identifying which chain the leaked hash belongs to and then, iterating through the chain, find a password that generates that very same hash.
+
+Here is a very basic example of the principle, written in Java. The code is based on this [excellent article](https://www.ionos.com/digitalguide/server/security/rainbow-tables/).
+
+```java
+package ro.alexandrugris;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+
+public class Main {
+
+    // compute password -> hash -> password chain
+    // for simplicity, in our case, hash -> password function is just the identity function
+    static String hash(String s){
+
+        byte[] str = s.toUpperCase ().getBytes (StandardCharsets.US_ASCII);
+        byte[] n_pass = new byte[str.length];
+
+        // a very basic and a very bad hash function
+        for(int i = 0; i < str.length; i++){
+            var x = str[i] - 'A';
+            var hash = (int)(2000 * (x * 1.618 % 1));
+            n_pass[i] = (byte)(hash % ('A' - 'Z') + 'A');
+        }
+
+        return new String (n_pass);
+    }
+
+    static String computeChain(String start){
+
+        // chains of 4, because our hash function is very weak and it loops very quickly.
+        for (int i = 0; i < 4; i++){
+            start = hash (start);
+        }
+        return start;
+    }
+
+    static String guessPassword(String initial, HashMap<String, String> map){
+
+        String hash = initial;
+
+        // N = 100 tries
+        for(int i = 0; i < 100; i ++){
+            // 3. try to find the hash in the rainbow table
+            var chain = map.get (hash);
+
+            // 4. if the hash was not found, compute the next password and the next hash
+            if(chain == null){
+                hash = computeChain (hash);
+            }
+            else{
+                // 5. the hash was found, which means I found the chain
+                // start from the beginning of the chain,
+                // compute the hash.
+                // When the hash is equal to the hash I want to break,
+                // that is a working password!
+                while(true){
+                    var next = computeChain (chain);
+                    if(next.equals (initial))
+                        return chain;
+                    else
+                        chain = next;
+                }
+            }
+        }
+        return null; // not found
+    }
+
+    public static void main(String[] args) {
+
+        // 1. compute rainbow table, a hashmap of <hash, starting point>
+        HashMap<String, String> myRainbowTable = new HashMap<> ();
+
+        String[] startingPoints = {
+                "HELL",
+                "BUBU",
+                "FUFU",
+                "ROCK"
+        };
+
+        for (var s : startingPoints){
+            myRainbowTable.put (computeChain (s), s);
+        }
+
+        // 2. obtain the password hash we want to reverse
+        var passHash = "WJGG";
+        System.out.println (guessPassword(passHash, myRainbowTable));
+    }
+}
+```
+
+The interesting thing to observe is how an increased password complexity increases exponentially the complexity of generating and searching the rainbow table. It also shows that for salted passwords an attacker will have a harder time reversing it as it has to start by generating the rainbow table for those specific salts. The salt itself, a string pre-pended or appended to the password, does not need to be protected. It can be stored in plain text in the passwords table, but, for good protection, it should different for every user. 
+
+To make it unfeasible for an attacker to brute force our passwords, the algorithm used to compute the hash should be (a) irreversible (b) take a long time. The application only runs this algorithm for each login, but the attacker would have to run it for every password retry. The recommended approach is called [`PBKDF`](https://en.wikipedia.org/wiki/PBKDF2) and the general concept is called *key stretching*. 
+
+```java
+static String passwordHash(String password, String salt, int iterations, int keyLength) 
+    throws NoSuchAlgorithmException, InvalidKeySpecException {
+
+    SecretKeyFactory f = SecretKeyFactory.getInstance ("PBKDF2WithHmacSHA1");
+    
+    // iterations should be minimum 1000, preferably 10000
+    // should be increased as computers become more powerful
+    // the idea is to have a time-consuming operation 
+    // that makes it computationally hard for the attacker to brute force the password
+    KeySpec ks = new PBEKeySpec (password.toCharArray (), salt.getBytes (), iterations, keyLength);
+    SecretKey s = f.generateSecret (ks);
+
+    return new String(Base64.getEncoder ().encode (s.getEncoded ()));
 }
 ```
