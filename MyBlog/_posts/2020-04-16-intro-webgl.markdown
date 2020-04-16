@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "WebGL Fun"
-date:   2020-04-16 09:15:16 +0200
+date:   2020-04-15 09:15:16 +0200
 categories: graphics 3D
 ---
 
@@ -11,15 +11,19 @@ A post about computer graphics, for the web mostly. With JavaScript, WebGL, Thre
 
 [ThreeJS](https://threejs.org/) is a minimalistic 3D game engine for the web, with a very simple to use and very nicely designed API. It comes in the form of a javascript library, accompanied by a set of util libraries, a scene editor running on the web and lots and lots of examples an tutorials. 
 
-![Three JS Editor]({{site.url}}/assets/webgl_1.png)
+By the end of this blog post we will build this: 
+
+![Three JS Editor]({{site.url}}/assets/webgl_2.png)
+
 
 By default, ThreeJS already has built in materials for most of the effects one might want to add to a scene. I addition to what is already built in, there are lots of samples and pre-made effects in the form of libraries on github. Therefore, for most work, it be used entirely from JavaScript. While the API is clean and short and performs as expected, a little bit of maths and graphics background will still be needed sooner or later in the project.
 
+![Three JS Editor]({{site.url}}/assets/webgl_1.png)
+
+
 ### Initialization and The First Scene
 
-The simplest way to run ThreeJS is to cover the full browser window. We are going to use this scenario as an example:
-
-![Three JS Editor]({{site.url}}/assets/webgl_2.png)
+The simplest way to run ThreeJS is to cover the full browser window. It goes like this:
 
 ```html
 <html>
