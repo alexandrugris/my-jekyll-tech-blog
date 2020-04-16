@@ -5,7 +5,7 @@ date:   2020-04-15 09:15:16 +0200
 categories: graphics 3D
 ---
 
-A post about computer graphics, for the web mostly. With JavaScript, WebGL, ThreeJS and shaders. A little bit of maths also. 
+A post about computer graphics, for the web mostly, with JavaScript, WebGL, ThreeJS and shaders. A little bit of maths also. 
 
 ### ThreeJS Introduction
 
