@@ -5,7 +5,7 @@ date:   2020-04-15 09:15:16 +0200
 categories: graphics 3D
 ---
 
-This post is about implementing a 3D renderer, from scratch, with no help from any graphics or math library. It is implemented in pure JavaScript and it follows roughly the first half of the excellent [tiny renderer](https://github.com/ssloy/tinyrenderer) tutorial.  
+This post is about implementing a 3D renderer from scratch, with no help from any graphics or maths library. It is implemented in pure JavaScript and it follows roughly the first half of the excellent [tiny renderer](https://github.com/ssloy/tinyrenderer) tutorial.  
 
 ### The End Result
 
@@ -24,7 +24,7 @@ The features our software renderer suppors are:
 - Z-Buffer
 - Hidden face removal (backface culling)
 
-In addition to that we will build a small, and probably buggy, math library. For simplicity, all the code needed is written in this file: [basics-phong](https://github.com/alexandrugris/webglfun/blob/master/basics-phong.html)
+In addition to these, we will build a small and probably buggy maths library. All the code is included in this file: [basics-phong](https://github.com/alexandrugris/webglfun/blob/master/basics-phong.html)
 
 ### Coordinate Systems
 
@@ -32,16 +32,14 @@ First and foremost, we will operate in the coordiate system with the z-axis poin
 
 ![Head]({{site.url}}/assets/tiny_2.png)
 
-In addition to that, the model we will load is oriented towards z-axis. Also, by convention, we will consider triangles defined as counter-clockwise. This will help us later determine what is the front and the back of the triangle. 
+In addition to that, the model we will load is oriented towards z-axis. Also, by convention, we will consider triangles defined as counter-clockwise. This will help us later determine what is the front and what is the the back face of the triangle. 
 
 ### Loading the model
 
-The format for our model is quite standard. It is an indexed geometry, with a set of vertices, vertex normals and texture coordinates. Taking into consideration the counter-clockwise convention, here is how we define a quad.
+The format for our model is standard: an indexed geometry, with a set of vertices, vertex normals and texture coordinates. Taking into consideration the counter-clockwise convention, here is how we define a quad.
 
 ```javascript
-
-
-  function generateTexturedQuad(mesh){
+function generateTexturedQuad(mesh){
     mesh.vertices.push([-1, 1, 0])
     mesh.vertices.push([-1, -1, 0])
     mesh.vertices.push([1, 1, 0])
@@ -56,7 +54,8 @@ The format for our model is quite standard. It is an indexed geometry, with a se
 
     // all normals pointing towards the camera
     // in the case when 3d artists are not so kind,
-    // you can recompute the normal vectors as an average of normals to all facets incident to the vertex
+    // you can recompute the normal vectors as an average of normals to all 
+    // facets incident to the vertex
 
     mesh.vnormals.push([0, 0, 1]);
     mesh.vnormals.push([0, 0, 1]);
@@ -81,8 +80,7 @@ The format for our model is quite standard. It is an indexed geometry, with a se
 
     generateTexturedQuad(myMesh);
     
-  }
-
+}
 ```
 
 Rendering this image also assumes the following are set:
@@ -123,16 +121,13 @@ Before we move to shading triangles, let's first render our model in wireframe:
 
 ![Head]({{site.url}}/assets/tiny_4.png)
 
-For this, let's look at our `generateImage` function and what it does if the `wireframe` parameter is set to true.
+For this, let's look at our `generateImage` function and what it does if the `wireframe` parameter is set to `true`.
 
-The first step is clear the background and the z-buffer. For wireframe rendering we don't care about the z-buffer, but we do care about not drawing on top of an older image. So put all pixels to green.
+The first step is to clear the background and the z-buffer. For wireframe rendering we don't care about the z-buffer, but we do care about not drawing on top of an older image. So we put all pixels to green.
 
-What we do care about is transforming our vertices from their world coordinates to the screen coordinates. For this we have a chain of transformations (matrix multiplications) we apply to each vertex. Transform `transformsWordToSreen` matrix takes a position in world coordinates and transforms it to `[x, y, z]` in screen space. We will use the `x` and `y` to put the pixel on the screen and `z` to know if it is the topmost pixel and thus not hidden by another pixel. In `varrrayW` we keep the vertices in world coordinates, in `varray` in screen coordinates.
+Another thing we care about is transforming our vertices from their world coordinates to their corresponding screen coordinates. For this we have a chain of transformations (matrix multiplications) we apply to each vertex. Transform `transformsWordToSreen` matrix takes a position in world coordinates and transforms it to `[x, y, z]` in screen space. We will use the `x` and `y` to put the pixel on the screen and `z` to know if it is the topmost pixel and thus not hidden by another pixel. In `varrrayW` we keep the vertices in world coordinates, in `varray` in screen coordinates.
 
-The loop that follows next generates the faces, the triangles of our model. As mentioned before, this is an indexed geometry so for each face we need to lookup by index the coresponding vertex in its array. We do the same for normal and for texture coordinates, but we skip those for now. 
-
-In the last loop, we draw the line.
-
+The loop that follows  generates the faces, the triangles of our model. As mentioned before, this is an indexed geometry so for each face we need to lookup by index the coresponding vertex in vertex array. We do the same for the normals and for the texture coordinates. These are not relevant for the wireframe rendering, but they are relevant for the next chapter when we shade the triangle. In the last loop, we draw the line.
 
 ```javascript
 function generateImage(wireframe=true){
@@ -151,7 +146,6 @@ function generateImage(wireframe=true){
      */
 
     //multiply first with transform because the vector appears later several times
-
     let transformsWorldToScreen = chainMultiplyMatrix([viewportTransform, projectionTransform, cameraTransform])
 
     // tranform the vertices to worldspace and then to screen
@@ -209,13 +203,12 @@ function generateImage(wireframe=true){
         drawTriangle(...t);
       }
     }
-
-  }
+}
 ```
 
 ### PutPixel and Line Drawing
 
-As mentioned before, we don't use any library function for this demo. So we will implement our `drawLine` from scratch. Here it is how it goes. `screenBuffer` is our pixel matrix, organized as `RGBA`, each one byte in length.
+As mentioned before, we don't use any library for this demo. So we will implement our `drawLine` from scratch. Here it is how it goes. `screenBuffer` is our pixel matrix, organized as `RGBA`, each one byte in length.
 
 ```javascript
 function putPixel(x, y, r=0xff, g=0x00, b=0x00) {
@@ -255,7 +248,7 @@ For orthogonal transformations, e.g. world-space transformations, vectors that r
 
 ### Rendering Full Triangles
 
-The most exciting part of our blog post is about rendering full triangles. Before we dive into the actual shading, we only care about the triangles that are facing us. So we do a simple test. This test is called back-face culling:
+The most exciting part of our blog post is about rendering full triangles. Before we dive into the actual shading, let's say the obvious that we only care about the triangles that are facing us. So we do a simple test. This test is called back-face culling. This is why counter-clockwise convetion for defining faces is important. If we weren't following it, we'd have the normals oriented in the opposite direction. 
 
 ```javascript
 // world space backface culling
@@ -266,7 +259,7 @@ let faceNormal = normalize(crossProduct3(
 let visible = dot(cameraDir, faceNormal) <= 0;
 ```
 
-We compute the face normal using the `crossProduct3` function which, given a plane (3 points) computes a fourth perpendicular to the others. Then we check to see if the face normal and the `cameraDir` face in the opposite direction. This is what the `dot` line does. 
+We compute the face normal using the `crossProduct3` function which, given a plane (3 points), computes a fourth vector perpendicular to the others. Then we check to see if the face normal and the `cameraDir` face in the opposite direction. This is what the `dot` product does. 
 
 The remaining part is covered in the `drawTriangle` function. The algorithm is very simple and it fits very well on massively parallel hardware as all triangles can be processed in parallel.
 - Find a bounding box for our triangle
@@ -281,8 +274,6 @@ The parameters for the function are:
 function drawTriangle(v1, v2, v3, vn1, vn2, vn3, tx0, tx1, tx2){
 
     // find the bounding box
-    // TODO: add screen check, no need to t
-
     let bb = [v1[0], v1[1], v1[0], v1[1]];
     let v = [v2, v3];
     for (let i = 0; i < v.length; i++){
@@ -327,18 +318,18 @@ function drawTriangle(v1, v2, v3, vn1, vn2, vn3, tx0, tx1, tx2){
           }
         }
       }
-  }
+}
 ```
 
-The most interesting point of this function is transforming each pixel inside the triangle to its barycentric coordinates. Barycentric coordiantes are 3 numbers, `s, t, u`, which give weights to how close the point is to each vertex. That is, `v1` would have barycentric coordiantes of `1, 0, 0`, `v2` would have its barycentric coordinates at `0, 1, 0` and `v3` at `0, 0, 1`. Obviously, `s + t + u == 1` and they allow linear interpolation for each pixel based on values stored in the face vertices. 
+The most interesting point of this function is transforming each pixel inside the triangle to its [barycentric coordinates](https://en.wikipedia.org/wiki/Barycentric_coordinate_system). These coordiantes are 3 numbers, `s, t, u`, which give weights to how close the point is to each vertex. That is, `v1` would have barycentric coordiantes of `1, 0, 0`, `v2` would have its barycentric coordinates at `0, 1, 0` and `v3` at `0, 0, 1`. Obviously, `s + t + u == 1` and they allow linear interpolation for each pixel based on values stored in the face vertices. If a pixel is outside of our triangle, at least of its barycentric coordinates is negative. 
 
-So what do we do:
+So what do we do if the pixel is inside the triangle:
 
-- Check if the pixel is not under another pixel previously rendered (z-buffer check). We can simply interpolate the `z value` for the pixel and compare it with what is stored in the z-buffer. Since everything is already projected on the screen, we take the z directly without any other transformation. 
+- We check if the pixel is not under another pixel previously rendered (z-buffer check). We can simply interpolate the `z value` for the pixel and compare it with what is stored in the z-buffer. Since everything is already projected on the screen, we take the z directly without any other transformation. 
 
-- Interpolate between the texture coordiantes for each vertex and take the corresponding diffuse value.
+- We interpolate between the texture coordiantes for each vertex and take the corresponding diffuse value.
 
-- Interpolate between the normals of each vertex to compute a pixel normal and `dot` it with the light direction to see how much light falls on that point. This is called `Phong Shading`, as opposed to `Gouraud Shading` where the light is calculated per vertex and then interpolated over the surphace. 
+- We interpolate between the normals of each vertex to compute a pixel normal and `dot` it with the light direction to see how much light falls on that point. This is called `Phong Shading`, as opposed to `Gouraud Shading` where the light is calculated per vertex and then interpolated over the surphace. 
 
 ### What Else?
 
@@ -363,12 +354,10 @@ function inverseOrthogonalMatrix(mtx){
     ];
 
     let translate = [
-
       1, 0, 0, -x[3],
       0, 1, 0, -y[3],
       0, 0, 1, -z[3],
       0, 0, 0, 1
-
     ]
 
     // inverse = a) -translate followed by b) -rotate
@@ -423,11 +412,10 @@ function makeFullScreenCanvas(){
     cameraTransform = makeCameraTransform([0.2, 0.2, 0.8], [0, 1, 0], [0, 0, 0]);
 
     render();
-  }
+}
 ```
 
-And, before we go, let's have a look once again at the head with all transformations apply - this is should be the output of running the code from github.
-
+And, before we go, let's have a look once again at our model with all the transformations applied - this should be the output of running the code from github.
 
 ![Head]({{site.url}}/assets/tiny_5.png)
 
