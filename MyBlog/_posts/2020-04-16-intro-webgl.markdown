@@ -265,7 +265,8 @@ class AnimatedPlaneGeometry extends THREE.Mesh{
 
   constructor() {
     // 1. initialize this geomerty as a plane
-    super(new THREE.PlaneGeometry(40, 40, 40, 40), new THREE.MeshBasicMaterial({wireframe: true}));
+    super(new THREE.PlaneGeometry(40, 40, 40, 40), 
+          new THREE.MeshBasicMaterial({wireframe: true})) ;
     
     // 2. give it a name so it can be accessed from the scene
     this.name = "my-wave";
@@ -433,7 +434,7 @@ async function fixMaterials() {
     depthTest : false,
     depthWrite: false,
 
-    // We are always inside the box
+    // d) we are always inside the box
     side: THREE.BackSide,
 
   });
