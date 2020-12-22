@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Introduction to TensorFlow"
-date:   2020-12-22 09:15:16 +0200
+date:   2021-12-22 09:15:16 +0200
 categories: machine learning
 ---
 TensorFlow is a widely used machine learning library. Tensors are n-dimensional arrays of data and the TensorFlow library helps define computation graphs with them that can be submitted for execution to local CPUs, GPUs or remote clusters for big data processing. 
@@ -34,7 +34,7 @@ print((a+b).numpy())
 
 ### A More Complex Hello World
 
-In the example below we will train a multiclass classifier based on the Fashion Minst dataset using tensor flow. We will output the F1 score for each class, which gives pretty good results.
+In the example below we will train a multiclass classifier based on the Fashion Minst dataset using tensor flow. We will output the F1 score for each class, which gives pretty good results. We see that training takes quite a lot of data to be processed and takes a while. Predictions, on the other hand, are pretty fast. 
 
 ```python
 import tensorflow as tf
@@ -83,4 +83,48 @@ predictions = np.argmax(model.predict(tstimg), axis=1)
 
 from sklearn.metrics import f1_score
 print(f1_score(tstlbl, predictions, average=None))
+```
+
+### Loading Data 
+
+First example, load from CSV. Its main advantage is that, unlike pandas, it does not require reading the
+full dataset in memory. You can read in batches and you can specify which columns to read. 
+
+```python
+
+TRAIN_URL = 'http://storage.googleapis.com/tf-datasets/titanic/train.csv'
+TEST_URL = 'http://storage.googleapis.com/tf-datasets/titanic/test.csv'
+
+import tensorflow as tf
+from tensorflow import keras
+
+TRAIN_URL = 'http://storage.googleapis.com/tf-datasets/titanic/train.csv'
+TEST_URL =  'http://storage.googleapis.com/tf-datasets/titanic/eval.csv'
+
+train = keras.utils.get_file("train.csv", TRAIN_URL)
+test = keras.utils.get_file("test.csv", TEST_URL)
+
+# print the paths where these files are stored locally
+print(train)
+print(test)
+
+# does not load the full file in memory, 
+# but rather reads in batches when .take(n) is called
+# make_csv_dataset has other interesting parameters, such as to recover from errors, 
+# or fill the missing data with a default value
+train = tf.data.experimental.make_csv_dataset(train, 10, label_name="survived")
+
+def inspect_batch(dataset):
+    
+    # read the first batch
+    for batch, label in dataset.take(1):
+        
+        # in batch is everything else, as a dictionary of columns
+        for k, v in batch.items():
+            print(f'{k} : {v.numpy()}')
+            
+        # it was imported with label (make_csv_dataset invocation)
+        print(f'survived : {label.numpy()}')
+        
+inspect_batch(train)
 ```
