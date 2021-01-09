@@ -1,11 +1,11 @@
 ---
 layout: post
 title:  "First Steps In Go"
-date:   2021-01-10 09:15:16 +0200
+date:   2021-01-09 09:15:16 +0200
 categories: programming
 ---
 
-My first steps in Go, largely based on the Golang tutorial and side Internet searches. 
+My first steps in Go, largely based on the Golang tutorial and Internet side searches. 
 
 ### Hello World
 
@@ -81,10 +81,10 @@ Length and capacity can be accessed through `len()` and `cap()`. Therefore, in g
 
 ```go
 type Struct struct {
-    p1 int32
-    p2 int32
-    p3 uint16
-    p3 uint16
+  p1 int32
+  p2 int32
+  p3 uint16
+  p3 uint16
 }
 
 // read in a compile-time constant the size of the struct
@@ -99,39 +99,39 @@ Slices can contain other slices.
 
 ```go
 mat3x3 := [][]float32{
-		[]float32{1.0, 0.0, 0.0},
-		[]float32{0.0, 1.0, 0.0},
-		[]float32{0.0, 0.0, 1.0},
-	}
+	[]float32{1.0, 0.0, 0.0},
+	[]float32{0.0, 1.0, 0.0},
+	[]float32{0.0, 0.0, 1.0},
+}
 // elements can be accessed
 fmt.Println(board[0][0])
 ```
 
 ```go
-  // dynamic allocation of an array of 10 floats
-	p := make([]float32, 10)
+// dynamic allocation of an array of 10 floats
+p := make([]float32, 10)
 
-  // dynamically growing the array by appending
-  // 10 elements with spread operator
-	p = append(p, make([]float32, 10)...)
+// dynamically growing the array by appending
+// 10 elements with spread operator
+p = append(p, make([]float32, 10)...)
 
-	// looping over indexes in p
-	for i := range p {
-		p[i] = float32(i)
-	}
+// looping over indexes in p
+for i := range p {
+	p[i] = float32(i)
+}
 ```
 
 Let's look also at static initialization.
 
 ```go
 slice := []struct { // annonymous struct of two integers
-		i1 int
-		i2 int
-	}{ // statically initialized
-		{0, 0},
-		{1, 1},
-		{2, 2}, // comma at the end is mandatory
-	}
+	i1 int
+	i2 int
+}{ // statically initialized
+	{0, 0},
+	{1, 1},
+	{2, 2}, // comma at the end is mandatory
+}
 
 for _, x := range slice {
 	fmt.Printf("%v : %v\n", x.i1, x.i2)
@@ -510,7 +510,10 @@ func main() {
  - Channel operations are blocking. A channel can have a buffer, in which condition the operation becomes blocking only when the buffer is full
  - A channel can be read with a `range` construct. The range finishes when the sender closes the channel 
 
-The second program, also part of the golang tour, introduces `sync.WaitGroups` to allow waiting for goroutines to finish as well as sending return channels through input channels for safe reply. To allow for concurrent access, the `Cache` is implemented as a process (actor) which is accessible only through its input and output channels. The code is commented extensively.
+The second program, also part of the golang tour, introduces `sync.WaitGroups` to allow waiting for goroutines to finish as well as sending return channels through input channels for safe reply. To allow for concurrent access, the `Cache` is implemented as a process (actor) which is accessible only through its input and output channels. 
+
+
+We are going to send a pair to our cache service, `<string - key, return channel>`. The return channel solves a concurrency issue: assuming that we have more concurrent readers waiting, we want to ensure we return the result to the reader that sent the message. Since in our case we use a non-buffered write channel, all writes are blocked until a new read is performed and, since the cache is a single threaded, it will not make a new read until the result is communicated, we could have used a single return channel for all the cache requests. However, if we make the write channel buffered, thus allowing for multiple writes, the returns will be mixed.
 
 ```go
 package main
@@ -520,23 +523,15 @@ import (
 	"sync"
 )
 
-// the wait group is needed to allow all goroutines to signal when they finish execution
+// the wait group is needed to allow all goroutines 
+// to signal when they finish execution
 // and the main goroutine to wait for them
 var wg sync.WaitGroup
 
 type Fetcher interface {
 	Fetch(url string) (body string, urls []string, err error)
 }
-
-// We are going to send a pair to our cache service
-// <string - key, return channel>
-// The return channel solves a concurrency issue:
-// assuming that we have more concurrent readers waiting.
-// we want to ensure we return the result to the reader that sent the message.
-// Since in our case we use a non-buffered write channel, all writes are blocked until a 
-// new read is performed and, since the cache is a single threaded, it will not make a new read until the 
-// result is communicated, we could have used a single return channel for all the cache requests.
-// however, if we make the write channel buffered, allowing for multiple writes, the returns will be mixed.
+// message including the return channel
 type CacheMsg struct {
 	str string
 	out chan bool
