@@ -675,8 +675,54 @@ The implementation above is more generic as it can be used as a pattern for othe
 
 One thing to note - altough all IO operations in go are blocking the current goroutine, the are implemented as asyncio behind the scenes, in a similar manner to which the `cache.Test()` method above is blocking.
 
+### Timers and select
 
-### Modules
+Select allows to listen to multiple channels and block until one of them has data available. Timers in golang are implemented as channels. Signaling to a goroutine to finish its job can be done also though a channel.
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+	"time"
+)
+
+func main() {
+
+	seconds := time.NewTicker(time.Second)
+	minutes := time.NewTicker(time.Minute)
+
+	done := make(chan bool)
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-done:
+				wg.Done()
+				return // exit the routine
+			case <-seconds.C:
+				fmt.Println("Tick")
+			case <-minutes.C:
+				fmt.Println("Tock")
+			}
+		}
+	}() // immediately invoked goroutine
+
+	time.Sleep(time.Minute * 3)
+	done <- true
+
+	wg.Wait()
+	fmt.Println("Done.")
+}
+```
+
+### Conclusion
+
+Go is a very beautiful and performant language. It is low level enough to feel like you have power you have in C and it compiles to native code for super fast startup times, performance and interoperability. It is elegant as it does not have unnecessary constructs yet, though its constructs, it encourages at the language level clean code and excellent concurrency. 
 
 
 
