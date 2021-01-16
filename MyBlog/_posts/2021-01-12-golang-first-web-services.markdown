@@ -356,11 +356,8 @@ func corsMiddleware(handler http.Handler) http.Handler {
 
 func main() {
 
-	// [missing some code]
-
 	// handler for GET all and POST
 	http.Handle("/products", corsMiddleware(http.HandlerFunc(productsHandler)))
-
 	// handler for GET id and PUT
 	http.Handle("/products/", corsMiddleware(http.HandlerFunc(productHandler)))
 
