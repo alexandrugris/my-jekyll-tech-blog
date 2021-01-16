@@ -5,10 +5,12 @@ date:   2021-01-12 09:15:16 +0200
 categories: programming
 ---
 
-These are my first steps in Go. This time, learning how to build web services in golang.  
+These are my first steps in Go. This time learning how to build web services in golang. I will touch handling requests, json serialization, middleware, logging, database access, concurrency, websockets and templates. 
 
 
 ### Listening to Incoming Requests
+
+For building HTTP services, golang comes with all batteries included. There's no need to install any additional package, everything is already available in the standard library. The APIs are straight forward and the code is short and fast. 
 
 ```golang
 package main
@@ -325,9 +327,9 @@ and
 $curl -D - -X PUT -H "Content-Type: application/json" -d '{"productId": 0, "manufacturer": "Microsoft", "productName": "MS Surface"}' localhost:8080/products/2
 ```
 
-### Adding Middlewares
+### Adding Middlewares - CORS Example
 
-The http package allows for easy addition of middleware. Such middleware can do things like authentication, caching (memoizing), logging or session management. We will modify our code to add a CORS middleware
+The http package allows for easy addition of middleware. Such middleware can do things like authentication, caching (memoizing), logging or session management. For this example, we will modify our code to add a CORS middleware.
 
 ```go
 func corsMiddleware(handler http.Handler) http.Handler {
@@ -368,4 +370,24 @@ func main() {
 ```
 
 The full code, refactored with persitence in an in-memory map can be found [here](https://github.com/alexandrugris/learngolang1/tree/persistence_in_memory_map)
+
+### Database Access
+
+First thing, we are going to install Postgres. Assuming docker is installed and running, we do
+
+```
+$docker run -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+```
+
+Now I am running the Postgres server portmapped on 5432, with usename `posgres` having the password `mysecretpassword`
+
+To connect to the server we do 
+
+```
+$psql -p 5432 -h localhost -U postgres
+```
+
+In the screenshot below, I have also created a database called `products` and connected to it using the `\c` command
+
+![Postgres running]({{site.url}}/assets/gows2.png)
 
