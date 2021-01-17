@@ -525,5 +525,53 @@ func (m *mapInternal) CreateNew(p *Product) {
 
 The full source code for this implementation can be found [here](https://github.com/alexandrugris/learngolang1/tree/with_database).
 
+### Contexts
+
+If we want to setup a timeout for a query, golang provides the `Context` mechanism. Each database function has a `Context` method. The call to `cancel()` when the operation is completed successfully allows to end the context and release all associated resources.
+
+An example below:
+
+```go
+func (m *mapInternal) GetAll() []*Product {
+
+	// this will allow the queries to timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	results, err := database.DbConn.QueryContext(ctx, `
+	SELECT 
+		ProductID, 
+		Manufacturer, 
+		PricePerUnit, 
+		UnitsAvailable, 
+		ProductName 
+	FROM Products
+	`)
+
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	defer results.Close()
+
+	ret := make([]*Product, 0, 100)
+
+	for results.Next() {
+		v := Product{}
+
+		results.Scan(
+			&v.ProductID,
+			&v.Manufacturer,
+			&v.PricePerUnit,
+			&v.UnitsAvailable,
+			&v.ProductName)
+
+		ret = append(ret, &v)
+	}
+
+	return ret
+}
+```
 
 
