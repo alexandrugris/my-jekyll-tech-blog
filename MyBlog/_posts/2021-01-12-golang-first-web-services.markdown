@@ -338,9 +338,9 @@ func corsMiddleware(handler http.Handler) http.Handler {
 
 		// before the handler
 		// add the cors middleware headers
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length")
+		w.Header().Set("Access-Control-Allow-Origin","*")
+		w.Header().Set("Access-Control-Allow-Methods","POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers","Accept, Content-Type, Content-Length")
 		w.Header().Set("Content-Type", "application/json")
 
 		if r.Method == http.MethodOptions {
@@ -390,4 +390,140 @@ $psql -p 5432 -h localhost -U postgres
 In the screenshot below, I have also created a database called `products` and connected to it using the `\c` command
 
 ![Postgres running]({{site.url}}/assets/gows2.png)
+
+The next thing to do is to get the Postgres Go driver.
+
+```
+$go get github.com/lib/pq
+```
+
+At the time of this writing, the recommended database driver for go is [pgx](https://github.com/jackc/pgx). Its authors recommend to use its own API instead of the standard go SQL package due to higher performance in most Postgres-specific scenarios. For the purpose of this demo we will use the standard SQL package though, as it is portable across databases.
+
+In a production scenario we'd also be using an external connection pooler, the recommended solution being [pgbouncer](https://www.pgbouncer.org/). This is because for each new connection to the database server pgsql launches a new Postgres database backend, a new system process, with its launching system heavy and memory intensive. 
+
+Let's dive into the code.
+
+First step is to blank import the driver into our `main.go` file. That is because drivers need to register themselves with the SQL package in their `init function`(https://golang.org/doc/effective_go.html#init)
+
+```go
+import _ "github.com/lib/pq"
+```
+
+The next step is to declare a database connection pool and open it. The names are exported hence capitalized.
+
+```go
+package database
+
+import (
+	"database/sql"
+	"log"
+)
+
+// DbConn is our database connection pool
+var DbConn *sql.DB
+
+// Connect opens the connection to the database
+func Connect() {
+	var err error
+	DbConn, err = sql.Open(
+	"postgres", 
+	"user=pqgotest dbname=products sslmode=verify-full password=mysecretpassword"
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+We are going to create the Products table and seed our database, but only if a `--dbinit` flag is sent to our executable. We add to our main function the following:
+
+```golang
+for _, v := range os.Args[1:] {
+	switch v {
+	case "--dbinit":
+		if err := database.Init(); err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+```
+
+To create our database, we are going to play a bit with reflection and automatically discover the fields from our `Product` type. This discovery by reflection is something that all ORMs do. Since we are not going to build our own ORM here, this is the only place where we will play with reflection.
+
+```go
+func Init() error {
+
+	if DbConn == nil {
+		errors.New("Database not opened")
+	}
+
+	query := "CREATE TABLE IF NOT EXISTS Products ("
+
+	t := reflect.TypeOf(product.Product{})
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		query += f.Name + " "
+
+		switch f.Type.Name() {
+		case "string":
+			query += "varchar (100)"
+		default:
+			query += f.Type.Name()
+		}
+
+		if i+1 < t.NumField() {
+			query += ", "
+		}
+	}
+	query += ");"
+	log.Println(query)
+
+	if _, err := DbConn.Exec(query); err != nil {
+		return err
+	}
+
+	if _, err := DbConn.Exec("DELETE FROM Products"); err != nil {
+		return err
+	}
+
+	if _, err := DbConn.Exec("ALTER TABLE Products ADD PRIMARY KEY (ProductID)"); err != nil {
+		return err
+	}
+
+	if _, err := DbConn.Exec(
+		`CREATE SEQUENCE IF NOT EXISTS pk_product 
+		CACHE 100 OWNED BY Product.ProductID`); err != nil {
+		return err
+	}
+
+	return nil
+}
+```
+
+The next step is to implement the full `product.Map` interface and switch from an in-memory map to database calls. A better name would have been `product.Repository` but we will not refactor the code now. The full code can be found [here](https://github.com/alexandrugris/learngolang1/blob/with_database/product/product.data.go) and we are only going to exemplify in this blogpost how to create a new product.
+
+```golang
+func (m *mapInternal) CreateNew(p *Product) {
+
+	stmt, err := database.DbConn.Prepare(`INSERT INTO 
+		Products(Manufacturer, PricePerUnit, UnitsAvailable, ProductName, ProductID) 
+		VALUES ($1, $2, $3, $4, nextval('pk_product')) RETURNING ProductID`)
+
+	if stmt == nil || err != nil {
+		log.Fatal(err)
+	}
+
+	sqlRow := stmt.QueryRow(p.Manufacturer, p.PricePerUnit, p.UnitsAvailable, p.ProductName)
+
+	if err := sqlRow.Scan(&p.ProductID); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+The full source code for this implementation can be found [here](https://github.com/alexandrugris/learngolang1/tree/with_database).
+
+
 
