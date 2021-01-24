@@ -297,6 +297,8 @@ func init() {
 }
 ```
 
+![Running in IntelliJ]({{site.url}}/assets/gowsws1.png)
+
 
 
 
