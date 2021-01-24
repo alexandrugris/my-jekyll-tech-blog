@@ -5,7 +5,7 @@ date:   2021-01-12 09:15:16 +0200
 categories: programming
 ---
 
-These are my first steps in Go. This time learning how to build web services in golang. I will touch handling requests, json serialization, middleware, logging, database access, concurrency, websockets and templates. 
+These are my first steps in Go, this time learning how to build web services. The post touches handling requests, json serialization, middleware, logging, database access and concurrency. Websockets and templates will be covered in a future post.
 
 
 ### Listening to Incoming Requests
@@ -199,6 +199,7 @@ case http.MethodPost:
 	}
 
 	products = append(products, &product)
+	w.Header().Set("Location", fmt.Sprintf("/products/%v", product.ProductID))
 	w.WriteHeader(http.StatusCreated)
 ```
 
