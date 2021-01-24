@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "First Steps In Go - Web Sockets"
-date:   2021-01-24 09:15:16 +0200
+date:   2021-01-23 09:15:16 +0200
 categories: programming
 ---
 
@@ -86,7 +86,8 @@ Now that we have this procedure, the code that listens to the emitted events goe
 // ListenForNotifications should be invoked as a goroutine
 func ListenForNotifications(event string, notif func(json []byte)) error {
 
-	listener := pq.NewListener(ConnectionString, 1*time.Second, 10*time.Second, func(ev pq.ListenerEventType, err error) {
+	listener := pq.NewListener(ConnectionString, 1*time.Second, 10*time.Second, 
+	func(ev pq.ListenerEventType, err error) {
 		log.Println(ev)
 		if err != nil {
 			log.Println(err)
@@ -119,7 +120,8 @@ The snippent which launches listening is in the main function,
 
 ```go
 go func() {
-	if err := database.ListenForNotifications("product_change", product.HandleChangeProductNotification); err != nil {
+	if err := database.ListenForNotifications("product_change", 
+		product.HandleChangeProductNotification); err != nil {
 		log.Fatal(err)
 	}
 }()
@@ -239,11 +241,11 @@ func handleDistributionGoroutine() {
 			if exists && notifChans != nil {
 				for k, v := range notifChans {
 					if v {
-						// this will block all threads in case of a single slow reader
-						// the chan will fill and it will not be possible to send other
-						// notifications to other readers.
-						// option is to do launch each as a separate goroutine
-						// but it will not guarantee order at the receiving side
+				// this will block all threads in case of a single slow reader
+				// the chan will fill and it will not be possible to send other
+				// notifications to other readers.
+				// option is to do launch each as a separate goroutine
+				// but it will not guarantee order at the receiving side
 						go func() { k <- &incomingProduct.Product }()
 					}
 				}
@@ -297,7 +299,7 @@ func init() {
 }
 ```
 
-![Running in IntelliJ]({{site.url}}/assets/gowsws1.png)
+![Running in IntelliJ]({{site.url}}/assets/gowsws2.png)
 
 
 
