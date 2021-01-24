@@ -1,11 +1,11 @@
 ---
 layout: post
-title:  "First Steps In Go - Web Sockets"
+title:  "First Steps In Go - WebSockets"
 date:   2021-01-23 09:15:16 +0200
 categories: programming
 ---
 
-These are my first steps in Go, this time learning how to extend my previous web service with WebSocket support. The brow can subscribe to changes to a series of product IDs. Subscriptions and updates go over WebSockets.
+These are my first steps in Go, this time learning how to extend my previous web service with WebSockets. The brower subscribes to changes to a set of products by sending one or more Subscribe or Unsubscribe JSON messages to the service, through a WebSocket connection. Each message contains a series of product IDs. The server maintains the map connection - subscriptions and listens to notifications on product changes from a Postgres database.
 
 ### Testing
 
@@ -28,7 +28,7 @@ Later, when we want to test the connection closing, do
 req.close()
 ```
 
-Meanwhile, on the server side, we will be doing `POST`, `PUT` and `DELETE` requests to change the products in the database. These request have the following form:
+Meanwhile, from a different console, we will be performing `POST`, `PUT` and `DELETE` requests to change the products in the database. These requests are similar to the following:
 
 ```
 POST http://localhost:8080/products
@@ -48,7 +48,7 @@ Content-Type: application/json
 
 ### Database Changes
 
-In order to be able to listen to changes in the database, we will use the `LISTEN` / `NOTIFY` system from Postgresql. We are going to create a trigger which sends `JSON` messages whenever an update to the Products table occurs and we are going to initialize a listener in our service code for such events.
+In order to be able to listen to changes in the database, we will use the `LISTEN` / `NOTIFY` system from Postgresql. We are going to create a trigger which sends `JSON` messages whenever an update to the Products table occurs and we are going to initialize a listener in our service code to such events.
 
 The trigger procedure below:
 
@@ -80,7 +80,7 @@ CREATE TRIGGER products_change_trigger AFTER INSERT OR UPDATE OR DELETE ON produ
 	FOR EACH ROW EXECUTE PROCEDURE notify_event_on_products_update();
 ```
 
-Now that we have this procedure, the code that listens to the emitted events goes as follows. This is invoked as a goroutine and acts as a backgorund service. It uses directly the `pq` package instead of the `sql` package because it relies on native Postgres functionality - the listen/notify mechanism.
+Now, that we have this procedure, the code that listens to the emitted events, is listed below. It is invoked as a goroutine and acts as a backgorund service. It uses directly the `pq` package instead of the `sql` package because it relies on native Postgres functionality - the listen/notify mechanism.
 
 ```go
 // ListenForNotifications should be invoked as a goroutine
@@ -127,7 +127,7 @@ go func() {
 }()
 ```
 
-### WebSockets Endpoint
+### The WebSocket Endpoint
 
 First, initialize the route. Please notice the `websocket` package instead of the `http` used above.
 
@@ -143,7 +143,7 @@ func GetHTTPHandlers() map[string]http.Handler {
 }
 ```
 
-And the handler itself. The structure is straight forward:
+And then the handler itself. Its structure is straight forward:
 - Exit the function when the connection closes. 
 - Register a cleanup sequence for when the connection finished.
 - Launch a goroutine to listen to incoming messages and EOF error, signifing the connection closing.
@@ -212,11 +212,11 @@ func productChangeWSHandler(ws *websocket.Conn) {
 }
 ```
 
-### Algorithm
+### The Algorithm
 
-The algorithm is straight forward. It keeps a map of productIDs - channels listening for updates. When an update comes for a specific product ID, all the channels are notified. The only interesting part is the use of goroutines for synchronization between processes. The map is local to a goroutine which is launched as a service when the application starts and all communications with it happen over channels. There is no shared memory involved and no shared-memory specific synchronization primitives. Commented code below.
+The algorithm is straight forward. It keeps a map of productIDs - channels listening for updates. When an update comes for a specific product ID, all the channels are notified. The interesting part is the use of goroutines for synchronization between processes. The map is local to a goroutine, which is launched as a service when the application starts, and all communications with it happen over channels. There is no shared memory involved and no shared-memory-specific synchronization primitives. The commented ode below.
 
-A notable mention is the fact that clearing the subscription on `connclose` event is very slow as the algorithm has to iterate through all the registered products. In a production scenario, I'd keep another map, a reversed index, so that I the relationship channel -> productID is faster to navigate. In our case it would have only make the code longer and less readable. 
+A notable mention is the fact that clearing the subscription on `connclose` event is very slow as the function has to iterate through all the registered products. In a production scenario, I'd keep another map, a reversed index, so that I the relationship channel -> productID is faster to navigate. In our case it would have only make the code longer and less readable. 
 
 ```go
 // shared channel on which the listen-notify db mechanism sends the products
@@ -272,6 +272,8 @@ func handleDistributionGoroutine() {
 			case "closeconn":
 
 				// empty the rest
+				// we might wrap the following in a goroutine 
+				// so we don't block futher incoming messages 
 				emptyKeys := make([]int, 0, 100)
 
 				for k, v := range notifyUpdates {
@@ -300,10 +302,4 @@ func init() {
 ```
 
 ![Running in IntelliJ]({{site.url}}/assets/gowsws2.png)
-
-
-
-
-
-
 
