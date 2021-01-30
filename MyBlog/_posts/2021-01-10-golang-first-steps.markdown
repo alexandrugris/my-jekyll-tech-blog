@@ -223,7 +223,7 @@ var scaler Scaler = &v
 scaler.Scale(10.0)
 ```
 
-Beside interfaces that have functions, go offers a very interesting concept, the empty interface. Any object can be assigned to the empty interface, including the scalar types. Here is an example:
+Beside interfaces that have functions, go offers the empty interface as a method to hold a variable of any type. Any object can be assigned to the empty interface, including the scalar types. Here is an example:
 
 ```go
 // empty interface
@@ -251,6 +251,72 @@ switch v := intf.(type) {
 		fmt.Println("It's a float!", v)
 }
 ```
+
+When it comes to interfaces, golang offers a very elegant solution to encapsulation and type aggregation. It reminds me of power of `IUnknown::QueryInterface()` from `COM`, but embedded in the language itself. It relies on type assertions and embedded types.
+
+```go
+package main
+
+/*Beautiful method for embedding types and exposing interfaces in Golang. */
+
+import (
+	"fmt"
+	"unsafe"
+)
+
+type Writer interface{
+	Write(string)
+}
+
+type Reader interface{
+	Read() string
+}
+
+type ReaderWriter struct{
+	Reader
+	Writer
+}
+
+type rwImplType struct {
+	str string
+}
+
+func (rw *rwImplType) Read() string {
+	// same underlying pointer
+	fmt.Println(unsafe.Pointer(rw))
+	return rw.str
+}
+
+func (rw* rwImplType) Write(msg string){
+	// same underlying pointer
+	fmt.Println(unsafe.Pointer(rw))
+	fmt.Printf("%v: %v\n", rw.str, msg)
+}
+
+func main() {
+
+	// Instatiante a concrete implementation
+	rwImpl := rwImplType{str: "Hello World"}
+	
+	// expose it in an aggregate public interface which
+	// implements several interfaces
+	rwIntf := ReaderWriter{
+		Reader: &rwImpl,
+		Writer: &rwImpl, // can be another implementation
+	}
+	
+	var anon interface{} = rwIntf
+	
+	// QueryInterface()
+	r := anon.(Reader)
+	w := anon.(Writer)
+	
+	// works like a charm :)
+	w.Write(r.Read())
+}
+```
+
+Go playground link [here](https://play.golang.org/p/lBDFao9Yo4G)
 
 Speaking of the `switch` construct, it is quite flexible:
 
