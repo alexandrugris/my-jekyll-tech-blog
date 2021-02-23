@@ -747,3 +747,8 @@ bool expression_equivalence(ExprTree* e1, ExprTree* e2) {
 }
 ```
 
+Below you can see the algorithm running in Visual C++ with the expression expanded. You can notice that all `+`-es are above `*` in the reorganized expression tree.
+
+![Expanded Cannonical Expression]({{site.url}}/assets/prog_cpp2.jpg)
+
+
