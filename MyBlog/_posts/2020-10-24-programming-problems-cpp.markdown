@@ -431,3 +431,319 @@ void all_permutations_no_duplicates(const string& str_) {
 }
 ```
 
+### Problem 8 - Stacks of Boxes
+
+Given a list of boxes, find the highest tower that can be built by stacking boxes on top of each other. A box can be stacked on top of another box only if all its dimensions, width, depth and height, are smaller than those of the box below.
+
+For solving the problem we will start by generating an array of 100 boxes, all with randomly generated dimensions.
+
+The algorithm is started by:
+```cpp
+cout << stack_of_boxes() << endl;
+```
+
+The solution below:
+
+```cpp
+struct Box {
+	Box(int w_, int l_, int h_) : w(w_), l(l_), h(h_){
+	}
+
+	int w, l, h;
+
+	bool sorter(const Box& b) const {
+		return w > b.w;
+	}
+
+	bool can_stack(const Box& b) const {
+		return w > b.w && h > b.h && l > b.l;
+	}
+};
+
+struct Stack {
+
+	Stack(int b, int h, shared_ptr<Stack> next_) : base_box(b), height(h), next(next_) {}
+
+	int base_box;
+	int height;
+	shared_ptr<Stack> next;
+};
+
+int stack_sorted_boxes(
+		list<shared_ptr<Stack>>& s, 
+		const map<int, 
+		vector<int>>& can_stack, 
+		const vector<Box> &v) {
+	
+	bool added = false;
+	int max_height = 0;
+
+	// it is basically a deque
+	for (auto i = s.begin(); i != s.end();) {
+
+		auto stackables = can_stack.find((*i)->base_box);
+		
+		// cannot stack anything on top, this is the end of the stack
+		if (stackables == can_stack.end()) {
+			if (max_height < (*i)->height)
+				max_height = (*i)->height;
+		}
+		else {
+			for (auto j : stackables->second) {
+				// here we don't really need the last parameter
+				// if we are only returning the stack height and not the stask itself
+				s.push_back(make_shared<Stack>(j, (*i)->height + v[j].h, *i));
+			}
+		}
+		i = s.erase(i); // I already put something on top of it
+
+		added = true;
+	}
+	return max_height;
+}
+
+int stack_of_boxes() {
+
+	vector<Box> v;
+
+	// randomly generate 100 boxes
+	for (int i = 0; i < 100; i++) {
+		v.emplace_back(rand() % 100, rand() % 100, rand() % 100);
+	}
+
+	sort(v.begin(), v.end(), [](const Box& b1, const Box& b2) {
+		return b1.sorter(b2);
+		});
+
+	map<int, vector<int>> can_stack;
+
+	// generate a list of boxes that can be stacked upon each other
+	for(int i = 0; i < v.size(); i++)
+		for (int j = i; j < v.size(); j++) {
+			if (v[i].can_stack(v[j]))
+				can_stack[j].push_back(i);
+		}
+
+	list<shared_ptr<Stack>> stacks;
+
+	for (int i = 0; i < v.size(); i++) {
+		stacks.push_back(make_shared<Stack>(i, v[i].h, shared_ptr<Stack>()));
+	}
+
+	return stack_sorted_boxes(stacks, can_stack, v);
+}
+```
+
+### Problem 9 - Expression Equivalence
+
+Given two expressions, `a * (b + c)` and `a * b + a * c`, write an algorithm that will determine if the two expressions are equivalent. In our case above, the two expressions are equivalent.
+
+The solution implies expanding the parantheses and bringing the expression to a cannonical form, a sum of products. To shortcut the parsing, we will consider the expression is given in the form of an expression tree, `(left operand, operation, right operand)`. After the expression is brought to the cannonical form, each term is sorted alphabetically and then all all terms are again sorted. Then we simply compare the strings in order to decide whether the two expressions are equivalent.
+
+The algorithm is started by defining expressions as follows:
+
+```cpp
+ExprTree e1(
+		'*',
+		new ExprTree('*', new ExprTree('+', 'a', 'b'), new ExprTree('a')),
+		new ExprTree('*', new ExprTree('+', 'a', 'b'), new ExprTree('a'))
+	);
+
+ExprTree e2(
+		'*',
+		new ExprTree('+', 'a', 'b'),
+		new ExprTree('+', 'a', 'b')
+	);
+
+ExprTree e3(
+		'*',
+		new ExprTree(
+			'*',
+			new ExprTree('+', 'a', 'b'),
+			new ExprTree('+', 'a', 'b')
+		),
+		new ExprTree(
+			'*',
+			new ExprTree('+', 'a', 'b'),
+			new ExprTree('+', 'a', 'b')
+		)
+	);
+
+// or creating a random tree for faster testing
+ExprTree* e4 = ExprTree::make_random_tree();
+cout << expression_equivalence(e4, &e3) << endl;
+
+delete e4
+```
+
+As a complication, the algorithm must not generate any memory leaks and must use C-style pointers.
+
+Below is the full solution:
+
+```cpp
+struct ExprTree {
+
+	ExprTree(char _op, ExprTree* _left = nullptr, ExprTree* _right=nullptr) :
+		op(_op), left(_left), right(_right){
+	}
+
+	ExprTree(char _op, char a, char b) {
+		op = _op;
+		left = new ExprTree(a);
+		right = new ExprTree(b);
+	}
+
+	~ExprTree() {
+		if(left != nullptr)
+			delete left;
+
+		if(right != nullptr)
+			delete right;
+	}
+
+	ExprTree* deep_copy() {
+
+		return new ExprTree(op, 
+			left ? left->deep_copy() : nullptr, 
+			right ? right->deep_copy() : nullptr);
+	}
+
+	// utility function to generate a random tree
+	// not part of the algorithm
+	static ExprTree* make_random_tree() {
+
+		float f = ((float)rand() / (float)RAND_MAX);
+
+		 if(f < 0.3)
+			 return new ExprTree('a');
+
+		 if (f < 0.6)
+			 return new ExprTree('b');
+		 
+		 if (f < 0.8)
+			 return new ExprTree('*', make_random_tree(), make_random_tree());
+
+		 return new ExprTree('+', make_random_tree(), make_random_tree());
+
+	}
+
+	char op;
+	ExprTree* left;
+	ExprTree* right;
+};
+
+void expand_paranthesis(ExprTree* start) {
+
+	if (start->op != '+' && start->op != '*')
+		return; // terminal symbol
+
+	// we need to start with the recursion condition in order
+	// to bubble up the +'es. we cannot have a * above a +
+	expand_paranthesis(start->left);
+	expand_paranthesis(start->right);
+
+	if (start->op == '*') {
+
+		auto tmpop = start->op;
+
+		// (a + b) * (a + b) 
+		if (start->right->op == '+' && start->left->op == '+') {
+
+			start->op = '+';
+			
+			auto tmp_left_a = start->left->left;
+			auto tmp_right_a = start->right->left;
+			auto tmp_left_b = start->left->right;
+			auto tmp_right_b = start->right->right;
+
+			start->left = new ExprTree('+',
+				new ExprTree('*', tmp_left_a, tmp_right_a),
+				new ExprTree('*', tmp_left_a->deep_copy(), tmp_right_b));
+
+			start->right = new ExprTree('+',
+				new ExprTree('*', tmp_left_b, tmp_right_a->deep_copy()),
+				new ExprTree('*', tmp_left_b->deep_copy(), tmp_right_b->deep_copy()));
+		}
+		// a * (b + c)
+		else if (start->right->op == '+') {
+			start->op = '+';
+			auto deep_copy_left = start->left->deep_copy();
+			start->left = new ExprTree('*', start->left, start->right->left);
+			start->right = new ExprTree('*', deep_copy_left, start->right->right);
+		}
+
+		//(b + c) * a
+		else if (start->left->op == '+') {
+			start->op = '+';
+			auto tmp = start->left;
+			auto start_right_copy = start->right->deep_copy();
+			start->left = new ExprTree('*', tmp->left, start->right);
+			start->right = new ExprTree('*', tmp->right, start_right_copy);
+		}
+
+		// what has been arranged before is 
+		// no longer arranged because we changed the structure of the tree
+		if (tmpop != start->op) {
+			expand_paranthesis(start->left);
+			expand_paranthesis(start->right);
+		}
+	}
+}
+
+void get_set(ExprTree* e, vector<char>& s) {
+	if (e->op == '*') {
+		get_set(e->left, s);
+		get_set(e->right, s);
+	}
+	else {
+		s.push_back(e->op);
+	}
+}
+
+void to_sorted_vector(ExprTree* e, vector<string> & ret) {
+
+	if (e->op == '+') {
+		to_sorted_vector(e->left, ret);
+		to_sorted_vector(e->right, ret);
+	}
+	else if (e->op == '*') {
+		vector<char> v;
+
+		get_set(e->left, v);
+		get_set(e->right, v);
+
+		string s;
+		sort(v.begin(), v.end());
+		copy(v.begin(), v.end(), back_inserter(s));
+		ret.push_back(s);
+	}
+}
+
+bool expression_equivalence(ExprTree* e1, ExprTree* e2) {
+
+	expand_paranthesis(e1);
+	expand_paranthesis(e2);
+	
+	// each term is sorted alphabetically
+	vector<string> e1_str;
+	to_sorted_vector(e1, e1_str);
+
+	vector<string> e2_str;
+	to_sorted_vector(e2, e2_str);
+
+	// all terms are sorted alphabetically
+	sort(e1_str.begin(), e1_str.end());
+	sort(e2_str.begin(), e2_str.end());
+
+	auto it1 = e1_str.begin();
+	auto it2 = e2_str.begin();
+
+	// simple pairwise comparison
+	for (; it1 != e1_str.end() && it2 != e2_str.end(); it1++, it2++) {
+		if (*it1 != *it2) return false;
+	}
+
+	return it1 == e1_str.end() && it2 == e2_str.end();
+}
+```
+
