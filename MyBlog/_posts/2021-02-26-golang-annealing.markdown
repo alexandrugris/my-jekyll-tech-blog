@@ -5,7 +5,7 @@ date:   2021-02-26 09:15:16 +0200
 categories: programming
 ---
 
-As Go is quickly becoming my favourite programming language in this post we will switch gears and we are going to implement an optimization algorithm - simulated annealing. We are going to solve the travelling salesman problem and, in the process, we will build a graphical app and a bare bones charting library. 
+As Go is quickly becoming my favourite programming language, in this post we switch gears and implement an optimization algorithm - simulated annealing. We will solve the travelling salesman problem and, in the process, we will build a desktop app and a bare bones charting library. 
 
 ### Simulated Annealing
 
@@ -335,7 +335,7 @@ func main() {
 
 ### Easy Charting From Go
 
-Since I couldn't find any charting library that met my needs, being easy to use from a desktop application, I've decided to build my own. It relies on the excellent matplotlib library from python. The solution is simple: it generates a python script containing all the values I need to plot and then it launches that script in a separate process with its own window. For this we are using golang text templates to generate the script. I will extend the library for future use with other types of charts. Below you can see the code:
+Since I couldn't find any charting library that met my needs, to be easy to use from a desktop application, I've decided to build my own. It relies on the excellent matplotlib library from python. The solution is simple: it generates a python script containing all the values I need to plot and, then, it launches that script in a separate process with its own window. For this we are using golang text templates to generate the script. I will extend the library for future use with other types of charts. Below you can see the code:
 
 The template:
 
