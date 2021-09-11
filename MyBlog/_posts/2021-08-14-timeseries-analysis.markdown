@@ -82,6 +82,9 @@ def gen_ts(start, coefs, count, error):
 
 v = gen_ts([0, 1, 2], [0.5, 0.2, 0.1], 100, 1.0) # sum of coefficients < 1
 plt.plot(v)
+
+# automatically test for the best lag to use
+# AIC comes from https://en.wikipedia.org/wiki/Akaike_information_criterion
 p_value = adfuller(v, autolag='AIC')[1]
 print(p_value)
 ```
@@ -111,6 +114,70 @@ plot_pacf(lynx_ts, lags=10)
 
 We see in these charts that autocorrelation decreases as we look backwards in the series. This means that we are likely dealing with an auto-regressive process. If we are to build an auto-regressive model for this series we'll probably select coefficients 1, 2, 4 and 6.In the charts above, the blue bands are the error margin, everything within the bands are not statistically significant. The coefficient 0 is always 1, as it is the correlation of the timeseries with itself. 
 
-Another concept is white noise: mean is0, variance constant with time and no lag auto-correlation, no matter the lag value. White noise is not predictable. 
+Another concept is white noise: mean is 0, variance constant with time and no lag auto-correlation, no matter the lag value. White noise is not predictable. 
+
+Since timeseries tend to be noisy, we introduce the concept of moving average. When selecting the smoothing period, one needs to pay attention to aliasing effects that occur when the length of interval is larger than half of the period. 
+
+```python
+plt.plot(pd.Series(v).rolling(10).mean()[9:])
+```
+
+Another type of window is the Exponentially Weighted Window, (`ewm`) which is similar to an expanding window but with each prior point being exponentially weighted down relative to the current point. Pandas offers also different types of windows, such as triangular, Gaussian or custom. Below an example of a Gaussian smoothing and one Exponentially Weighted.
+
+```python
+# exponentially weighted - important to notice 
+# that the window is extending, so first few values 
+# have more variability
+# alpha is a parameter of how much smoothing (0 : 1),
+# 1 being no smoothing at all
+plt.plot(lynx_ts.ewm(alpha=0.1).mean())
+```
+
+```python
+# center=True must be specified, otherwise the smoothing shifts the series right
+plt.plot(lynx_ts.rolling(window=10, win_type="gaussian", center=True).mean(std=1))
+```
+![Original Series - EWM - Gaussian]({{site.url}}/assets/tsa_smoothing.jpg)
+
+# ARIMA Models
+
+An ARIMA model has 3 parameters:
+
+- `p` : the order of autoregression (the summation of the weighted lags) - `AR`
+- `d` : the degree of differencing (used to make the dataset stationary if it is not) - `I`
+- `q` : the order of moving average (the summation of the lags of the forecast errors) - `MA`
+
+Examples (`ARIMA(p, d, q)`):
+
+ - `ARIMA (p=1, d=0, q=0) <=> Y(t) = coef + phi_1 * Y(t-1) + error(t)` - lag 1 autoregressive model (1 is the lag)
+ - `ARIMA (p=1, d=0, q=1) <=> Y(t) = coef + phy_1 * Y(t-1) + theta_1 * error(t-1) + error(t)` - this time error is a regression too.
+ - `ARIMA (p=0, d=1, q=0) <=> Y(t) = coef + Y(t-1) + error(t)` is a random walk. The differencing equation, `Y(t) - Y(t-1) = coef + error(t)`, is needed so that the remaining `ARMA` model is applied on stationary data. A random walk is not stationary.
+
+ # ARIMA Model Parameter Selection
+
+ First step is to check for stationarity using the Augmented Dickey-Fuller test. If the data is not stationary, we need to set the `d` parameter.
+
+ The second step is to set the `p` and `q` parameters by inspecting the `ACF` and `PACF` plots. The `ACF` plot tells more about the Moving Average parameter `q` while pe `PACF` plot tells more about the Auto-Regressive parameter `p`.
+
+To avoid over-fitting, a rule of thumb is to start the parameter selection with the plot that has the least amount of lags outside of the significance bands and then consider the lowest reasonable amount of lags.
+
+On the Lynx dataset, this looks as the following:
+
+![ACF and PACF Lynx On The Dataset]({{site.url}}/assets/tsa_lynx_pacf.JPG)
+
+Because the PACF chart is mostly inside the benchmark with lags 1 and 2 the most prominent, we start with it. Our first model we aim to fit is an auto regressive (AR) model with lag 2. 
+
+```python
+from statsmodels.tsa.arima_model import ARIMA
+
+m = ARIMA(lynx_ts, order=(2,0,0))
+results = m.fit()
+plt.plot(lynx_ts)
+plt.plot(results.fittedvalues, color="orange")
+```
+
+Even with this simple model, we have a pretty good fit.
+
+![The first ARIMA fitted model]({{site.url}}/assets/tsa_arima_lynx.png)
 
 
