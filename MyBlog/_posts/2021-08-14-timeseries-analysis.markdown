@@ -150,7 +150,7 @@ An ARIMA model has 3 parameters:
 Examples (`ARIMA(p, d, q)`):
 
  - `ARIMA (p=1, d=0, q=0) <=> Y(t) = coef + phi_1 * Y(t-1) + error(t)` - lag 1 autoregressive model (1 is the lag)
- - `ARIMA (p=1, d=0, q=1) <=> Y(t) = coef + phy_1 * Y(t-1) + theta_1 * error(t-1) + error(t)` - this time error is a regression too.
+ - `ARIMA (p=1, d=0, q=1) <=> Y(t) = coef + phi_1 * Y(t-1) + theta_1 * error(t-1) + error(t)` - this time error is a regression too.
  - `ARIMA (p=0, d=1, q=0) <=> Y(t) = coef + Y(t-1) + error(t)` is a random walk. The differencing equation, `Y(t) - Y(t-1) = coef + error(t)`, is needed so that the remaining `ARMA` model is applied on stationary data. A random walk is not stationary.
 
  # ARIMA Model Parameter Selection
@@ -180,4 +180,22 @@ Even with this simple model, we have a pretty good fit.
 
 ![The first ARIMA fitted model]({{site.url}}/assets/tsa_arima_lynx.png)
 
+Let's check the residuals now. We are searching for:
+- 0 mean
+- Normal distribution
+- See if they have autocorrelation
 
+```python
+resid = lynx_ts - results.fittedvalues
+plt.hist(resid)
+
+import scipy.stats as stats
+# visual inspection of the residuals
+plt.hist(resid)
+# Shapiro test for normality
+stats.shapiro(stats.zscore(resid))[1]
+```
+
+![Residuals ACF and Normality Checks]({{site.url}}/assets/tsa_resid.png)
+
+The plots above show little to no autocorrelation, but it is hard to accept that the residuals are normally distributed. 
