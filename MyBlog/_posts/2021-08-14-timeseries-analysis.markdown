@@ -112,32 +112,93 @@ A series can be stationary, that is the mean is 0 and the variance constant with
 
 Let's plot some generated time series to explore the PCF and PACF charts for various cases.
 
-
-
-Since timeseries tend to be noisy, we introduce the concept of moving average. When selecting the smoothing period, one needs to pay attention to aliasing effects that occur when the length of interval is larger than half of the period. 
-
 ```python
-plt.plot(pd.Series(v).rolling(10).mean()[9:])
+white_noise = np.random.normal(0, 10, size=100)
+plot_acf(white_noise)
+plt.show()
+plot_pacf(white_noise)
+plt.show()
 ```
 
-Another type of window is the Exponentially Weighted Window, (`ewm`) which is similar to an expanding window but with each prior point being exponentially weighted down relative to the current point. Pandas offers also different types of windows, such as triangular, Gaussian or custom. Below an example of a Gaussian smoothing and one Exponentially Weighted.
+![ACF White Noise]({{site.url}}/assets/ts_acf_white_noise.png)
+
+![PACF White Noise]({{site.url}}/assets/ts_pacf_white_noise.png)
+
+Let's plot a perfect AR(1) model, with no noise.
 
 ```python
-# exponentially weighted - important to notice 
-# that the window is extending, so first few values 
-# have more variability
-# alpha is a parameter of how much smoothing (0 : 1),
-# 1 being no smoothing at all
-plt.plot(lynx_ts.ewm(alpha=0.1).mean())
+# ar(1) process
+ts2 = [white_noise[0]]
+phi_0 = 10
+phi_1 = 0.8
+k = 0 # 0 = perfectly noiseless, 1 = very noisy
+
+# Expected value of the timeseries (perfect timeseries converges to this value)
+miu = phi_0 / (1-phi_1)
+print("Expected value: ", miu)
+
+for i in range(1, 100):
+    # note that without the error term this goes fast to the mean
+    # AR(1)
+    ts2.append(phi_0 + ts2[i-1] * phi_1 + k * white_noise[i])
+
+ts2 = np.array(ts2)
+plt.plot(ts2)
+
+plot_acf(ts2, lags=40)
+plt.show()
+plot_pacf(ts2, lags=40)
+plt.show()
 ```
+
+The time series converges to `miu=phi_0 / (1-phi_1) = 50`. 
+
+![Perfect AR converges to expected value]({{site.url}}/assets/ts_perfect_ar_1.png)
+
+![Perfect AR(1) ACF]({{site.url}}/assets/ts_perfect_ar_1_acf.png)
+
+![Perfect AR(1) PACF]({{site.url}}/assets/ts_perfect_ar_1_pacf.png)
+
+
+The same expected value can be observed if we increase the noise:
+
+![Noisy AR(1)]({{site.url}}/assets/ts_ar1_noisy.png)
+
+Now, let's plot an MA (moving average) process:
 
 ```python
-# center=True must be specified, otherwise the smoothing shifts the series right
-plt.plot(lynx_ts.rolling(window=10, win_type="gaussian", center=True).mean(std=1))
-```
-![Original Series - EWM - Gaussian]({{site.url}}/assets/tsa_smoothing.jpg)
+ts3 = [white_noise[0]]
+mean = 10
+phi_1 = 0.8
+for i in range(1, 100):
+    # MA(1) - coef applied to the previous error
+    ts3.append(mean + white_noise[i] + theta_1 * white_noise[i-1])
 
-# ARIMA Models
+ts3 = np.array(ts3)
+plt.plot(ts3)
+
+plot_acf(ts3, lags=40)
+plt.show()
+plot_pacf(ts3, lags=40)
+plt.show()
+```
+
+![MA(1)]({{site.url}}/assets/ts_ma1.png)
+
+![MA(1) ACF]({{site.url}}/assets/ts_ma1_acf.png)
+
+![MA(1) PACF]({{site.url}}/assets/ts_ma1_pacf.png)
+
+
+Unlike an autoregressive process, which has a slowly decaying ACF, the definition of the MA process ensures a sharp cutoff of the ACF for any value greater than q, the order of the MA process. This is because an autoregressive process depends on previous terms, and they incorporate previous impulses to the system, whereas an MA model, incorporating the impulses directly through their value, has a mechanism to stop the impulse propagation from progressing indefinitely. This also means that, forecasting beyond the value lag value of q will only return the mean, since there is no more noise to incorporate.
+
+To summarize, when trying to identify what kind of model we try to fit, we have the following rules:
+
+- *AR(p)* - ACF falls off slowly, PACF has sharp drop after lag = p
+- *MA(q)* - ACF has a sharp drop after lag = q,  PACF falls off slowly
+- *ARMA(p,q)* - No sharp cutoff, neither for ACF nor for PACF
+
+# Fitting ARIMA Models
 
 An ARIMA model has 3 parameters:
 
@@ -147,44 +208,74 @@ An ARIMA model has 3 parameters:
 
 Examples (`ARIMA(p, d, q)`):
 
- - `ARIMA (p=1, d=0, q=0) <=> Y(t) = coef + phi_1 * Y(t-1) + error(t)` - lag 1 autoregressive model (1 is the lag)
- - `ARIMA (p=1, d=0, q=1) <=> Y(t) = coef + phi_1 * Y(t-1) + theta_1 * error(t-1) + error(t)` - this time error is a regression too.
+ - `ARIMA (p=1, d=0, q=0) <=> Y(t) = coef + phi_1 * Y(t-1) + error(t)` - lag 1 autoregressive model
+ - `ARIMA (p=1, d=0, q=1) <=> Y(t) = coef + phi_1 * Y(t-1) + theta_1 * error(t-1) + error(t)` - 
  - `ARIMA (p=0, d=1, q=0) <=> Y(t) = coef + Y(t-1) + error(t)` is a random walk. The differencing equation, `Y(t) - Y(t-1) = coef + error(t)`, is needed so that the remaining `ARMA` model is applied on stationary data. A random walk is not stationary.
+  - `ARIMA(p=0, d=1, q=1)` is an exponential smoothing model
 
  # ARIMA Model Parameter Selection
 
  First step is to check for stationarity using the Augmented Dickey-Fuller test. If the data is not stationary, we need to set the `d` parameter.
 
- The second step is to set the `p` and `q` parameters by inspecting the `ACF` and `PACF` plots. The `ACF` plot tells more about the Moving Average parameter `q` while pe `PACF` plot tells more about the Auto-Regressive parameter `p`.
+ The second step is to set the `p` and `q` parameters by inspecting the `ACF` and `PACF` plots, as described before.
 
-To avoid over-fitting, a rule of thumb is to start the parameter selection with the plot that has the least amount of lags outside of the significance bands and then consider the lowest reasonable amount of lags.
+To avoid over-fitting, a rule of thumb is to start the parameter selection with the plot that has the least amount of lags outside of the significance bands and then consider the lowest reasonable amount of lags. The ARIMA model is not necessary unique, as we will see in the following example where we start from a complex timeseries which can be approximated very well with a simpler model.
 
-On the Lynx dataset, this looks as the following:
-
-![ACF and PACF Lynx On The Dataset]({{site.url}}/assets/tsa_lynx_pacf.JPG)
-
-Because the PACF chart is mostly inside the benchmark with lags 1 and 2 the most prominent, we start with it. Our first model we aim to fit is an auto regressive (AR) model with lag 2. 
+Let's generate some data:
 
 ```python
-from statsmodels.tsa.arima_model import ARIMA
+arma_series = [white_noise[0], white_noise[1]]
+m = 5
+phi_1 = 0.4
+phi_2 = 0.3
+theta_1 = 0.2
+theta_2 = 0.2
 
-m = ARIMA(lynx_ts, order=(2,0,0))
+# AR(2) I(0) MA(2)
+for i in range(2, 100):
+    arma_series.append( \
+        m + \
+        arma_series[i-1] * phi_1 + arma_series [i-2] * phi_2 + \
+        white_noise[i] + theta_1 * white_noise[i-1] + theta_2 * white_noise [i-2])
+
+plt.plot(arma_series)
+plt.show()
+
+adf = adfuller(arma_series, autolag='AIC')[1]
+print(adf) # stationary
+
+arma_series = np.array(arma_series)
+
+# fit the model
+plot_acf(arma_series)
+plt.show()
+plot_pacf(arma_series)
+plt.show()
+```
+![Time Series]({{site.url}}/assets/ts_ts.png)
+
+![Time Series ACF]({{site.url}}/assets/ts_ts_acf.png)
+
+![Time Series PACF]({{site.url}}/assets/ts_ts_pacf.png)
+
+We observe a sharp cutoff in the PACF after lag 1 and slow decay in the ACF. This leads to try to fit an `ARIMA(1, 0, 0)`.
+
+```python
+from statsmodels.tsa.arima.model import ARIMA
+
+m = ARIMA(arma_series, order=(1,0,0))
 results = m.fit()
-plt.plot(lynx_ts)
+plt.plot(arma_series)
 plt.plot(results.fittedvalues, color="orange")
+print(results.arparams) # 0.78
 ```
 
-Even with this simple model, we have a pretty good fit.
+![Fitted time series (orange)]({{site.url}}/assets/ts_ts_fitted.png)
 
-![The first ARIMA fitted model]({{site.url}}/assets/tsa_arima_lynx.png)
-
-Let's check the residuals now. We are searching for:
-- 0 mean
-- Normal distribution
-- See if they have autocorrelation
+A pretty good approximation of the initial complex model can be obtained with an AR(1) model. Let's analyse the residuals to see how much information did we capture in our model and if there are autoregressive behaviors we have missed. In our case residuals are normally distributed as seen in the histogram and proven by the Shapiro test and in the ACF and PACF plots we do not see any autoregressive tendencies we might have missed.
 
 ```python
-resid = lynx_ts - results.fittedvalues
+resid = arma_series - results.fittedvalues
 plt.hist(resid)
 
 import scipy.stats as stats
@@ -192,8 +283,16 @@ import scipy.stats as stats
 plt.hist(resid)
 # Shapiro test for normality
 stats.shapiro(stats.zscore(resid))[1]
+
+# no autocorrelation
+plot_acf(resid)
+plt.show()
+plot_pacf(resid)
+plt.show()
 ```
 
-![Residuals ACF and Normality Checks]({{site.url}}/assets/tsa_resid.png)
+![Residuals Histogram]({{site.url}}/assets/ts_residuals.png)
 
-The plots above show little to no autocorrelation, but it is hard to accept that the residuals are normally distributed. 
+![Residuals ACF]({{site.url}}/assets/ts_residuals_acf.png)
+
+![Residuals PACF]({{site.url}}/assets/ts_residuals_pacf.png)
