@@ -5,63 +5,37 @@ date:   2021-08-14 09:15:16 +0200
 categories: programming
 ---
 
-This post is about timeseries analysis in Python. It uses Google Collab for running Python notebooks.
+This post is about statistical models for timeseries analysis in Python. We will cover the ARIMA model to a certain depth.
 
-### The Datasets
+### Linear Regression and Timeseries
 
-Before we dive into the code for analyzing timeseries, let's load the data. We load two  public datasets, one for analyzing non-periodic data, the other one for periodic. The first data set representing [lynx trappings in Canada between 1821 and 1934](https://rdrr.io/cran/fma/man/lynx.html), the second one, [the average monthly temperatures in Notthingham between 1920 and 1939](https://www.rdocumentation.org/packages/datasets/versions/3.6.2/topics/nottem).
 
-```python
-import pandas as pd
+Using a linear regression with time series is problematic. Linear regression  assumes you have independently and identically distributed data. In time series data, points near in time tend to be strongly correlated with one another. In fact, when there aren’t temporal correlations, time series data is hardly useful for traditional time series tasks,
+such as predicting the future or understanding temporal dynamics. Linear regression can be used with timeseries when linear regression assumptions hold. Such a case is when the predicted variable is fully dependent on its predictors, for instance when the timeseries component is entirely embedded in one of the features and the errors preserve the normality assumption with no autocorrelation.
 
-lynx_df = pd.read_csv("/content/drive/MyDrive/Datasets/LYNXdata.csv", 
-    index_col=0, 
-    header=0, 
-    names=['year', 'trappings'])
-
-nottem_df = pd.read_csv("/content/drive/MyDrive/Datasets/nottem.csv", 
-    index_col=0, 
-    header=0, 
-    names=['index', 'temp'])
-```
-
-And then transform it to time-annotated series:
-
-```python
-lynx_ts = pd.Series(
-    lynx_df["trappings"].values, 
-    pd.date_range('31/12/1821', 
-    periods=len(lynx_df), 
-    freq='A-DEC'))
-
-nottem_df = pd.Series(
-    nottem_df["temp"].values, 
-    pd.date_range('31/01/1920', 
-    periods=len(nottem_df), 
-    freq='M'))
-
-lynx_ts.plot()
-nottem_df.plot()
-```
-
-![Lynx TS]({{site.url}}/assets/tsa_lynx.jpg)
-
-![Nottem TS]({{site.url}}/assets/tsa_nottem.jpg)
 
 ### The Statistics Of Time Series
 
 An excellent introduction on time series can be found [here](https://www.youtube.com/playlist?list=PLvcbYUQ5t0UHOLnBzl46_Q6QKtFgfMGc3).
 
-Timeseries have two properties of major interest:
+Timeseries bring several concepts of interest
 
 - Stationarity: constant statistical properties of the timeseries (mean, variance, no seasonality)
-- Autocorrelation: correlation between subsequent values of a timeseries
+- Self-correlation: correlation between subsequent values of a timeseries
+- Seasonality: time-based patterns tha repeat at set intervals
+- Spurious correlations: the propensity of timeseries to correlate with other unrelated timeseries especially when seasonality or trends are present.
 
-Most of the timeseries have a trend, that is the mean is not constant. In this case, we need to remove the trend from the data. Relevant concepts are [trend-stationarity](https://en.wikipedia.org/wiki/Trend-stationary_process) and [difference-stationarity](https://en.wikipedia.org/wiki/Unit_root).
+A log transformation or a square root transformation are two usually good options for making a timeseries stationary,particularly in the case of changing variance over time. 
+
+Most of the timeseries have a trend, that is the mean is not constant - [trend-stationarity](https://en.wikipedia.org/wiki/Trend-stationary_process) and [difference-stationarity](https://en.wikipedia.org/wiki/Unit_root). Removing a trend is most commonly done by differencing. Sometimes a series must be differenced more than once. However, if you find yourself differencing too much (more than two or three times) it is unlikely that you can fix your stationarity problem with differencing.
 
 If `v(t_i+1) - v(t_i)` is random and stationary, then the process generating the series is a random walk, else a more refined model is required. 
 
-The test that is mainly used for testing stationarity is called the [Augmented Dickey Fuller Test](https://en.wikipedia.org/wiki/Augmented_Dickey%E2%80%93Fuller_test). It removes the autocorrelation and tests for equal mean and equal variance throughout the series. The null hypothesis is non-stationarity, that means that only if the p-value is less than 0.05 we can assume stationarity. Dickey Fuller test assumes that the time series is an AR1 process (auto-regressive one), that is, it can be written as `y(t) = phi * y(t-1) + constant + error`. The ADF test's null hypothesis is `phi >= 1`. The alternate hypothesis is that `phi < 1`. ADF extends the test ARn series and its null hypothesis is that `sum(phi_i)>=1`.
+The test that is mainly used for testing stationarity is called the [Augmented Dickey Fuller Test](https://en.wikipedia.org/wiki/Augmented_Dickey%E2%80%93Fuller_test). It removes the autocorrelation and tests for equal mean and equal variance throughout the series. The null hypothesis is the non-stationarity. 
+
+The Dickey Fuller test assumes that the time series is an AR1 process (auto-regressive one), that is, it can be written as `y(t) = phi * y(t-1) + constant + error`. The DF test's null hypothesis is `phi >= 1`. The alternate hypothesis is that `phi < 1`.  This `phi == 1` is called a unit root. A good explanation of unit roots can be found [here](https://www.youtube.com/watch?v=ugOvehrTRRw).
+
+ADF extends the test to ARn series and this null hypothesis is that `sum(phi_i)>=1`. The difference between the basic DF test and the ADF test is that the latter makes is to account for more lags. The test of whether a series is stationary is a test of whether a series is integrated. An integrated series of order `n` is a series that must be differenced `n` times to become stationary.
 
 ```python
 import random
@@ -91,16 +65,36 @@ print(p_value)
 
 ![ADF]({{site.url}}/assets/tsa_adf.jpg)
 
-A good explanation of unit roots can be found [here](https://www.youtube.com/watch?v=ugOvehrTRRw).
+For detecting auto correlation, we introduce two measures:
+- The *ACF* - the autocorrelation between the value at `t` and `t-n`, *including* the intermediary values, `(t-1 .. t-n-1)`. E.g. the effect of prices 2 months ago vs the prices today, including the effect of the prices 2 months ago on the prices 1 month ago and the prices from 1 month ago on today's prices.
+- The *PACF* - the autocorrelation between the value at `t` and `t-n` *excluding* the intermediary values. 
 
-*Other important notions concerning timeseries:*
+The ACF is the Pearson correlation between the values `ti` and the lagged `ti-k` values. For the PACF we do a regression on the values of the timeseries at time `ti` on the `ti-k` of the form `ti=phi_1*ti_-1 + phi_2*ti_-2 + ... + phi_k*ti_-k + error_term` - autoregressive lag `k`. `phi_k` is our PACF(k).
 
-- *ACF* - the autocorrelation between the value at `t` and `t-n`, *including* the intermediary values, `(t-1 .. t-n-1)`. E.g. the effect of prices 2 months ago vs the prices today, including the effect of the prices 2 months ago on the prices 1 month ago and the prices from 1 month ago on today's prices.
-- *PACF* - the autocorrelation between the value at `t` and `t-n` *excluding* the intermediary values. 
+To plot these a real dataset:
 
-ACF is easy to find, you just do a Pearson correlation between the values `ti` and the lagged `ti-k` values. For PACF we do a regression on the values of the timeseries at time `ti` on the `ti-k` of the form `ti=phi_1*ti_-1 + phi_2*ti_-2 + ... + phi_k*ti_-k + error_term` - autoregressive lag `k`. `phi_k` is our PACF(k).
+```python
+import pandas as pd
 
-To plot these on our data set:
+lynx_df = pd.read_csv("/content/drive/MyDrive/Datasets/LYNXdata.csv", 
+    index_col=0, 
+    header=0, 
+    names=['year', 'trappings'])
+```
+
+And then transform it to time-annotated series:
+
+```python
+lynx_ts = pd.Series(
+    lynx_df["trappings"].values, 
+    pd.date_range('31/12/1821', 
+    periods=len(lynx_df), 
+    freq='A-DEC'))
+
+lynx_ts.plot()
+```
+
+![Lynx TS]({{site.url}}/assets/tsa_lynx.jpg)
 
 ```python
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
@@ -112,9 +106,13 @@ plot_pacf(lynx_ts, lags=10)
 
 ![PACF]({{site.url}}/assets/tsa_pacf.jpg)
 
-We see in these charts that autocorrelation decreases as we look backwards in the series. This means that we are likely dealing with an auto-regressive process. If we are to build an auto-regressive model for this series we'll probably select coefficients 1, 2, 4 and 6.In the charts above, the blue bands are the error margin, everything within the bands are not statistically significant. The coefficient 0 is always 1, as it is the correlation of the timeseries with itself. 
+We see in these charts that autocorrelation decreases as we look backwards in the series. This means that we are likely dealing with an auto-regressive process. If we are to build an auto-regressive model for this series we'll probably consider the coefficients for the 1, 2, 4 and 6 lags. The blue bands are the error margin; everything within the bands are not statistically significant. The coefficient with index 0 is always 1, as it is the correlation of the timeseries with itself. 
 
-Another concept is white noise: mean is 0, variance constant with time and no lag auto-correlation, no matter the lag value. White noise is not predictable. 
+A series can be stationary, that is the mean is 0 and the variance constant with time, but with no lag auto-correlation, no matter the lag value. Such a series is called white noise and it is not predictable. 
+
+Let's plot some generated time series to explore the PCF and PACF charts for various cases.
+
+
 
 Since timeseries tend to be noisy, we introduce the concept of moving average. When selecting the smoothing period, one needs to pay attention to aliasing effects that occur when the length of interval is larger than half of the period. 
 
