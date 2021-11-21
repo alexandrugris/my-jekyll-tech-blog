@@ -10,9 +10,9 @@ This post is about statistical models for timeseries analysis in Python. We will
 ### Linear Regression and Timeseries
 
 
-Using a linear regression with time series is problematic. Linear regression  assumes you have independently and identically distributed data. In time series data, points near in time tend to be strongly correlated with one another. In fact, when there aren’t temporal correlations, time series data is hardly useful for traditional time series tasks,
-such as predicting the future or understanding temporal dynamics. Linear regression can be used with timeseries when linear regression assumptions hold. Such a case is when the predicted variable is fully dependent on its predictors, for instance when the timeseries component is entirely embedded in one of the features and the errors preserve the normality assumption with no autocorrelation.
+Using a statistical tools such as linear regression with time series can be problematic. Linear regression  assumes you have independently and normally distributed data, while, in time series data, points near in time tend to be strongly correlated with one another. This is precisely the property that makes timeseries analysis important as, if there aren’t temporal correlations, it would be impossible to perform tasks such as predicting the future or understanding temporal dynamics. 
 
+Linear regression can be used with timeseries when linear regression assumptions hold, for instance when the predicted variable is fully dependent on its predictors and the errors preserve the normality assumption with no autocorrelation. In such a case, the timeseries element is entirely embedded in one of the features.
 
 ### The Statistics Of Time Series
 
@@ -63,8 +63,6 @@ p_value = adfuller(v, autolag='AIC')[1]
 print(p_value)
 ```
 
-![ADF]({{site.url}}/assets/tsa_adf.jpg)
-
 For detecting auto correlation, we introduce two measures:
 - The *ACF* - the autocorrelation between the value at `t` and `t-n`, *including* the intermediary values, `(t-1 .. t-n-1)`. E.g. the effect of prices 2 months ago vs the prices today, including the effect of the prices 2 months ago on the prices 1 month ago and the prices from 1 month ago on today's prices.
 - The *PACF* - the autocorrelation between the value at `t` and `t-n` *excluding* the intermediary values. 
@@ -94,7 +92,7 @@ lynx_ts = pd.Series(
 lynx_ts.plot()
 ```
 
-![Lynx TS]({{site.url}}/assets/tsa_lynx.jpg)
+![Lynx TS]({{site.url}}/assets/tsa_lynx.png)
 
 ```python
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
@@ -102,9 +100,9 @@ plot_acf(lynx_ts, lags=100)
 plot_pacf(lynx_ts, lags=10)
 ```
 
-![ACF]({{site.url}}/assets/tsa_acf.jpg)
+![ACF]({{site.url}}/assets/tsa_acf.png)
 
-![PACF]({{site.url}}/assets/tsa_pacf.jpg)
+![PACF]({{site.url}}/assets/tsa_pacf.png)
 
 We see in these charts that autocorrelation decreases as we look backwards in the series. This means that we are likely dealing with an auto-regressive process. If we are to build an auto-regressive model for this series we'll probably consider the coefficients for the 1, 2, 4 and 6 lags. The blue bands are the error margin; everything within the bands are not statistically significant. The coefficient with index 0 is always 1, as it is the correlation of the timeseries with itself. 
 
@@ -194,11 +192,11 @@ Unlike an autoregressive process, which has a slowly decaying ACF, the definitio
 
 To summarize, when trying to identify what kind of model we try to fit, we have the following rules:
 
-- *AR(p)* - ACF falls off slowly, PACF has sharp drop after lag = p
-- *MA(q)* - ACF has a sharp drop after lag = q,  PACF falls off slowly
-- *ARMA(p,q)* - No sharp cutoff, neither for ACF nor for PACF
+- `AR(p)` - ACF falls off slowly, PACF has sharp drop after lag = p
+- `MA(q)` - ACF has a sharp drop after lag = q,  PACF falls off slowly
+- `ARMA(p,q)` - No sharp cutoff, neither for ACF nor for PACF
 
-# Fitting ARIMA Models
+### Fitting ARIMA Models
 
 An ARIMA model has 3 parameters:
 
@@ -213,7 +211,7 @@ Examples (`ARIMA(p, d, q)`):
  - `ARIMA (p=0, d=1, q=0) <=> Y(t) = coef + Y(t-1) + error(t)` is a random walk. The differencing equation, `Y(t) - Y(t-1) = coef + error(t)`, is needed so that the remaining `ARMA` model is applied on stationary data. A random walk is not stationary.
   - `ARIMA(p=0, d=1, q=1)` is an exponential smoothing model
 
- # ARIMA Model Parameter Selection
+ ### ARIMA Model Parameter Selection
 
  First step is to check for stationarity using the Augmented Dickey-Fuller test. If the data is not stationary, we need to set the `d` parameter.
 
@@ -296,3 +294,21 @@ plt.show()
 ![Residuals ACF]({{site.url}}/assets/ts_residuals_acf.png)
 
 ![Residuals PACF]({{site.url}}/assets/ts_residuals_pacf.png)
+
+Returning to our Lynx timeseries which was shown earlier, let's train an ARIMA model and see how it fits.
+
+```python
+from statsmodels.tsa.arima.model import ARIMA
+m = ARIMA(lynx_ts, order=([1], 0, 1))
+results = m.fit()
+plt.plot(lynx_ts)
+plt.plot(results.fittedvalues, color="orange")
+print(results.arparams)
+```
+
+![Lynx model fit]({{site.url}}/assets/tsa_lynx_arima.png)
+
+Exported notebook is [here](https://alexandrugris.ro/timeseries.html)
+
+
+
