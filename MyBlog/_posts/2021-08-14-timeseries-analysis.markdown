@@ -211,7 +211,7 @@ Examples (`ARIMA(p, d, q)`):
  - `ARIMA (p=0, d=1, q=0) <=> Y(t) = coef + Y(t-1) + error(t)` is a random walk. The differencing equation, `Y(t) - Y(t-1) = coef + error(t)`, is needed so that the remaining `ARMA` model is applied on stationary data. A random walk is not stationary.
   - `ARIMA(p=0, d=1, q=1)` is an exponential smoothing model
 
- ### ARIMA Model Parameter Selection
+### ARIMA Model Parameter Selection
 
  First step is to check for stationarity using the Augmented Dickey-Fuller test. If the data is not stationary, we need to set the `d` parameter.
 
@@ -309,6 +309,8 @@ print(results.arparams)
 ![Lynx model fit]({{site.url}}/assets/tsa_lynx_arima.png)
 
 Exported notebook is [here](https://alexandrugris.ro/timeseries.html)
+
+A good introductory video [here](https://www.youtube.com/watch?v=xg2-9DhE5vc&list=PLvcbYUQ5t0UHOLnBzl46_Q6QKtFgfMGc3&index=18)
 
 
 
