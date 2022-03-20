@@ -1,9 +1,19 @@
 {
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     // for the documentation about the tasks.json format
-    "version": "0.1.0",
+    "version": "2.0.0",
     "command": "build_run.bat",
-    "isShellCommand": true,
     "args": [],
-    "showOutput": "always"
+    "tasks": [
+        {
+            "label": "build_run.bat",
+            "type": "shell",
+            "command": "build_run.bat",
+            "problemMatcher": [],
+            "group": {
+                "_id": "build",
+                "isDefault": false
+            }
+        }
+    ]
 }

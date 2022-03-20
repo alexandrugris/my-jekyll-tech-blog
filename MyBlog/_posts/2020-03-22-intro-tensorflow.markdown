@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Introduction to TensorFlow"
-date:   2021-12-22 09:15:16 +0200
+date:   2022-12-22 09:15:16 +0200
 categories: machine learning
 ---
 TensorFlow is a widely used machine learning library. Tensors are n-dimensional arrays of data and the TensorFlow library helps define computation graphs with them that can be submitted for execution to local CPUs, GPUs or remote clusters for big data processing. 

@@ -1,3 +1,4 @@
-MyBlog/./_site_release/
+MyBlog/_site_release/
+MyBlog/.jekyll-cache
 .DS_Store
 
